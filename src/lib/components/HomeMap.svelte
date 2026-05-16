@@ -12,6 +12,27 @@
 		onMarkerPositionsChange: () => void;
 	}
 
+	type FeatureGeometry =
+		| {
+				type: 'Polygon';
+				coordinates: number[][][];
+		  }
+		| {
+				type: 'MultiPolygon';
+				coordinates: number[][][][];
+		  };
+
+	type Feature = {
+		type: 'Feature';
+		properties: Record<string, unknown>;
+		geometry: FeatureGeometry;
+	};
+
+	type FeatureCollection = {
+		type: 'FeatureCollection';
+		features: Feature[];
+	};
+
 	type CameraOptions = {
 		center?: [number, number];
 		zoom?: number;
@@ -25,22 +46,190 @@
 	let maplibre: typeof import('maplibre-gl') | null = null;
 	let markersMap = new Map<string, { marker: unknown; el: HTMLElement }>();
 
-	const NZ_VISUAL_CENTER: [number, number] = [174.25, -41.15];
-	const MINIMAL_RASTER_STYLE = {
+	const WATER_COLOR = '#cfe9ff';
+	const LAND_COLOR = '#c7ffab';
+	const OUTLINE_COLOR = 'rgba(92, 126, 111, 0.2)';
+	const NZ_VISUAL_CENTER: [number, number] = [174.15, -41.2];
+
+	const NZ_BASE_FEATURES: Feature[] = [
+		{
+			type: 'Feature',
+			properties: { island: 'north' },
+			geometry: {
+				type: 'Polygon',
+				coordinates: [[
+					[174.32, -34.38],
+					[173.86, -34.78],
+					[173.4, -35.35],
+					[173.18, -35.96],
+					[173.23, -36.45],
+					[173.48, -37.02],
+					[173.88, -37.68],
+					[174.2, -38.28],
+					[174.42, -38.95],
+					[174.58, -39.55],
+					[174.8, -40.08],
+					[175.12, -40.55],
+					[175.48, -40.92],
+					[175.94, -41.2],
+					[176.28, -41.28],
+					[176.56, -40.92],
+					[176.86, -40.36],
+					[177.2, -39.72],
+					[177.48, -39.08],
+					[177.5, -38.58],
+					[177.18, -38.04],
+					[176.66, -37.7],
+					[176.02, -37.56],
+					[175.4, -37.44],
+					[174.96, -37.06],
+					[174.66, -36.58],
+					[174.38, -36.06],
+					[174.16, -35.52],
+					[174.08, -34.98],
+					[174.1, -34.58],
+					[174.32, -34.38]
+				]]
+			}
+		},
+		{
+			type: 'Feature',
+			properties: { island: 'south' },
+			geometry: {
+				type: 'Polygon',
+				coordinates: [[
+					[172.7, -40.48],
+					[173.28, -40.76],
+					[173.84, -41.26],
+					[174.26, -41.88],
+					[174.32, -42.42],
+					[174.02, -42.96],
+					[173.58, -43.46],
+					[173.18, -43.92],
+					[172.9, -44.42],
+					[172.32, -44.92],
+					[171.64, -45.34],
+					[170.94, -45.74],
+					[170.14, -46.06],
+					[169.38, -46.34],
+					[168.82, -46.3],
+					[168.28, -46.02],
+					[167.9, -45.52],
+					[167.78, -44.96],
+					[167.88, -44.36],
+					[168.14, -43.76],
+					[168.44, -43.16],
+					[168.78, -42.56],
+					[169.14, -42.08],
+					[169.66, -41.72],
+					[170.24, -41.42],
+					[170.92, -41.14],
+					[171.56, -40.82],
+					[172.08, -40.62],
+					[172.7, -40.48]
+				]]
+			}
+		},
+		{
+			type: 'Feature',
+			properties: { island: 'stewart' },
+			geometry: {
+				type: 'Polygon',
+				coordinates: [[
+					[167.86, -46.84],
+					[168.18, -46.78],
+					[168.34, -46.92],
+					[168.22, -47.08],
+					[167.96, -47.1],
+					[167.8, -46.98],
+					[167.86, -46.84]
+				]]
+			}
+		},
+		{
+			type: 'Feature',
+			properties: { island: 'chatham' },
+			geometry: {
+				type: 'Polygon',
+				coordinates: [[
+					[183.35, -43.9],
+					[183.62, -43.82],
+					[183.72, -43.98],
+					[183.48, -44.08],
+					[183.35, -43.9]
+				]]
+			}
+		}
+	];
+
+	function wrapFeature(feature: Feature, offset: number): Feature {
+		if (feature.geometry.type === 'Polygon') {
+			return {
+				...feature,
+				geometry: {
+					type: 'Polygon',
+					coordinates: feature.geometry.coordinates.map((ring) =>
+						ring.map(([lng, lat]) => [lng + offset, lat])
+					)
+				}
+			};
+		}
+
+		return {
+			...feature,
+			geometry: {
+				type: 'MultiPolygon',
+				coordinates: feature.geometry.coordinates.map((polygon) =>
+					polygon.map((ring) => ring.map(([lng, lat]) => [lng + offset, lat]))
+				)
+			}
+		};
+	}
+
+	function buildWrappedFeatureCollection(): FeatureCollection {
+		const offsets = [-360, 0, 360];
+		return {
+			type: 'FeatureCollection',
+			features: offsets.flatMap((offset) =>
+				NZ_BASE_FEATURES.map((feature) => wrapFeature(feature, offset))
+			)
+		};
+	}
+
+	const NZ_OUTLINE = buildWrappedFeatureCollection();
+
+	const LOCAL_STYLE = {
 		version: 8 as const,
 		sources: {
-			carto: {
-				type: 'raster' as const,
-				tiles: ['https://a.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}.png'],
-				tileSize: 256,
-				attribution: 'OpenStreetMap contributors'
+			nz: {
+				type: 'geojson' as const,
+				data: NZ_OUTLINE
 			}
 		},
 		layers: [
 			{
-				id: 'carto-base',
-				type: 'raster' as const,
-				source: 'carto'
+				id: 'water',
+				type: 'background' as const,
+				paint: {
+					'background-color': WATER_COLOR
+				}
+			},
+			{
+				id: 'land',
+				type: 'fill' as const,
+				source: 'nz',
+				paint: {
+					'fill-color': LAND_COLOR
+				}
+			},
+			{
+				id: 'land-outline',
+				type: 'line' as const,
+				source: 'nz',
+				paint: {
+					'line-color': OUTLINE_COLOR,
+					'line-width': 1.2
+				}
 			}
 		]
 	};
@@ -63,7 +252,7 @@
 				left: sidePadding
 			},
 			duration: 800,
-			maxZoom: isNational ? 5.15 : 8.6
+			maxZoom: isNational ? 5.4 : 8.6
 		};
 	}
 
@@ -156,7 +345,7 @@
 		if (camera) {
 			if (isNationalView(bbox)) {
 				camera.center = NZ_VISUAL_CENTER;
-				camera.zoom = Math.max((camera.zoom ?? 4.6) - 0.12, 4.2);
+				camera.zoom = Math.max((camera.zoom ?? 4.75) - 0.1, 4.25);
 			}
 
 			m.easeTo({
@@ -175,16 +364,15 @@
 
 		const m = new ml.Map({
 			container,
-			style: MINIMAL_RASTER_STYLE,
+			style: LOCAL_STYLE,
 			center: [173.3, -41.2],
-			zoom: 4.7,
-			renderWorldCopies: false,
+			zoom: 4.75,
+			renderWorldCopies: true,
 			dragRotate: false,
 			touchPitch: false,
 			attributionControl: false
 		});
 
-		m.addControl(new ml.AttributionControl({ compact: true }), 'bottom-left');
 		m.addControl(
 			new ml.NavigationControl({ visualizePitch: false, showCompass: false }),
 			'bottom-right'
@@ -228,22 +416,20 @@
 		height: 100%;
 		position: relative;
 		background:
-			radial-gradient(circle at top, rgba(255, 255, 255, 0.42), transparent 34%),
+			radial-gradient(circle at top, rgba(255, 255, 255, 0.34), transparent 34%),
 			linear-gradient(180deg, #def3ff 0%, #cfe9ff 100%);
 	}
 
 	.map-container {
 		width: 100%;
 		height: 100%;
-		filter: saturate(0.72) brightness(1.08) contrast(0.92);
 	}
 
 	:global(.map-container .maplibregl-canvas) {
 		filter: none;
 	}
 
-	:global(.map-container .maplibregl-ctrl-bottom-right),
-	:global(.map-container .maplibregl-ctrl-bottom-left) {
+	:global(.map-container .maplibregl-ctrl-bottom-right) {
 		margin: 0 18px 18px;
 	}
 
@@ -261,11 +447,5 @@
 
 	:global(.map-container .maplibregl-ctrl button .maplibregl-ctrl-icon) {
 		opacity: 0.78;
-	}
-
-	:global(.map-container .maplibregl-ctrl-attrib) {
-		background: rgba(255, 255, 255, 0.74);
-		border-radius: 12px;
-		color: rgba(61, 89, 97, 0.72);
 	}
 </style>
