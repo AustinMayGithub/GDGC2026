@@ -24,6 +24,8 @@
 	const HEADER_HEIGHT = 720;
 	const MAX_FILE_BYTES = 8 * 1024 * 1024;
 	const JPEG_QUALITY = 0.86;
+	const MIN_ZOOM = 1;
+	const MAX_ZOOM = 3;
 
 	let { disabled = false, onimagechange, onimageschange, maxImages = 6 }: Props = $props();
 
@@ -38,6 +40,10 @@
 	let dragStartY = 0;
 	let dragStartCropX = 50;
 	let dragStartCropY = 50;
+	let activePointers = new Map<number, { x: number; y: number }>();
+	let pinchStartDistance = 0;
+	let pinchStartZoom = 1;
+	let pinching = false;
 
 	const hasImage = $derived(images.length > 0);
 	const activeImage = $derived(images.find((image) => image.id === activeId) ?? null);
@@ -71,6 +77,16 @@
 
 	function clampCrop(value: number) {
 		return Math.min(100, Math.max(0, value));
+	}
+
+	function clampZoom(value: number) {
+		return Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, value));
+	}
+
+	function pointerDistance() {
+		const points = [...activePointers.values()];
+		if (points.length < 2) return 0;
+		return Math.hypot(points[0].x - points[1].x, points[0].y - points[1].y);
 	}
 
 	function validateFile(file: File) {
@@ -211,6 +227,18 @@
 	function handleCropPointerDown(event: PointerEvent) {
 		if (disabled || !activeImage) return;
 		const target = event.currentTarget as HTMLElement;
+		activePointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+		target.setPointerCapture(event.pointerId);
+
+		if (activePointers.size >= 2) {
+			dragging = false;
+			dragPointerId = null;
+			pinching = true;
+			pinchStartDistance = pointerDistance();
+			pinchStartZoom = activeImage.zoom;
+			return;
+		}
+
 		const { movableX, movableY } = previewMetrics(target.getBoundingClientRect(), activeImage);
 		if (movableX === 0 && movableY === 0) return;
 
@@ -220,11 +248,24 @@
 		dragStartY = event.clientY;
 		dragStartCropX = activeImage.cropX;
 		dragStartCropY = activeImage.cropY;
-		target.setPointerCapture(event.pointerId);
 	}
 
 	function handleCropPointerMove(event: PointerEvent) {
-		if (!dragging || dragPointerId !== event.pointerId || !activeImage) return;
+		if (activePointers.has(event.pointerId)) {
+			activePointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+		}
+		if (!activeImage) return;
+
+		if (pinching && activePointers.size >= 2 && pinchStartDistance > 0) {
+			event.preventDefault();
+			const distance = pointerDistance();
+			updateImage(activeImage.id, {
+				zoom: clampZoom(pinchStartZoom * (distance / pinchStartDistance))
+			});
+			return;
+		}
+
+		if (!dragging || dragPointerId !== event.pointerId) return;
 		const target = event.currentTarget as HTMLElement;
 		const { movableX, movableY } = previewMetrics(target.getBoundingClientRect(), activeImage);
 		const dx = event.clientX - dragStartX;
@@ -237,11 +278,28 @@
 	}
 
 	function endCropDrag(event: PointerEvent) {
-		if (dragPointerId !== event.pointerId) return;
 		const target = event.currentTarget as HTMLElement;
-		dragging = false;
-		dragPointerId = null;
+		activePointers.delete(event.pointerId);
 		if (target.hasPointerCapture(event.pointerId)) target.releasePointerCapture(event.pointerId);
+
+		if (pinching && activePointers.size === 1 && activeImage) {
+			const [remainingPointerId, point] = [...activePointers.entries()][0];
+			pinching = false;
+			dragging = true;
+			dragPointerId = remainingPointerId;
+			dragStartX = point.x;
+			dragStartY = point.y;
+			dragStartCropX = activeImage.cropX;
+			dragStartCropY = activeImage.cropY;
+			return;
+		}
+
+		if (dragPointerId === event.pointerId || activePointers.size === 0) {
+			dragging = false;
+			dragPointerId = null;
+			pinching = false;
+			pinchStartDistance = 0;
+		}
 	}
 
 	function handleCropKeydown(event: KeyboardEvent) {
@@ -255,9 +313,23 @@
 		event.preventDefault();
 	}
 
-	function handleZoomInput(event: Event) {
+	function handleCropWheel(event: WheelEvent) {
 		if (!activeImage) return;
-		updateImage(activeImage.id, { zoom: Number((event.currentTarget as HTMLInputElement).value) });
+		event.preventDefault();
+		const step = event.deltaY > 0 ? -0.08 : 0.08;
+		updateImage(activeImage.id, { zoom: clampZoom(activeImage.zoom + step) });
+	}
+
+	function moveImage(id: string, direction: -1 | 1) {
+		const index = images.findIndex((image) => image.id === id);
+		const nextIndex = index + direction;
+		if (disabled || index < 0 || nextIndex < 0 || nextIndex >= images.length) return;
+		const nextImages = [...images];
+		const [movedImage] = nextImages.splice(index, 1);
+		nextImages.splice(nextIndex, 0, movedImage);
+		images = nextImages;
+		activeId = id;
+		emitImages(nextImages);
 	}
 
 	function removeImage(id: string) {
@@ -277,6 +349,9 @@
 		error = '';
 		dragging = false;
 		dragPointerId = null;
+		activePointers = new Map();
+		pinching = false;
+		pinchStartDistance = 0;
 		if (fileInput) fileInput.value = '';
 		emitImages([]);
 	}
@@ -324,6 +399,7 @@
 					onpointerup={endCropDrag}
 					onpointercancel={endCropDrag}
 					onkeydown={handleCropKeydown}
+					onwheel={handleCropWheel}
 				>
 					<img src={activeImage.sourceUrl} alt="" style={previewImageStyle(activeImage)} draggable="false" />
 					<div class="crop-grid" aria-hidden="true"></div>
@@ -333,36 +409,46 @@
 			{#if images.length > 1}
 				<div class="thumb-strip" aria-label="Selected images">
 					{#each images as image, index (image.id)}
-						<button
-							type="button"
-							class="thumb"
-							class:active={image.id === activeImage.id}
-							onclick={() => (activeId = image.id)}
-							disabled={disabled}
-							aria-label={`Edit image ${index + 1}`}
-						>
-							<img src={image.dataUrl ?? image.sourceUrl} alt="" />
-							<span>{index + 1}</span>
-						</button>
+						<div class="thumb-cell">
+							<button
+								type="button"
+								class="thumb"
+								class:active={image.id === activeImage.id}
+								onclick={() => (activeId = image.id)}
+								disabled={disabled}
+								aria-label={`Edit image ${index + 1}`}
+							>
+								<img src={image.dataUrl ?? image.sourceUrl} alt="" />
+								<span>{index + 1}</span>
+							</button>
+							{#if image.id === activeImage.id}
+								<div class="thumb-actions">
+									<button
+										type="button"
+										disabled={disabled || index === 0}
+										aria-label={`Move image ${index + 1} earlier`}
+										onclick={() => moveImage(image.id, -1)}
+									>
+										&lt;
+									</button>
+									<button
+										type="button"
+										disabled={disabled || index === images.length - 1}
+										aria-label={`Move image ${index + 1} later`}
+										onclick={() => moveImage(image.id, 1)}
+									>
+										&gt;
+									</button>
+								</div>
+							{/if}
+						</div>
 					{/each}
 				</div>
 			{/if}
 
 			<div class="crop-controls">
-				<label>
-					<span>Zoom</span>
-					<input
-						type="range"
-						min="1"
-						max="3"
-						step="0.01"
-						value={activeImage.zoom}
-						disabled={disabled}
-						oninput={handleZoomInput}
-					/>
-				</label>
 				<div class="crop-actions">
-					<p class="crop-hint muted">Drag to reposition. Use arrow keys for fine adjustment.</p>
+					<p class="crop-hint muted">Drag to reposition. Scroll or pinch to zoom. Use arrows for fine adjustment.</p>
 					<button type="button" class="remove-image-btn" disabled={disabled} onclick={() => removeImage(activeImage.id)}>
 						Remove image
 					</button>
@@ -489,15 +575,22 @@
 	.thumb-strip {
 		display: grid;
 		grid-auto-flow: column;
-		grid-auto-columns: 72px;
+		grid-auto-columns: 76px;
 		gap: 8px;
 		overflow-x: auto;
 		padding-bottom: 2px;
 	}
 
+	.thumb-cell {
+		display: grid;
+		gap: 5px;
+		min-width: 0;
+	}
+
 	.thumb {
 		position: relative;
 		aspect-ratio: 20 / 9;
+		width: 100%;
 		padding: 0;
 		border: 2px solid transparent;
 		border-radius: var(--radius-sm);
@@ -532,24 +625,32 @@
 		font-weight: 800;
 	}
 
-	.crop-controls {
+	.thumb-actions {
 		display: grid;
-		gap: 10px;
+		grid-template-columns: 1fr 1fr;
+		gap: 4px;
 	}
 
-	.crop-controls label {
-		display: grid;
-		grid-template-columns: 120px minmax(0, 1fr);
-		align-items: center;
-		gap: 12px;
-		font-size: 12px;
-		font-weight: 650;
+	.thumb-actions button {
+		height: 22px;
+		padding: 0;
+		border: 1px solid var(--border);
+		border-radius: var(--radius-sm);
+		background: var(--surface);
 		color: var(--text-2);
+		font-size: 12px;
+		font-weight: 800;
+		line-height: 1;
 	}
 
-	.crop-controls input {
-		width: 100%;
-		accent-color: var(--accent);
+	.thumb-actions button:hover:not(:disabled) {
+		border-color: var(--accent);
+		color: var(--accent);
+	}
+
+	.thumb-actions button:disabled {
+		opacity: 0.38;
+		cursor: not-allowed;
 	}
 
 	.crop-actions {
@@ -575,11 +676,6 @@
 	}
 
 	@media (max-width: 560px) {
-		.crop-controls label {
-			grid-template-columns: 1fr;
-			align-items: stretch;
-		}
-
 		.crop-actions {
 			flex-direction: column;
 		}
