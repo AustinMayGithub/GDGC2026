@@ -1,12 +1,15 @@
 ﻿<script lang="ts">
-	import { onDestroy, onMount } from 'svelte';
+	import { onDestroy, onMount, tick } from 'svelte';
+	import { fly } from 'svelte/transition';
 	import { goto } from '$app/navigation';
 	import UserMenu from '$lib/components/UserMenu.svelte';
 	import HomeMap from '$lib/components/HomeMap.svelte';
 	import HeadlineList from '$lib/components/HeadlineList.svelte';
 	import ConnectorLines from '$lib/components/ConnectorLines.svelte';
 	import TrendingDropdown from '$lib/components/TrendingDropdown.svelte';
-	import type { SessionUser, PostSummary } from '$lib/types';
+	import CategoryPicker from '$lib/components/CategoryPicker.svelte';
+	import HeaderImageCropper from '$lib/components/HeaderImageCropper.svelte';
+	import type { SessionUser, PostSummary, PostCategory } from '$lib/types';
 	import { NZ_BBOX, NZ_REGIONS, regionForPoint } from '$lib/data/nz-regions';
 	import logo from '$lib/data/birdseye.png';
 
@@ -72,6 +75,17 @@
 	let geoRequestId = 0;
 	let stablePostIds = $state<Set<string>>(new Set());
 	let viewportRerankTimer: ReturnType<typeof setTimeout> | null = null;
+	let composing = $state(false);
+	let composeTitle = $state('');
+	let composeBody = $state('');
+	let composeHeaderImageDataUrl = $state<string | null>(null);
+	let composeCategory = $state<PostCategory | null>(null);
+	let composeLng = $state(174.76);
+	let composeLat = $state(-36.85);
+	let composeRadiusM = $state(2000);
+	let composeAnonymous = $state(false);
+	let composeSubmitting = $state(false);
+	let composeError = $state('');
 
 	function clamp(min: number, value: number, max: number) {
 		return Math.min(Math.max(value, min), max);
@@ -245,7 +259,16 @@
 	);
 	const hiddenPostCount = $derived(Math.max(feedCapacity - visiblePosts.length, 0));
 	const scrollSpacerHeight = $derived(
-		hiddenPostCount === 0 ? 0 : Math.ceil(hiddenPostCount / POSTS_PER_SCROLL_STEP) * SCROLL_STEP_PX
+		composing || hiddenPostCount === 0
+			? 0
+			: Math.ceil(hiddenPostCount / POSTS_PER_SCROLL_STEP) * SCROLL_STEP_PX
+	);
+	const canSubmitPost = $derived(
+		Boolean(data.user) &&
+			composeTitle.trim().length >= 4 &&
+			composeBody.trim().length >= 10 &&
+			composeCategory !== null &&
+			!composeSubmitting
 	);
 
 	function resetFeedVisibility() {
@@ -402,6 +425,90 @@
 		redrawTrigger++;
 	}
 
+	function formatRadius(m: number): string {
+		if (m >= 1000) return `${(m / 1000).toFixed(m >= 10000 ? 0 : 1)} km`;
+		return `${m} m`;
+	}
+
+	async function resizeMapAfterLayout() {
+		await tick();
+		mapComponent?.triggerResize();
+		setTimeout(() => mapComponent?.triggerResize(), 320);
+	}
+
+	function openCompose() {
+		const viewport = mapComponent?.getViewportState();
+		if (viewport) {
+			composeLng = viewport.centerLng;
+			composeLat = viewport.centerLat;
+		}
+		clearSelectedPost();
+		scrollHost?.scrollTo({ top: 0, behavior: 'auto' });
+		composing = true;
+		void resizeMapAfterLayout();
+	}
+
+	function closeCompose() {
+		composing = false;
+		composeError = '';
+		scrollHost?.scrollTo({ top: 0, behavior: 'auto' });
+		void resizeMapAfterLayout();
+	}
+
+	function handleComposePick(newLng: number, newLat: number) {
+		composeLng = newLng;
+		composeLat = newLat;
+	}
+
+	function handleRadiusInput(e: Event) {
+		composeRadiusM = Number((e.currentTarget as HTMLInputElement).value);
+	}
+
+	function handleComposeCategory(cat: PostCategory) {
+		composeCategory = cat;
+	}
+
+	function handleHeaderImage(dataUrl: string | null) {
+		composeHeaderImageDataUrl = dataUrl;
+	}
+
+	async function handleComposeSubmit(e: SubmitEvent) {
+		e.preventDefault();
+		if (!canSubmitPost || composeCategory === null) return;
+
+		composeSubmitting = true;
+		composeError = '';
+
+		try {
+			const res = await fetch('/api/posts', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					title: composeTitle.trim(),
+					body: composeBody.trim(),
+					headerImageDataUrl: composeHeaderImageDataUrl,
+					category: composeCategory,
+					anonymous: composeAnonymous,
+					lng: composeLng,
+					lat: composeLat,
+					impactRadiusM: composeRadiusM
+				})
+			});
+
+			const json = await res.json().catch(() => ({}));
+			if (!res.ok) {
+				composeError = json.message ?? 'Failed to create post. Please try again.';
+				return;
+			}
+
+			await goto(`/post/${json.id}`);
+		} catch {
+			composeError = 'Network error. Please check your connection and try again.';
+		} finally {
+			composeSubmitting = false;
+		}
+	}
+
 	onMount(() => {
 		const syncViewport = () => {
 			viewportWidth = window.innerWidth;
@@ -434,7 +541,7 @@
 	});
 </script>
 
-<div class="page">
+<div class="page" class:composing>
 	<header class="header card">
 		<div
 			class="logo"
@@ -493,12 +600,12 @@
 		</div>
 
 		<div class="header-right">
-			<a href="/compose" class="btn btn-primary new-post-btn">
+			<button type="button" class="btn btn-primary new-post-btn" onclick={openCompose}>
 				<svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
 					<path d="M8 1v14M1 8h14" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
 				</svg>
 				New post
-			</a>
+			</button>
 			<UserMenu user={data.user} />
 		</div>
 	</header>
@@ -519,28 +626,35 @@
 				onMapReady={handleMapReady}
 				onMarkerPositionsChange={handleMarkerPositionsChange}
 				onSelectPost={handleSelectPost}
+				{composing}
+				{composeLng}
+				{composeLat}
+				composeRadiusM={composeRadiusM}
+				onComposePick={handleComposePick}
 			/>
 
-			<div class="trending-overlay">
-				<TrendingDropdown posts={visiblePosts} {scope} />
-			</div>
+			{#if !composing}
+				<div class="trending-overlay">
+					<TrendingDropdown posts={visiblePosts} {scope} />
+				</div>
 
-			<HeadlineList
-				posts={selectedPosts}
-				{hoveredPostId}
-				onHover={(id) => {
-					hoveredPostId = id;
-					redrawTrigger++;
-				}}
-				{listItemEls}
-			/>
+				<HeadlineList
+					posts={selectedPosts}
+					{hoveredPostId}
+					onHover={(id) => {
+						hoveredPostId = id;
+						redrawTrigger++;
+					}}
+					{listItemEls}
+				/>
+			{/if}
 
-			{#if rankedPosts.length === 0 && !loading}
+			{#if rankedPosts.length === 0 && !loading && !composing}
 				<div class="empty-state card">
 					<div class="empty-icon">📍</div>
 					<h2 class="empty-title">No posts here yet</h2>
 					<p class="muted empty-body">Be the first to share what's happening in your community.</p>
-					<a href="/compose" class="btn btn-primary">Create a post</a>
+					<button type="button" class="btn btn-primary" onclick={openCompose}>Create a post</button>
 				</div>
 			{/if}
 
@@ -554,9 +668,125 @@
 			{/if}
 		</div>
 		<div class="feed-scroll-space" aria-hidden="true" style={`height: ${scrollSpacerHeight}px;`}></div>
+
+		{#if composing}
+			<aside class="compose-panel card" transition:fly={{ x: 80, duration: 260 }}>
+				{#if !data.user}
+					<div class="compose-gate">
+						<div>
+							<h1 class="compose-title">Share something with your community</h1>
+							<p class="muted compose-sub">You need to sign in before creating a post.</p>
+						</div>
+						<a class="btn btn-primary" href="/auth/login">Sign in to post</a>
+						<button type="button" class="btn" onclick={closeCompose}>Back to map</button>
+					</div>
+				{:else}
+					<form class="compose-form" onsubmit={handleComposeSubmit}>
+						<div class="compose-top">
+							<div>
+								<h1 class="compose-title">New post</h1>
+								<p class="muted compose-sub">Click the map to place the pin and set the affected area.</p>
+							</div>
+							<button type="button" class="close-btn" aria-label="Close new post" onclick={closeCompose}>
+								<svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+									<path d="M3 3l10 10M13 3L3 13" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+								</svg>
+							</button>
+						</div>
+
+						<div class="field">
+							<span class="field-label">Header image</span>
+							<HeaderImageCropper disabled={composeSubmitting} onimagechange={handleHeaderImage} />
+							<span class="field-hint muted">Optional. Cropped wide for the post header.</span>
+						</div>
+
+						<div class="field">
+							<label class="field-label" for="post-title">Title</label>
+							<input
+								id="post-title"
+								class="input"
+								type="text"
+								placeholder="What happened? Keep it brief."
+								bind:value={composeTitle}
+								maxlength={140}
+								disabled={composeSubmitting}
+								required
+							/>
+							<span class="field-hint muted">{composeTitle.length}/140</span>
+						</div>
+
+						<div class="field">
+							<label class="field-label" for="post-body">Details</label>
+							<textarea
+								id="post-body"
+								class="input body-input"
+								placeholder="Describe what you saw or want to share..."
+								bind:value={composeBody}
+								rows={7}
+								disabled={composeSubmitting}
+								required
+							></textarea>
+						</div>
+
+						<div class="field">
+							<span class="field-label">Category</span>
+							<CategoryPicker value={composeCategory} onchange={handleComposeCategory} />
+						</div>
+
+						<label class="anon-row">
+							<input
+								type="checkbox"
+								bind:checked={composeAnonymous}
+								disabled={composeSubmitting}
+								class="anon-check"
+							/>
+							<span class="anon-text">
+								Post anonymously
+								<span class="field-hint muted">your name will not be shown publicly</span>
+							</span>
+						</label>
+
+						<div class="location-panel">
+							<div class="radius-label-row">
+								<label class="field-label" for="radius-slider">Affected location</label>
+								<span class="radius-value">{formatRadius(composeRadiusM)}</span>
+							</div>
+							<input
+								id="radius-slider"
+								type="range"
+								class="radius-slider"
+								min={100}
+								max={50000}
+								step={100}
+								value={composeRadiusM}
+								oninput={handleRadiusInput}
+							/>
+							<div class="radius-hints muted">
+								<span>100 m</span>
+								<span>50 km</span>
+							</div>
+							<div class="coords-row muted">
+								<span>{composeLat.toFixed(4)}°, {composeLng.toFixed(4)}°</span>
+							</div>
+						</div>
+
+						{#if composeError}
+							<p class="error-text error-msg">{composeError}</p>
+						{/if}
+
+						<div class="submit-row">
+							<button type="submit" class="btn btn-primary submit-btn" disabled={!canSubmitPost}>
+								{composeSubmitting ? 'Posting...' : 'Publish post'}
+							</button>
+							<button type="button" class="btn cancel-btn" onclick={closeCompose}>Cancel</button>
+						</div>
+					</form>
+				{/if}
+			</aside>
+		{/if}
 	</main>
 
-	{#if mapReady}
+	{#if mapReady && !composing}
 		<ConnectorLines
 			posts={selectedPosts}
 			{hoveredPostId}
@@ -723,6 +953,11 @@
 		position: relative;
 	}
 
+	.page.composing .main {
+		display: flex;
+		overflow: hidden;
+	}
+
 	.map-area {
 		position: sticky;
 		top: 0;
@@ -730,8 +965,19 @@
 		height: 100vh;
 	}
 
+	.page.composing .map-area {
+		position: relative;
+		flex: 0 0 42%;
+		min-width: 360px;
+		height: 100vh;
+	}
+
 	.feed-scroll-space {
 		width: 100%;
+	}
+
+	.page.composing .feed-scroll-space {
+		display: none;
 	}
 
 	.map-loading {
@@ -815,6 +1061,178 @@
 		background: rgba(255, 255, 255, 0.94);
 	}
 
+	.compose-panel {
+		position: relative;
+		z-index: 18;
+		flex: 1 1 58%;
+		min-width: 0;
+		height: calc(100vh - 112px);
+		margin: 94px 20px 18px 0;
+		padding: 24px;
+		overflow-y: auto;
+		background: rgba(255, 255, 255, 0.94);
+		backdrop-filter: blur(18px);
+		box-shadow: -18px 0 44px rgba(15, 23, 42, 0.1);
+	}
+
+	.compose-form,
+	.compose-gate {
+		display: flex;
+		flex-direction: column;
+		gap: 20px;
+		max-width: 760px;
+		margin: 0 auto;
+	}
+
+	.compose-gate {
+		min-height: 360px;
+		justify-content: center;
+		align-items: flex-start;
+	}
+
+	.compose-top {
+		display: flex;
+		align-items: flex-start;
+		justify-content: space-between;
+		gap: 16px;
+	}
+
+	.compose-title {
+		font-size: 26px;
+		font-weight: 800;
+		letter-spacing: -0.01em;
+	}
+
+	.compose-sub {
+		margin: 4px 0 0;
+		font-size: 14px;
+	}
+
+	.close-btn {
+		width: 34px;
+		height: 34px;
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		border-radius: var(--radius-sm);
+		border: 1px solid var(--border);
+		background: var(--surface);
+		color: var(--text-2);
+		flex-shrink: 0;
+	}
+
+	.close-btn:hover {
+		color: var(--text);
+		box-shadow: var(--shadow-sm);
+	}
+
+	.field {
+		display: flex;
+		flex-direction: column;
+		gap: 6px;
+	}
+
+	.field-label {
+		font-size: 12px;
+		font-weight: 700;
+		color: var(--text-2);
+		text-transform: uppercase;
+		letter-spacing: 0.05em;
+	}
+
+	.field-hint {
+		font-size: 11px;
+	}
+
+	.body-input {
+		min-height: 168px;
+		resize: vertical;
+	}
+
+	.anon-row {
+		display: flex;
+		align-items: center;
+		gap: 10px;
+		cursor: pointer;
+		font-size: 14px;
+		font-weight: 550;
+	}
+
+	.anon-check {
+		width: 16px;
+		height: 16px;
+		flex-shrink: 0;
+		accent-color: var(--accent);
+	}
+
+	.anon-text {
+		display: flex;
+		align-items: baseline;
+		gap: 8px;
+		flex-wrap: wrap;
+	}
+
+	.location-panel {
+		display: flex;
+		flex-direction: column;
+		gap: 9px;
+		padding: 14px;
+		border: 1px solid var(--border);
+		border-radius: var(--radius);
+		background: var(--surface-2);
+	}
+
+	.radius-label-row,
+	.radius-hints {
+		display: flex;
+		justify-content: space-between;
+		align-items: baseline;
+		gap: 12px;
+	}
+
+	.radius-value {
+		font-size: 16px;
+		font-weight: 800;
+		color: #92400e;
+	}
+
+	.radius-slider {
+		width: 100%;
+		accent-color: #d97706;
+		cursor: pointer;
+	}
+
+	.radius-hints,
+	.coords-row {
+		font-size: 11px;
+	}
+
+	.coords-row {
+		font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+	}
+
+	.error-msg {
+		margin: 0;
+		font-size: 13px;
+	}
+
+	.submit-row {
+		display: flex;
+		align-items: center;
+		gap: 10px;
+		padding-bottom: 4px;
+	}
+
+	.submit-btn {
+		flex: 1;
+		padding: 12px 16px;
+		font-weight: 750;
+	}
+
+	.cancel-btn {
+		padding: 12px 18px;
+	}
+
 	@media (max-width: 980px) {
 		.header {
 			top: 12px;
@@ -840,6 +1258,23 @@
 		.error-banner {
 			width: calc(100vw - 24px);
 		}
+
+		.page.composing .main {
+			display: block;
+			overflow-y: auto;
+		}
+
+		.page.composing .map-area {
+			min-width: 0;
+			width: 100%;
+			height: 42vh;
+		}
+
+		.compose-panel {
+			margin: 0 12px 16px;
+			height: auto;
+			min-height: calc(58vh - 16px);
+		}
 	}
 
 	@media (max-width: 820px) {
@@ -857,6 +1292,15 @@
 		.header-right {
 			width: 100%;
 			justify-content: space-between;
+		}
+
+		.compose-panel {
+			padding: 18px;
+		}
+
+		.submit-row {
+			flex-direction: column;
+			align-items: stretch;
 		}
 	}
 </style>

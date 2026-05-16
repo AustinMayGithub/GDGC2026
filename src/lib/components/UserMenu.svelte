@@ -28,6 +28,9 @@
 				<a class="menu-link" href="/profile/{user.id}" onclick={() => (open = false)}>
 					My profile
 				</a>
+				<a class="menu-link" href="/profile/{user.id}#posts" onclick={() => (open = false)}>
+					My posts
+				</a>
 				<form method="POST" action="/auth/logout">
 					<button class="signout" type="submit">Sign out</button>
 				</form>

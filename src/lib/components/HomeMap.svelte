@@ -12,6 +12,11 @@
 		onMapReady: (map: unknown) => void;
 		onMarkerPositionsChange: () => void;
 		onSelectPost: (id: string | null) => void;
+		composing?: boolean;
+		composeLng?: number;
+		composeLat?: number;
+		composeRadiusM?: number;
+		onComposePick?: (lng: number, lat: number) => void;
 	}
 
 	type CameraOptions = {
@@ -33,7 +38,12 @@
 		selectedPostId,
 		onMapReady,
 		onMarkerPositionsChange,
-		onSelectPost
+		onSelectPost,
+		composing = false,
+		composeLng = 174.76,
+		composeLat = -36.85,
+		composeRadiusM = 2000,
+		onComposePick
 	}: Props = $props();
 
 	let container: HTMLDivElement;
@@ -229,6 +239,28 @@
 		};
 	}
 
+	function composeRadiusFeatures(): GeoJSON.FeatureCollection<GeoJSON.Polygon> {
+		return {
+			type: 'FeatureCollection',
+			features: composing ? [buildCircle(composeLng, composeLat, composeRadiusM)] : []
+		};
+	}
+
+	function composePinFeatures(): GeoJSON.FeatureCollection<GeoJSON.Point> {
+		return {
+			type: 'FeatureCollection',
+			features: composing
+				? [
+						{
+							type: 'Feature',
+							geometry: { type: 'Point', coordinates: [composeLng, composeLat] },
+							properties: {}
+						}
+					]
+				: []
+		};
+	}
+
 	function syncPostLayers() {
 		if (!map || !maplibre) return;
 		const ml = maplibre as typeof import('maplibre-gl');
@@ -237,9 +269,17 @@
 		const radiusSource = m.getSource('selected-radius') as
 			| import('maplibre-gl').GeoJSONSource
 			| undefined;
+		const composeRadiusSource = m.getSource('compose-radius') as
+			| import('maplibre-gl').GeoJSONSource
+			| undefined;
+		const composePinSource = m.getSource('compose-pin') as
+			| import('maplibre-gl').GeoJSONSource
+			| undefined;
 
 		postSource?.setData(postsToFeatures());
 		radiusSource?.setData(selectedRadiusFeatures());
+		composeRadiusSource?.setData(composeRadiusFeatures());
+		composePinSource?.setData(composePinFeatures());
 	}
 
 	function fitToPostRadius(post: PostSummary) {
@@ -352,6 +392,13 @@
 		onMarkerPositionsChange();
 	}
 
+	export function triggerResize() {
+		if (!map || !maplibre) return;
+		const ml = maplibre as typeof import('maplibre-gl');
+		(map as InstanceType<typeof ml.Map>).resize();
+		onMarkerPositionsChange();
+	}
+
 	onMount(async () => {
 		maplibre = (await import('maplibre-gl')) as typeof import('maplibre-gl');
 		const ml = maplibre as typeof import('maplibre-gl');
@@ -389,6 +436,24 @@
 				source: 'selected-radius',
 				paint: { 'line-color': '#4f46e5', 'line-width': 2.4, 'line-opacity': 0.78 }
 			});
+			m.addSource('compose-radius', { type: 'geojson', data: EMPTY_FEATURES });
+			m.addLayer({
+				id: 'compose-radius-fill',
+				type: 'fill',
+				source: 'compose-radius',
+				paint: { 'fill-color': '#f59e0b', 'fill-opacity': 0.16 }
+			});
+			m.addLayer({
+				id: 'compose-radius-line',
+				type: 'line',
+				source: 'compose-radius',
+				paint: {
+					'line-color': '#d97706',
+					'line-width': 2.2,
+					'line-opacity': 0.82,
+					'line-dasharray': [2, 1.4]
+				}
+			});
 			m.addSource('posts', { type: 'geojson', data: postsToFeatures() });
 			m.addLayer({
 				id: 'post-point',
@@ -419,6 +484,29 @@
 					]
 				}
 			});
+			m.addSource('compose-pin', { type: 'geojson', data: EMPTY_FEATURES });
+			m.addLayer({
+				id: 'compose-pin-halo',
+				type: 'circle',
+				source: 'compose-pin',
+				paint: {
+					'circle-radius': 15,
+					'circle-color': '#fbbf24',
+					'circle-opacity': 0.22
+				}
+			});
+			m.addLayer({
+				id: 'compose-pin',
+				type: 'circle',
+				source: 'compose-pin',
+				paint: {
+					'circle-radius': 7,
+					'circle-color': '#f59e0b',
+					'circle-opacity': 0.98,
+					'circle-stroke-color': '#ffffff',
+					'circle-stroke-width': 3
+				}
+			});
 
 			fitToBbox(NZ_BBOX);
 			syncPostLayers();
@@ -426,6 +514,7 @@
 			onMapReady(m);
 
 			m.on('click', 'post-point', (e) => {
+				if (composing) return;
 				const id = e.features?.[0]?.properties?.id as string | undefined;
 				const post = posts.find((item) => item.id === id);
 				if (!post) return;
@@ -434,16 +523,20 @@
 			});
 
 			m.on('click', (e) => {
+				if (composing) {
+					onComposePick?.(e.lngLat.lng, e.lngLat.lat);
+					return;
+				}
 				const features = m.queryRenderedFeatures(e.point, { layers: ['post-point'] });
 				if (features.length === 0) onSelectPost(null);
 			});
 
 			m.on('mouseenter', 'post-point', () => {
-				m.getCanvas().style.cursor = 'pointer';
+				m.getCanvas().style.cursor = composing ? 'crosshair' : 'pointer';
 			});
 
 			m.on('mouseleave', 'post-point', () => {
-				m.getCanvas().style.cursor = '';
+				m.getCanvas().style.cursor = composing ? 'crosshair' : '';
 			});
 		});
 
@@ -463,7 +556,15 @@
 		posts;
 		hoveredPostId;
 		selectedPostId;
+		composing;
+		composeLng;
+		composeLat;
+		composeRadiusM;
 		syncPostLayers();
+		if (map && maplibre) {
+			const ml = maplibre as typeof import('maplibre-gl');
+			(map as InstanceType<typeof ml.Map>).getCanvas().style.cursor = composing ? 'crosshair' : '';
+		}
 	});
 </script>
 

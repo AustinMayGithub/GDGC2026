@@ -62,6 +62,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 	const lng = Number(data.lng);
 	const lat = Number(data.lat);
 	const impactRadiusM = Math.round(Number(data.impactRadiusM));
+	const anonymous = data.anonymous === true;
 
 	if (title.length < 4 || title.length > 140)
 		throw error(400, 'Title must be 4–140 characters.');
@@ -93,6 +94,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 			body,
 			headerImageDataUrl,
 			category,
+			anonymous,
 			lng: postLocation.lng,
 			lat: postLocation.lat,
 			impactRadiusM,

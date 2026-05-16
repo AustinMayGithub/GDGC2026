@@ -71,6 +71,7 @@ export const posts = pgTable(
 		lat: doublePrecision('lat').notNull(),
 		impactRadiusM: integer('impact_radius_m').notNull(),
 		regionId: text('region_id').notNull(),
+		anonymous: boolean('anonymous').notNull().default(false),
 		createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow()
 	},
 	(t) => ({

@@ -28,6 +28,7 @@ export interface PostSummary {
 	verifyCount: number;
 	disputeCount: number;
 	hasImage: boolean;
+	anonymous: boolean;
 }
 
 export interface UserProfile {
@@ -61,6 +62,7 @@ export interface PostDetail extends PostSummary {
 	/** The viewer's current vote, if signed in and voted. */
 	myVote: VoteValue | null;
 	reactions: ReactionTally[];
+	isOwn: boolean;
 }
 
 export interface ReactionTally {
