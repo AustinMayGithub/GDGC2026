@@ -35,9 +35,13 @@
 
 	const DEFAULT_REGION_ID = 'auckland';
 	const REGION_CACHE_KEY = 'birdseye:local-region';
-	const GEO_MAX_AGE_MS = 10 * 60 * 1000;
+	const GEO_MAX_AGE_MS = 15 * 60 * 1000;
+	const GEO_TIMEOUT_MS = 900;
 	const LOCAL_FOCUS_RADIUS_KM = 5;
+	const LOCAL_TRENDING_RADIUS_KM = 10;
 	const LOCAL_AUTO_NATIONAL_ZOOM = 6.4;
+	const LOCAL_AUTO_NATIONAL_GRACE_MS = 1400;
+	const LOCAL_ZOOM_OUT_EPSILON = 0.05;
 	const orderedRegions = [
 		...NZ_REGIONS.filter((region) => region.id === DEFAULT_REGION_ID),
 		...NZ_REGIONS.filter((region) => region.id !== DEFAULT_REGION_ID)
@@ -51,6 +55,9 @@
 	let selectedPostId = $state<string | null>(null);
 
 	let selectedRegionId = $state<string>(DEFAULT_REGION_ID);
+	let localFocusLng = $state(174.76);
+	let localFocusLat = $state(-36.85);
+	let userLocation: { lng: number; lat: number } | null = $state(null);
 	let geoError = $state<string | null>(null);
 	let geoLoading = $state(false);
 
@@ -66,6 +73,91 @@
 	let geoRequestId = 0;
 	let trendingOpen = $state(false);
 	let lastTrendingFitKey = '';
+	let localAutoNationalEnabledAt = 0;
+	let localPeakZoom: number | null = null;
+
+	function toRadians(value: number) {
+		return (value * Math.PI) / 180;
+	}
+
+	function distanceKm(aLat: number, aLng: number, bLat: number, bLng: number) {
+		const earthRadiusKm = 6371;
+		const latDelta = toRadians(bLat - aLat);
+		const lngDelta = toRadians(bLng - aLng);
+		const lat1 = toRadians(aLat);
+		const lat2 = toRadians(bLat);
+		const sinLat = Math.sin(latDelta / 2);
+		const sinLng = Math.sin(lngDelta / 2);
+		const haversine =
+			sinLat * sinLat + Math.cos(lat1) * Math.cos(lat2) * sinLng * sinLng;
+		return earthRadiusKm * 2 * Math.atan2(Math.sqrt(haversine), Math.sqrt(1 - haversine));
+	}
+
+	function regionCenter(regionId: string): [number, number] {
+		return NZ_REGIONS.find((region) => region.id === regionId)?.center ?? [174.76, -36.85];
+	}
+
+	function setLocalFocus(lng: number, lat: number) {
+		localFocusLng = lng;
+		localFocusLat = lat;
+	}
+
+	function pauseLocalAutoNational() {
+		localAutoNationalEnabledAt = Date.now() + LOCAL_AUTO_NATIONAL_GRACE_MS;
+		localPeakZoom = null;
+	}
+
+	function applyUserLocation(lng: number, lat: number, focusMap: boolean) {
+		const regionId = regionForPoint(lng, lat);
+		userLocation = { lng, lat };
+		selectedRegionId = regionId;
+		writeCachedRegion(regionId);
+		setLocalFocus(lng, lat);
+
+		if (focusMap && scope === 'local') {
+			pauseLocalAutoNational();
+			mapComponent?.focusOnLocation(lng, lat, LOCAL_FOCUS_RADIUS_KM);
+		}
+	}
+
+	function requestUserLocation(focusMap = false) {
+		if (typeof navigator === 'undefined' || !navigator.geolocation) {
+			geoLoading = false;
+			geoError = 'Geolocation not available, pick your region below.';
+			return;
+		}
+
+		geoLoading = true;
+		const requestId = ++geoRequestId;
+		navigator.geolocation.getCurrentPosition(
+			(pos) => {
+				if (requestId !== geoRequestId) return;
+				geoLoading = false;
+				geoError = null;
+				applyUserLocation(pos.coords.longitude, pos.coords.latitude, focusMap);
+			},
+			(err) => {
+				if (requestId !== geoRequestId) return;
+				geoLoading = false;
+				geoError =
+					err.code === err.PERMISSION_DENIED
+						? 'Using your selected region below.'
+						: 'Using a saved region for now.';
+
+				if (focusMap && scope === 'local') {
+					const [fallbackLng, fallbackLat] = regionCenter(selectedRegionId);
+					setLocalFocus(fallbackLng, fallbackLat);
+					pauseLocalAutoNational();
+					mapComponent?.focusOnLocation(fallbackLng, fallbackLat, LOCAL_FOCUS_RADIUS_KM);
+				}
+			},
+			{
+				enableHighAccuracy: false,
+				maximumAge: GEO_MAX_AGE_MS,
+				timeout: GEO_TIMEOUT_MS
+			}
+		);
+	}
 
 	function readCachedRegion(): string | null {
 		if (typeof localStorage === 'undefined') return null;
@@ -123,7 +215,15 @@
 
 	const visiblePosts = $derived(rankedPosts);
 	const trendingEntries = $derived.by(() => {
-		const entries: RankedPost[] = visiblePosts
+		const trendingSource =
+			scope === 'local'
+				? visiblePosts.filter(
+						(post) =>
+							distanceKm(localFocusLat, localFocusLng, post.lat, post.lng) <=
+							LOCAL_TRENDING_RADIUS_KM
+					)
+				: visiblePosts;
+		const entries: RankedPost[] = trendingSource
 			.map((post) => ({
 				post,
 				score: trendScore(post),
@@ -132,7 +232,7 @@
 			.filter((entry) => entry.engagement > 0)
 			.sort((a, b) => b.score - a.score || b.engagement - a.engagement);
 
-		return entries.slice(0, 8);
+		return entries.slice(0, 6);
 	});
 	const trendingPosts = $derived(trendingEntries.map((entry) => entry.post));
 	const selectedPosts = $derived(
@@ -199,48 +299,21 @@
 		clearSelectedPost();
 		scope = 'local';
 		geoError = null;
-		zoomToRegion(selectedRegionId);
 
-		if (typeof navigator !== 'undefined' && navigator.geolocation) {
-			geoLoading = true;
-			const requestId = ++geoRequestId;
-			navigator.geolocation.getCurrentPosition(
-				(pos) => {
-					if (requestId !== geoRequestId || scope !== 'local') return;
-					const regionId = regionForPoint(pos.coords.longitude, pos.coords.latitude);
-					selectedRegionId = regionId;
-					writeCachedRegion(regionId);
-					geoLoading = false;
-					geoError = null;
-					mapComponent?.focusOnLocation(
-						pos.coords.longitude,
-						pos.coords.latitude,
-						LOCAL_FOCUS_RADIUS_KM
-					);
-				},
-				(err) => {
-					if (requestId !== geoRequestId || scope !== 'local') return;
-					geoLoading = false;
-					geoError =
-						err.code === err.PERMISSION_DENIED
-							? 'Using your selected region below.'
-							: 'Using a saved region for now.';
-				},
-				{
-					enableHighAccuracy: false,
-					maximumAge: GEO_MAX_AGE_MS,
-					timeout: 2500
-				}
-			);
+		if (userLocation) {
+			setLocalFocus(userLocation.lng, userLocation.lat);
+			pauseLocalAutoNational();
+			mapComponent?.focusOnLocation(userLocation.lng, userLocation.lat, LOCAL_FOCUS_RADIUS_KM);
 		} else {
-			geoLoading = false;
-			geoError = 'Geolocation not available, pick your region below.';
+			requestUserLocation(true);
 		}
 	}
 
 	function zoomToRegion(regionId: string) {
 		const region = NZ_REGIONS.find((r) => r.id === regionId);
 		if (region && mapComponent) {
+			setLocalFocus(region.center[0], region.center[1]);
+			pauseLocalAutoNational();
 			mapComponent.fitToBbox(region.bbox);
 		}
 	}
@@ -249,6 +322,7 @@
 		clearSelectedPost();
 		selectedRegionId = (e.target as HTMLSelectElement).value;
 		writeCachedRegion(selectedRegionId);
+		scope = 'local';
 		zoomToRegion(selectedRegionId);
 	}
 
@@ -260,11 +334,19 @@
 
 	function handleMarkerPositionsChange() {
 		mapViewport = mapComponent?.getViewportState() ?? mapViewport;
-		if (scope === 'local' && !trendingOpen && mapViewport && mapViewport.zoom < LOCAL_AUTO_NATIONAL_ZOOM) {
-			scope = 'national';
-			geoLoading = false;
-			geoError = null;
-			clearSelectedPost();
+		if (scope === 'local' && !trendingOpen && mapViewport && Date.now() >= localAutoNationalEnabledAt) {
+			if (localPeakZoom === null || mapViewport.zoom > localPeakZoom) {
+				localPeakZoom = mapViewport.zoom;
+			} else if (
+				mapViewport.zoom < LOCAL_AUTO_NATIONAL_ZOOM ||
+				mapViewport.zoom < localPeakZoom - LOCAL_ZOOM_OUT_EPSILON
+			) {
+				scope = 'national';
+				geoLoading = false;
+				geoError = null;
+				localPeakZoom = null;
+				clearSelectedPost();
+			}
 		}
 		redrawTrigger++;
 	}
@@ -299,6 +381,9 @@
 		if (cachedRegionId) {
 			selectedRegionId = cachedRegionId;
 		}
+		const [cachedLng, cachedLat] = regionCenter(selectedRegionId);
+		setLocalFocus(cachedLng, cachedLat);
+		requestUserLocation(false);
 		fetchPosts();
 	});
 
