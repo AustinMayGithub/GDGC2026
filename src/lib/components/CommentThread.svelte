@@ -1,13 +1,19 @@
 <script lang="ts">
-	import type { CommentItem, SessionUser } from '$lib/types';
+	import type { CommentItem, CommunityNote, SessionUser } from '$lib/types';
 
 	interface Props {
 		postId: string;
 		comments: CommentItem[];
 		user: SessionUser | null;
+		onCommunityNoteUpdated?: (note: CommunityNote) => void;
 	}
 
-	let { postId, comments: initialComments, user }: Props = $props();
+	let {
+		postId,
+		comments: initialComments,
+		user,
+		onCommunityNoteUpdated = () => {}
+	}: Props = $props();
 
 	let comments = $state<CommentItem[]>([]);
 	let body = $state('');
@@ -54,6 +60,7 @@
 			if (res.ok) {
 				const data = await res.json();
 				comments = comments.map((c) => (c.id === optimistic.id ? data.comment : c));
+				if (data.communityNote) onCommunityNoteUpdated(data.communityNote);
 			} else {
 				const data = await res.json();
 				submitError = data.message ?? 'Failed to post comment';

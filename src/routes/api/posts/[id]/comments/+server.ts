@@ -32,8 +32,7 @@ export const POST: RequestHandler = async ({ request, params, locals }) => {
 		.values({ postId: params.id, authorId: locals.user.id, body })
 		.returning();
 
-	// Fire-and-forget — the note refresh must never block the response (§4.5).
-	void maybeRegenerateNote(params.id);
+	const communityNote = await maybeRegenerateNote(params.id);
 
 	return json(
 		{
@@ -42,7 +41,8 @@ export const POST: RequestHandler = async ({ request, params, locals }) => {
 				authorName: locals.user.displayName,
 				body: c.body,
 				createdAt: c.createdAt.toISOString()
-			}
+			},
+			communityNote
 		},
 		{ status: 201 }
 	);
