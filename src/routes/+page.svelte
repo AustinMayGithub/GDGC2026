@@ -1426,14 +1426,6 @@
 				</button>
 			</div>
 
-			<label class="map-mode-toggle" aria-label="Toggle 3D map view">
-				<input type="checkbox" checked={mapThreeD} oninput={toggleMapThreeD} />
-				<span class="mode-track" aria-hidden="true">
-					<span class="mode-thumb"></span>
-				</span>
-				<span class="mode-label">3D</span>
-			</label>
-
 			{#if scope === 'region'}
 				<div class="region-controls">
 					{#if geoLoading}
@@ -2079,6 +2071,22 @@
 							</section>
 						{/if}
 
+						{#if profileIsOwn}
+							<section class="profile-map-settings">
+								<div>
+									<span class="field-label">Map view</span>
+									<p class="muted profile-rep-copy">Choose how the map is drawn while browsing.</p>
+								</div>
+								<label class="map-mode-toggle profile-map-toggle" aria-label="Toggle 3D map view">
+									<input type="checkbox" checked={mapThreeD} oninput={toggleMapThreeD} />
+									<span class="mode-track" aria-hidden="true">
+										<span class="mode-thumb"></span>
+									</span>
+									<span class="mode-label">3D</span>
+								</label>
+							</section>
+						{/if}
+
 						<section class="profile-reputation">
 							<div class="radius-label-row">
 								<span class="field-label">Reputation</span>
@@ -2367,8 +2375,8 @@
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		gap: 12px;
-		flex-wrap: wrap;
+		position: relative;
+		min-width: 282px;
 	}
 
 	.scope-toggle {
@@ -2502,10 +2510,20 @@
 		background: rgba(255, 255, 255, 0.92);
 	}
 
+	.profile-map-toggle {
+		flex: 0 0 auto;
+		background: #ffffff;
+	}
+
 	.region-controls {
+		position: absolute;
+		left: calc(50% + 153px);
+		top: 50%;
+		transform: translateY(-50%);
 		display: flex;
 		align-items: center;
 		gap: 8px;
+		white-space: nowrap;
 	}
 
 	.region-picker {
@@ -2847,6 +2865,7 @@
 
 	.profile-summary,
 	.profile-notifications,
+	.profile-map-settings,
 	.profile-reputation,
 	.profile-danger,
 	.profile-posts,
@@ -2944,6 +2963,14 @@
 		grid-column: 1;
 	}
 
+	.profile-map-settings {
+		grid-column: 1;
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 16px;
+	}
+
 	.profile-danger {
 		grid-column: 1;
 		display: flex;
@@ -2955,7 +2982,7 @@
 
 	.profile-posts {
 		grid-column: 2;
-		grid-row: 1 / span 3;
+		grid-row: 1 / span 4;
 	}
 
 	.profile-avatar-wrap {
@@ -3600,7 +3627,8 @@
 		.header-center {
 			order: 3;
 			width: 100%;
-			justify-content: flex-start;
+			justify-content: center;
+			min-width: 0;
 		}
 
 		.trending-overlay {
@@ -3696,6 +3724,7 @@
 
 		.profile-reputation,
 		.profile-danger,
+		.profile-map-settings,
 		.profile-posts {
 			grid-column: auto;
 			grid-row: auto;

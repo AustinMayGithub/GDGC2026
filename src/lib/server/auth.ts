@@ -37,7 +37,8 @@ export async function validateSession(token: string): Promise<SessionUser | null
 			id: users.id,
 			email: users.email,
 			displayName: users.displayName,
-			emailVerified: users.emailVerified
+			emailVerified: users.emailVerified,
+			avatarDataUrl: users.avatarDataUrl
 		})
 		.from(sessions)
 		.innerJoin(users, eq(sessions.userId, users.id))
@@ -53,7 +54,8 @@ export async function validateSession(token: string): Promise<SessionUser | null
 		id: row.id,
 		email: row.email,
 		displayName: row.displayName,
-		emailVerified: row.emailVerified
+		emailVerified: row.emailVerified,
+		hasAvatar: row.avatarDataUrl !== null
 	};
 }
 
