@@ -1,5 +1,6 @@
 ﻿<script lang="ts">
 	import { onDestroy, onMount, tick } from 'svelte';
+	import { invalidateAll } from '$app/navigation';
 	import { fly } from 'svelte/transition';
 	import UserMenu from '$lib/components/UserMenu.svelte';
 	import HomeMap from '$lib/components/HomeMap.svelte';
@@ -122,6 +123,15 @@
 	let profileError = $state('');
 	let profileRequestId = 0;
 	let accountPanelOpen = $state(false);
+	let profileEditing = $state(false);
+	let profileSaving = $state(false);
+	let profileSaveError = $state('');
+	let profileEditName = $state('');
+	let profileEditBio = $state('');
+	let profileEditAge = $state('');
+	let profileEditLocation = $state('');
+	let profileEditAvatarDataUrl = $state<string | null>(null);
+	let profileAvatarVersion = $state(0);
 
 	function toRadians(value: number) {
 		return (value * Math.PI) / 180;
@@ -327,6 +337,10 @@
 		profileLoading = false;
 		profileError = '';
 		accountPanelOpen = false;
+		profileEditing = false;
+		profileSaving = false;
+		profileSaveError = '';
+		profileEditAvatarDataUrl = null;
 		profileRequestId++;
 	}
 
@@ -342,11 +356,13 @@
 			const json = (await res.json()) as { profile: UserProfile; isOwn: boolean };
 			profileDetail = json.profile;
 			profileIsOwn = json.isOwn;
+			if (!json.isOwn) profileEditing = false;
 		} catch {
 			if (requestId !== profileRequestId) return;
 			profileDetail = null;
 			profileIsOwn = false;
 			profileError = 'Failed to load this profile. Please try again.';
+			profileEditing = false;
 		} finally {
 			if (requestId === profileRequestId) profileLoading = false;
 		}
@@ -354,6 +370,9 @@
 
 	function openProfile(id: string) {
 		accountPanelOpen = false;
+		profileEditing = false;
+		profileSaveError = '';
+		profileEditAvatarDataUrl = null;
 		profileUserId = id;
 		composing = false;
 		void resizeMapAfterLayout();
@@ -367,6 +386,9 @@
 		profileIsOwn = false;
 		profileError = '';
 		profileLoading = false;
+		profileEditing = false;
+		profileSaveError = '';
+		profileEditAvatarDataUrl = null;
 		accountPanelOpen = true;
 		composing = false;
 		void resizeMapAfterLayout();
@@ -593,6 +615,93 @@
 		if (score >= 60) return '#65a30d';
 		if (score >= 40) return '#d97706';
 		return 'var(--dispute)';
+	}
+
+	function startProfileEdit() {
+		if (!profileDetail || !profileIsOwn) return;
+		profileEditName = profileDetail.displayName;
+		profileEditBio = profileDetail.bio ?? '';
+		profileEditAge = profileDetail.age ? String(profileDetail.age) : '';
+		profileEditLocation = profileDetail.location ?? '';
+		profileEditAvatarDataUrl = null;
+		profileSaveError = '';
+		profileEditing = true;
+	}
+
+	function cancelProfileEdit() {
+		if (profileSaving) return;
+		profileEditing = false;
+		profileSaveError = '';
+		profileEditAvatarDataUrl = null;
+	}
+
+	async function readResponseMessage(res: Response, fallback: string) {
+		const text = await res.text().catch(() => '');
+		if (!text) return fallback;
+		try {
+			const json = JSON.parse(text) as { message?: string };
+			return json.message ?? fallback;
+		} catch {
+			return text;
+		}
+	}
+
+	function handleProfileAvatarChange(e: Event) {
+		const input = e.currentTarget as HTMLInputElement;
+		const file = input.files?.[0];
+		if (!file) return;
+		if (file.size > 2_000_000) {
+			profileSaveError = 'Image too large (max 2 MB).';
+			input.value = '';
+			return;
+		}
+		const reader = new FileReader();
+		reader.onload = () => {
+			profileEditAvatarDataUrl = reader.result as string;
+			profileSaveError = '';
+		};
+		reader.onerror = () => {
+			profileSaveError = 'Could not read that image.';
+		};
+		reader.readAsDataURL(file);
+	}
+
+	async function saveProfileEdit(e: SubmitEvent) {
+		e.preventDefault();
+		if (!profileDetail || !profileIsOwn || profileSaving) return;
+
+		profileSaving = true;
+		profileSaveError = '';
+		try {
+			const body: Record<string, unknown> = {
+				displayName: profileEditName.trim(),
+				bio: profileEditBio.trim() || null,
+				age: profileEditAge ? Number(profileEditAge) : null,
+				location: profileEditLocation.trim() || null
+			};
+			if (profileEditAvatarDataUrl !== null) body.avatarDataUrl = profileEditAvatarDataUrl;
+
+			const res = await fetch('/api/users/me', {
+				method: 'PATCH',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify(body)
+			});
+
+			if (!res.ok) {
+				profileSaveError = await readResponseMessage(res, 'Failed to save profile.');
+				return;
+			}
+
+			profileAvatarVersion++;
+			profileEditing = false;
+			profileEditAvatarDataUrl = null;
+			await loadProfile(profileDetail.id);
+			await invalidateAll();
+		} catch {
+			profileSaveError = 'Network error. Please try again.';
+		} finally {
+			profileSaving = false;
+		}
 	}
 
 	function openProfilePost(id: string) {
@@ -1114,7 +1223,11 @@
 					<div>
 						<p class="section-heading">{accountPanelOpen ? 'Account' : 'Profile'}</p>
 						<h1 class="compose-title">
-							{accountPanelOpen ? 'Welcome to BirdsEye' : profileDetail?.displayName ?? 'Loading profile'}
+							{accountPanelOpen
+								? 'Welcome to BirdsEye'
+								: profileEditing
+									? 'Edit profile'
+									: (profileDetail?.displayName ?? 'Loading profile')}
 						</h1>
 					</div>
 					<button type="button" class="close-btn" aria-label="Close profile" onclick={closeProfile}>
@@ -1167,11 +1280,115 @@
 				{:else if profileDetail}
 					{@const profile = profileDetail}
 					{@const repColor = profileRepColor(profile)}
+					{#if profileEditing && profileIsOwn}
+						<form class="profile-edit-form" onsubmit={saveProfileEdit}>
+							<section class="profile-edit-card">
+								<label class="profile-avatar-edit-label">
+									{#if profileEditAvatarDataUrl}
+										<img class="profile-avatar-img" src={profileEditAvatarDataUrl} alt="" />
+									{:else if profile.hasAvatar}
+										<img
+											class="profile-avatar-img"
+											src="/api/users/{profile.id}/avatar?v={profileAvatarVersion}"
+											alt=""
+										/>
+									{:else}
+										<div class="profile-avatar-initials">
+											{initials(profileEditName || profile.displayName)}
+										</div>
+									{/if}
+									<span class="profile-avatar-overlay">Change photo</span>
+									<input
+										class="profile-avatar-file"
+										type="file"
+										accept="image/*"
+										onchange={handleProfileAvatarChange}
+										disabled={profileSaving}
+									/>
+								</label>
+
+								<div class="profile-edit-fields">
+									<div class="field">
+										<label class="field-label" for="profile-edit-name">Display name</label>
+										<input
+											id="profile-edit-name"
+											class="input"
+											type="text"
+											bind:value={profileEditName}
+											maxlength="50"
+											disabled={profileSaving}
+											required
+										/>
+									</div>
+									<div class="field">
+										<label class="field-label" for="profile-edit-bio">Bio</label>
+										<textarea
+											id="profile-edit-bio"
+											class="input profile-edit-bio"
+											bind:value={profileEditBio}
+											maxlength="280"
+											rows="4"
+											placeholder="Tell people about yourself..."
+											disabled={profileSaving}
+										></textarea>
+										<span class="field-hint muted">{profileEditBio.length}/280</span>
+									</div>
+									<div class="profile-edit-row">
+										<div class="field">
+											<label class="field-label" for="profile-edit-age">Age</label>
+											<input
+												id="profile-edit-age"
+												class="input"
+												type="number"
+												bind:value={profileEditAge}
+												min="1"
+												max="120"
+												disabled={profileSaving}
+											/>
+										</div>
+										<div class="field">
+											<label class="field-label" for="profile-edit-location">Location</label>
+											<input
+												id="profile-edit-location"
+												class="input"
+												type="text"
+												bind:value={profileEditLocation}
+												maxlength="100"
+												placeholder="City, Country"
+												disabled={profileSaving}
+											/>
+										</div>
+									</div>
+
+									{#if profileSaveError}
+										<p class="error-text profile-save-error">{profileSaveError}</p>
+									{/if}
+
+									<div class="profile-edit-actions">
+										<button
+											type="submit"
+											class="btn btn-primary"
+											disabled={profileSaving || profileEditName.trim().length < 2}
+										>
+											{profileSaving ? 'Saving...' : 'Save changes'}
+										</button>
+										<button type="button" class="btn" onclick={cancelProfileEdit} disabled={profileSaving}>
+											Cancel
+										</button>
+									</div>
+								</div>
+							</section>
+						</form>
+					{:else}
 					<div class="profile-panel-body">
 						<section class="profile-summary">
 							<div class="profile-avatar-wrap">
 								{#if profile.hasAvatar}
-									<img class="profile-avatar-img" src="/api/users/{profile.id}/avatar" alt={profile.displayName} />
+									<img
+										class="profile-avatar-img"
+										src="/api/users/{profile.id}/avatar?v={profileAvatarVersion}"
+										alt={profile.displayName}
+									/>
 								{:else}
 									<div class="profile-avatar-initials">{initials(profile.displayName)}</div>
 								{/if}
@@ -1192,7 +1409,9 @@
 								</div>
 								{#if profileIsOwn}
 									<div class="profile-account-actions">
-										<a class="btn profile-edit-btn" href="/profile/{profile.id}">Edit profile</a>
+										<button type="button" class="btn profile-edit-btn" onclick={startProfileEdit}>
+											Edit profile
+										</button>
 										<form method="POST" action="/auth/logout">
 											<button class="btn" type="submit">Sign out</button>
 										</form>
@@ -1263,6 +1482,7 @@
 							{/if}
 						</section>
 					</div>
+					{/if}
 				{/if}
 			</aside>
 		{/if}
@@ -1891,6 +2111,86 @@
 		margin-top: 2px;
 	}
 
+	.profile-edit-form {
+		min-height: calc(100% - 62px);
+	}
+
+	.profile-edit-card {
+		display: grid;
+		grid-template-columns: 180px minmax(0, 620px);
+		gap: 24px;
+		align-items: start;
+		max-width: 860px;
+		min-height: 100%;
+		margin: 0 auto;
+		padding: 18px;
+		border: 1px solid var(--border);
+		border-radius: var(--radius);
+		background: rgba(255, 255, 255, 0.72);
+	}
+
+	.profile-avatar-edit-label {
+		position: relative;
+		display: block;
+		width: 120px;
+		height: 120px;
+		cursor: pointer;
+	}
+
+	.profile-avatar-edit-label .profile-avatar-img,
+	.profile-avatar-edit-label .profile-avatar-initials {
+		width: 120px;
+		height: 120px;
+	}
+
+	.profile-avatar-overlay {
+		position: absolute;
+		inset: auto 0 0;
+		padding: 8px 10px;
+		border-radius: 0 0 999px 999px;
+		background: rgba(20, 20, 26, 0.72);
+		color: #fff;
+		font-size: 12px;
+		font-weight: 700;
+		text-align: center;
+	}
+
+	.profile-avatar-file {
+		position: absolute;
+		width: 1px;
+		height: 1px;
+		opacity: 0;
+		pointer-events: none;
+	}
+
+	.profile-edit-fields {
+		display: flex;
+		flex-direction: column;
+		gap: 14px;
+		min-width: 0;
+	}
+
+	.profile-edit-bio {
+		min-height: 110px;
+		resize: vertical;
+	}
+
+	.profile-edit-row {
+		display: grid;
+		grid-template-columns: minmax(110px, 0.35fr) minmax(180px, 1fr);
+		gap: 12px;
+	}
+
+	.profile-save-error {
+		margin: 0;
+	}
+
+	.profile-edit-actions {
+		display: flex;
+		gap: 10px;
+		flex-wrap: wrap;
+	}
+
 	.profile-rep-track {
 		height: 8px;
 		background: var(--surface-3);
@@ -2281,6 +2581,10 @@
 			grid-template-columns: 1fr;
 		}
 
+		.profile-edit-card {
+			grid-template-columns: 1fr;
+		}
+
 		.profile-reputation,
 		.profile-posts {
 			grid-column: auto;
@@ -2319,6 +2623,10 @@
 
 		.profile-summary {
 			flex-direction: column;
+		}
+
+		.profile-edit-row {
+			grid-template-columns: 1fr;
 		}
 
 		.profile-post-grid {
