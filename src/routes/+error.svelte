@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { page } from '$app/stores';
-	import logo from '$src/birdseye.png';
+	import logo from '$lib/data/birdseye.png';
 </script>
 
 <svelte:head><title>{$page.status} · BirdsEye</title></svelte:head>
@@ -9,7 +9,7 @@
 	<a class="logo" href="/">
 		<span class="logo-dot"></span>
 		<span class="gradient-text">BirdsEye</span>
-		<img alt="logo" src={logo}>
+		<img alt="logo" src={logo} height="24px">
 	</a>
 	<div class="error-card card">
 		<div class="status gradient-text">{$page.status}</div>
