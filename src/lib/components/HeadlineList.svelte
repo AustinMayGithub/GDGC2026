@@ -11,8 +11,6 @@
 	}
 
 	const SIDES = ['left', 'right'] as const;
-	const MAX_BUBBLES = 8;
-
 	let { posts, hoveredPostId, onHover, listItemEls }: Props = $props();
 
 	function timeAgo(iso: string): string {
@@ -35,9 +33,7 @@
 	}
 
 	function bubblePosts(side: (typeof SIDES)[number]) {
-		return posts
-			.slice(0, MAX_BUBBLES)
-			.filter((_, index) => (side === 'left' ? index % 2 === 0 : index % 2 === 1));
+		return posts.filter((_, index) => (side === 'left' ? index % 2 === 0 : index % 2 === 1));
 	}
 </script>
 
@@ -109,7 +105,7 @@
 		position: absolute;
 		top: 0;
 		bottom: 0;
-		width: clamp(148px, 15vw, 216px);
+		width: clamp(180px, 18vw, 272px);
 		display: flex;
 		flex-direction: column;
 		justify-content: space-evenly;
@@ -126,10 +122,10 @@
 
 	.headline-item {
 		width: 100%;
-		aspect-ratio: 1.12;
+		aspect-ratio: 1.32;
 		padding: 12px;
 		border: 1px solid rgba(255, 255, 255, 0.72);
-		border-radius: 16px;
+		border-radius: var(--radius-lg);
 		background:
 			linear-gradient(180deg, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0.84)),
 			radial-gradient(circle at top, rgba(99, 102, 241, 0.08), transparent 55%);
@@ -222,7 +218,7 @@
 		}
 
 		.bubble-rail {
-			width: clamp(138px, 17vw, 188px);
+			width: clamp(164px, 20vw, 236px);
 		}
 
 		.headline-item {

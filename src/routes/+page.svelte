@@ -28,6 +28,11 @@
 	const INITIAL_VISIBLE_POSTS = 18;
 	const POSTS_PER_SCROLL_STEP = 10;
 	const SCROLL_STEP_PX = 220;
+	const DESKTOP_BUBBLE_BREAKPOINT = 820;
+	const COMPACT_BUBBLE_BREAKPOINT = 1100;
+	const MIN_BUBBLES_PER_RAIL = 2;
+	const BUBBLE_ASPECT_RATIO = 1.32;
+	const BUBBLE_GAP_PX = 18;
 	const orderedRegions = [
 		...NZ_REGIONS.filter((region) => region.id === DEFAULT_REGION_ID),
 		...NZ_REGIONS.filter((region) => region.id !== DEFAULT_REGION_ID)
@@ -48,10 +53,39 @@
 	let mapComponent: HomeMap | null = null;
 	let mapReady = $state(false);
 	let redrawTrigger = $state(0);
+	let viewportWidth = $state(1440);
+	let viewportHeight = $state(900);
 	let listItemEls = new Map<string, HTMLElement>();
 	let activeFetchController: AbortController | null = null;
 	let fetchRequestId = 0;
 	let geoRequestId = 0;
+
+	function clamp(min: number, value: number, max: number) {
+		return Math.min(Math.max(value, min), max);
+	}
+
+	function currentBubbleRailWidth() {
+		if (viewportWidth <= DESKTOP_BUBBLE_BREAKPOINT) return 0;
+		if (viewportWidth <= COMPACT_BUBBLE_BREAKPOINT) {
+			return clamp(164, viewportWidth * 0.2, 236);
+		}
+		return clamp(180, viewportWidth * 0.18, 272);
+	}
+
+	function maxHomepagePostsForViewport() {
+		if (viewportWidth <= DESKTOP_BUBBLE_BREAKPOINT) return INITIAL_VISIBLE_POSTS;
+
+		const stageTop = viewportWidth <= COMPACT_BUBBLE_BREAKPOINT ? 118 : 110;
+		const stageBottom = viewportWidth <= COMPACT_BUBBLE_BREAKPOINT ? 18 : 22;
+		const availableHeight = Math.max(viewportHeight - stageTop - stageBottom, 0);
+		const cardWidth = currentBubbleRailWidth();
+		if (!cardWidth || availableHeight <= 0) return MIN_BUBBLES_PER_RAIL * 2;
+
+		const cardHeight = cardWidth / BUBBLE_ASPECT_RATIO;
+		const slotHeight = cardHeight + BUBBLE_GAP_PX;
+		const slotsPerRail = Math.max(MIN_BUBBLES_PER_RAIL, Math.floor(availableHeight / slotHeight));
+		return slotsPerRail * 2;
+	}
 
 	function readCachedRegion(): string | null {
 		if (typeof localStorage === 'undefined') return null;
@@ -96,14 +130,16 @@
 		})
 	);
 
-	const visiblePosts = $derived(rankedPosts.slice(0, visibleCount));
-	const hiddenPostCount = $derived(Math.max(rankedPosts.length - visiblePosts.length, 0));
+	const maxHomepagePosts = $derived(maxHomepagePostsForViewport());
+	const feedCapacity = $derived(Math.min(rankedPosts.length, maxHomepagePosts));
+	const visiblePosts = $derived(rankedPosts.slice(0, Math.min(visibleCount, feedCapacity)));
+	const hiddenPostCount = $derived(Math.max(feedCapacity - visiblePosts.length, 0));
 	const scrollSpacerHeight = $derived(
 		hiddenPostCount === 0 ? 0 : Math.ceil(hiddenPostCount / POSTS_PER_SCROLL_STEP) * SCROLL_STEP_PX
 	);
 
 	function resetFeedVisibility() {
-		visibleCount = INITIAL_VISIBLE_POSTS;
+		visibleCount = Math.min(INITIAL_VISIBLE_POSTS, maxHomepagePosts);
 		scrollHost?.scrollTo({ top: 0, behavior: 'auto' });
 	}
 
@@ -111,7 +147,7 @@
 		if (!scrollHost) return;
 		const extraSteps = Math.floor(scrollHost.scrollTop / SCROLL_STEP_PX);
 		const nextVisible = Math.min(
-			rankedPosts.length,
+			feedCapacity,
 			INITIAL_VISIBLE_POSTS + extraSteps * POSTS_PER_SCROLL_STEP
 		);
 		if (nextVisible !== visibleCount) visibleCount = nextVisible;
@@ -232,11 +268,23 @@
 	}
 
 	onMount(() => {
+		const syncViewport = () => {
+			viewportWidth = window.innerWidth;
+			viewportHeight = window.innerHeight;
+		};
+
+		syncViewport();
+		window.addEventListener('resize', syncViewport);
+
 		const cachedRegionId = readCachedRegion();
 		if (cachedRegionId) {
 			selectedRegionId = cachedRegionId;
 		}
 		fetchPosts();
+
+		return () => {
+			window.removeEventListener('resize', syncViewport);
+		};
 	});
 
 	onDestroy(() => {
@@ -399,7 +447,7 @@
 		gap: 16px;
 		padding: 0 16px;
 		height: 64px;
-		border-radius: 16px;
+		border-radius: var(--radius-lg);
 		border: 1px solid rgba(255, 255, 255, 0.72);
 		z-index: 22;
 		background: rgba(255, 255, 255, 0.82);
