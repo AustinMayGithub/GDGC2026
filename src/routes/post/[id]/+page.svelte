@@ -82,7 +82,7 @@
 	<!-- Top bar -->
 	<header class="topbar">
 		<a class="back-link btn" href="/">
-			← Back to map
+			Back
 		</a>
 		<span class="topbar-title gradient-text"><img alt="logo" src={logo} height="24px"></span>
 		<UserMenu {user} />

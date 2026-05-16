@@ -12,7 +12,7 @@
 	<div class="error-card card">
 		<div class="status gradient-text">{$page.status}</div>
 		<p class="message">{$page.error?.message ?? 'Something went wrong.'}</p>
-		<a class="btn btn-primary" href="/">Back to the map</a>
+		<a class="btn btn-primary" href="/">Back</a>
 	</div>
 </div>
 

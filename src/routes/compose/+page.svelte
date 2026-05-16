@@ -139,7 +139,7 @@
 
 <div class="page">
 	<header class="topbar">
-		<a class="back-link btn" href="/">← Back to map</a>
+		<a class="back-link btn" href="/">Back</a>
 		<span class="topbar-title gradient-text">BirdsEye</span>
 		<UserMenu {user} />
 	</header>
