@@ -9,7 +9,7 @@
 	</a>
 
 	<div class="auth-card card">
-		{@render children()}
+		<a href="/">Go to BirdsEye</a>
 	</div>
 
 	<p class="tagline">Community news, on the map.</p>
