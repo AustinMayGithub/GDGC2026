@@ -91,6 +91,7 @@
 	let scrollHost: HTMLElement | null = null;
 	let mapComponent: HomeMap | null = null;
 	let mapReady = $state(false);
+	let mapThreeD = $state(false);
 	let redrawTrigger = $state(0);
 	let mapViewport = $state<MapViewportState | null>(null);
 	let listItemEls = new Map<string, HTMLElement>();
@@ -495,6 +496,11 @@
 				clearSelectedPost();
 			}
 		}
+		redrawTrigger++;
+	}
+
+	function toggleMapThreeD(e: Event) {
+		mapThreeD = (e.currentTarget as HTMLInputElement).checked;
 		redrawTrigger++;
 	}
 
@@ -1000,6 +1006,14 @@
 				</button>
 			</div>
 
+			<label class="map-mode-toggle" aria-label="Toggle 3D map view">
+				<input type="checkbox" checked={mapThreeD} oninput={toggleMapThreeD} />
+				<span class="mode-track" aria-hidden="true">
+					<span class="mode-thumb"></span>
+				</span>
+				<span class="mode-label">3D</span>
+			</label>
+
 			{#if scope === 'local'}
 				<div class="region-controls">
 					{#if geoLoading}
@@ -1046,6 +1060,7 @@
 				onMapReady={handleMapReady}
 				onMarkerPositionsChange={handleMarkerPositionsChange}
 				onSelectPost={handleSelectPost}
+				threeD={mapThreeD}
 				{composing}
 				{composeLng}
 				{composeLat}
@@ -1721,6 +1736,69 @@
 
 	.toggle-btn:disabled {
 		cursor: wait;
+	}
+
+	.map-mode-toggle {
+		display: inline-flex;
+		align-items: center;
+		gap: 8px;
+		height: 34px;
+		padding: 0 10px;
+		border: 1px solid var(--border);
+		border-radius: var(--radius-sm);
+		background: rgba(247, 247, 249, 0.8);
+		color: var(--text-2);
+		font-size: 13px;
+		font-weight: 700;
+		cursor: pointer;
+		user-select: none;
+	}
+
+	.map-mode-toggle input {
+		position: absolute;
+		opacity: 0;
+		pointer-events: none;
+	}
+
+	.mode-track {
+		position: relative;
+		width: 36px;
+		height: 20px;
+		border-radius: 999px;
+		background: var(--surface-3);
+		box-shadow: inset 0 0 0 1px var(--border-strong);
+		transition: background 0.16s ease, box-shadow 0.16s ease;
+	}
+
+	.mode-thumb {
+		position: absolute;
+		top: 3px;
+		left: 3px;
+		width: 14px;
+		height: 14px;
+		border-radius: 50%;
+		background: #ffffff;
+		box-shadow: 0 1px 3px rgba(15, 23, 42, 0.24);
+		transition: transform 0.16s ease;
+	}
+
+	.map-mode-toggle input:checked + .mode-track {
+		background: #111827;
+		box-shadow: inset 0 0 0 1px #111827;
+	}
+
+	.map-mode-toggle input:checked + .mode-track .mode-thumb {
+		transform: translateX(16px);
+	}
+
+	.map-mode-toggle input:focus-visible + .mode-track {
+		outline: 2px solid var(--accent);
+		outline-offset: 2px;
+	}
+
+	.map-mode-toggle:has(input:checked) {
+		color: var(--text);
+		background: rgba(255, 255, 255, 0.92);
 	}
 
 	.region-controls {
