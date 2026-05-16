@@ -7,6 +7,24 @@ import { fallbackAreaLabel } from '$lib/data/geo-labels';
 
 const NOTE_MODEL = 'gpt-4o-mini';
 const MAX_COMMENTS_IN_PROMPT = 20;
+const CRIMINAL_FACILITATION_PROMPT = `Classify whether a community post is trying to ASSIST criminal activity.
+
+Return exactly one word: BLOCK or ALLOW.
+
+BLOCK only if the text is attempting to help arrange, coordinate, advertise, sell, distribute, instruct, recruit for, or evade enforcement around criminal activity.
+Examples that should BLOCK:
+- drug drop off 0900-2100
+- selling stolen bikes, DM for pickup
+- instructions for bypassing alarms
+- who wants to help move illegal weapons
+
+ALLOW everything else, including:
+- reporting, warning about, or discussing crime
+- criticism, accusations, news, local safety alerts, or requests for help
+- profanity, anger, graphic descriptions, politics, or controversial opinions
+- "Someone is doing drug drop offs near the park"
+
+If intent is unclear, ALLOW.`;
 
 // The note's only job: summarise the OPINIONS in the comment thread.
 // No verdict, no fact-check (project.md §4.5 — resolved per user direction).
@@ -35,11 +53,23 @@ export async function moderateText(text: string): Promise<boolean> {
 	const client = await getClient();
 	if (!client) return true;
 	try {
-		const res = await client.moderations.create({
-			model: 'omni-moderation-latest',
-			input: text.slice(0, 8000)
+		const res = await client.chat.completions.create({
+			model: NOTE_MODEL,
+			max_tokens: 3,
+			temperature: 0,
+			messages: [
+				{ role: 'system', content: CRIMINAL_FACILITATION_PROMPT },
+				{ role: 'user', content: text.slice(0, 8000) }
+			]
 		});
-		return !res.results[0]?.flagged;
+		const decision = res.choices[0]?.message.content?.trim().toUpperCase();
+		const shouldBlock = decision === 'BLOCK';
+
+		if (shouldBlock) {
+			console.warn('[ai] moderation blocked criminal facilitation content.');
+		}
+
+		return !shouldBlock;
 	} catch (err) {
 		console.error('[ai] moderation call failed, allowing content:', err);
 		return true;

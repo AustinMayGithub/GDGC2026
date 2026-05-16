@@ -49,7 +49,7 @@
 		</a>
 	</div>
 {:else}
-	<a class="btn signin" href="/auth/login" onclick={handleLoginClick}>Sign in</a>
+	<a class="btn header-action-btn" href="/auth/login" onclick={handleLoginClick}>Sign in</a>
 {/if}
 
 <style>
@@ -80,8 +80,5 @@
 		border-radius: 50%;
 		background: #dc2626;
 		box-shadow: 0 0 0 1px rgba(220, 38, 38, 0.2);
-	}
-	.signin {
-		padding: 8px 16px;
 	}
 </style>

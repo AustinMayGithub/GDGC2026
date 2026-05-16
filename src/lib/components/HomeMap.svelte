@@ -18,6 +18,7 @@
 		onMarkerPositionsChange: () => void;
 		onSelectPost: (id: string | null) => void;
 		composing?: boolean;
+		composeInteractive?: boolean;
 		composeLng?: number;
 		composeLat?: number;
 		composeRadiusM?: number;
@@ -58,6 +59,7 @@
 		onMarkerPositionsChange,
 		onSelectPost,
 		composing = false,
+		composeInteractive = true,
 		composeLng = 174.76,
 		composeLat = -36.85,
 		composeRadiusM = 1000,
@@ -922,7 +924,7 @@
 					return;
 				}
 				if (composing) {
-					onComposePick?.(e.lngLat.lng, e.lngLat.lat);
+					if (composeInteractive) onComposePick?.(e.lngLat.lng, e.lngLat.lat);
 					return;
 				}
 				if (disableSelection) return;
@@ -931,11 +933,11 @@
 			});
 
 			m.on('mouseenter', 'post-point', () => {
-				m.getCanvas().style.cursor = composing ? 'crosshair' : 'pointer';
+				m.getCanvas().style.cursor = composing && composeInteractive ? 'crosshair' : 'pointer';
 			});
 
 			m.on('mouseleave', 'post-point', () => {
-				m.getCanvas().style.cursor = composing ? 'crosshair' : '';
+				m.getCanvas().style.cursor = composing && composeInteractive ? 'crosshair' : '';
 			});
 		});
 
@@ -961,6 +963,7 @@
 		selectedVotePoints;
 		threeD;
 		composing;
+		composeInteractive;
 		composeLng;
 		composeLat;
 		composeRadiusM;
@@ -972,7 +975,8 @@
 		syncPostLayers();
 		if (map && maplibre) {
 			const ml = maplibre as typeof import('maplibre-gl');
-			(map as InstanceType<typeof ml.Map>).getCanvas().style.cursor = composing ? 'crosshair' : '';
+			(map as InstanceType<typeof ml.Map>).getCanvas().style.cursor =
+				composing && composeInteractive ? 'crosshair' : '';
 		}
 		if (hasLoaded && appliedThreeD !== threeD) setMapMode();
 	});

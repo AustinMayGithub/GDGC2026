@@ -39,6 +39,7 @@
 	let hasUnreadNotifications = $state(false);
 
 	type Scope = 'national' | 'local';
+	type TrendMode = 'new' | 'trending' | 'rising';
 	type CachedRegion = {
 		regionId: string;
 		timestamp: number;
@@ -54,7 +55,7 @@
 		score: number;
 		engagement: number;
 	};
-	type AuthPanelMode = 'login' | 'signup' | 'verify';
+	type AuthPanelMode = 'welcome' | 'login' | 'signup' | 'verify';
 
 	const DEFAULT_REGION_ID = 'auckland';
 	const REGION_CACHE_KEY = 'birdseye:local-region';
@@ -130,6 +131,7 @@
 	let composeAreaLabel = $state('Local Auckland area');
 	let areaLabelRequestId = 0;
 	let trendingOpen = $state(false);
+	let trendMode = $state<TrendMode>('trending');
 	let lastTrendingFitKey = '';
 	let localAutoNationalEnabledAt = 0;
 	let localPeakZoom: number | null = null;
@@ -150,7 +152,7 @@
 	let profileEditLocation = $state('');
 	let profileEditAvatarDataUrl = $state<string | null>(null);
 	let profileAvatarVersion = $state(0);
-	let authPanelMode = $state<AuthPanelMode>('login');
+	let authPanelMode = $state<AuthPanelMode>('welcome');
 	let authEmail = $state('');
 	let authPassword = $state('');
 	let authDisplayName = $state('');
@@ -197,7 +199,7 @@
 		selectedRegionId = regionId;
 		writeCachedRegion(regionId);
 		setLocalFocus(lng, lat);
-		if (composing) {
+		if (composing && data.user) {
 			composeLng = lng;
 			composeLat = lat;
 		}
@@ -293,6 +295,13 @@
 		return Math.round((engagement * 100) / Math.max(ageHours + 2, 2));
 	}
 
+	function risingScore(post: PostSummary): number {
+		const engagement = engagementFor(post);
+		const ageHours = Math.max((Date.now() - new Date(post.createdAt).getTime()) / 36e5, 0);
+		const freshness = 36 / (ageHours + 3);
+		return Math.round((engagement * 85) / Math.max(ageHours + 1.5, 1.5) + freshness);
+	}
+
 	const rankedPosts = $derived.by(() => {
 		return [...posts].sort((a, b) => {
 			const diff = popularityScore(b) - popularityScore(a);
@@ -302,19 +311,35 @@
 	});
 
 	const visiblePosts = $derived(rankedPosts);
+	const trendingSource = $derived(
+		scope === 'local'
+			? visiblePosts.filter(
+					(post) =>
+						distanceKm(localFocusLat, localFocusLng, post.lat, post.lng) <=
+						LOCAL_TRENDING_RADIUS_KM
+				)
+			: visiblePosts
+	);
 	const trendingEntries = $derived.by(() => {
-		const trendingSource =
-			scope === 'local'
-				? visiblePosts.filter(
-						(post) =>
-							distanceKm(localFocusLat, localFocusLng, post.lat, post.lng) <=
-							LOCAL_TRENDING_RADIUS_KM
-					)
-				: visiblePosts;
-		const entries: RankedPost[] = trendingSource
+		if (trendMode === 'new') {
+			return trendingSource
+				.map((post) => ({
+					post,
+					score: new Date(post.createdAt).getTime(),
+					engagement: engagementFor(post)
+				}))
+				.sort((a, b) => b.score - a.score)
+				.slice(0, 6);
+		}
+
+		const modeSource =
+			trendMode === 'rising'
+				? [...trendingSource].filter((post) => engagementFor(post) > 0)
+				: [...trendingSource];
+		const entries: RankedPost[] = modeSource
 			.map((post) => ({
 				post,
-				score: trendScore(post),
+				score: trendMode === 'rising' ? risingScore(post) : trendScore(post),
 				engagement: engagementFor(post)
 			}))
 			.filter((entry) => entry.engagement > 0)
@@ -329,6 +354,7 @@
 			: []
 	);
 	const mapUserLocation = $derived(userLocation ?? data.coarseLocation);
+	const canEditComposeLocation = $derived(Boolean(data.user));
 	const canSubmitPost = $derived(
 		Boolean(data.user) &&
 			composeTitle.trim().length >= 4 &&
@@ -427,7 +453,7 @@
 		profileEditing = false;
 		profileSaveError = '';
 		profileEditAvatarDataUrl = null;
-		authPanelMode = 'login';
+		authPanelMode = 'welcome';
 		authPassword = '';
 		authCode = '';
 		authError = '';
@@ -775,7 +801,7 @@
 
 	async function handleInlineAuthSubmit(e: SubmitEvent) {
 		e.preventDefault();
-		if (authSubmitting) return;
+		if (authSubmitting || authPanelMode === 'welcome') return;
 
 		authSubmitting = true;
 		authError = '';
@@ -996,7 +1022,7 @@
 		composeLng = target.lng;
 		composeLat = target.lat;
 
-		if (!userLocation) {
+		if (!userLocation && data.user) {
 			requestUserLocation(true);
 		}
 		scope = 'local';
@@ -1052,6 +1078,7 @@
 	}
 
 	function handleComposePick(newLng: number, newLat: number) {
+		if (!data.user) return;
 		composeLng = newLng;
 		composeLat = newLat;
 		void refreshComposeAreaLabel();
@@ -1125,6 +1152,13 @@
 			lastTrendingFitKey = '';
 			redrawTrigger++;
 		}
+	}
+
+	function handleTrendModeChange(mode: TrendMode) {
+		trendMode = mode;
+		lastTrendingFitKey = '';
+		hoveredPostId = null;
+		redrawTrigger++;
 	}
 
 	onMount(() => {
@@ -1264,7 +1298,7 @@
 		</div>
 
 		<div class="header-right">
-			<button type="button" class="btn btn-primary new-post-btn" onclick={openCompose}>
+			<button type="button" class="btn btn-primary header-action-btn" onclick={openCompose}>
 				<svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
 					<path d="M8 1v14M1 8h14" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
 				</svg>
@@ -1300,6 +1334,7 @@
 				onSelectPost={handleSelectPost}
 				threeD={mapThreeD}
 				{composing}
+				composeInteractive={canEditComposeLocation}
 				{composeLng}
 				{composeLat}
 				composeRadiusM={composeRadiusM}
@@ -1313,8 +1348,10 @@
 					<TrendingDropdown
 						entries={trendingEntries}
 						{scope}
+						mode={trendMode}
 						open={trendingOpen}
 						onOpenChange={handleTrendingOpenChange}
+						onModeChange={handleTrendModeChange}
 						onSelect={handleSelectPost}
 						itemEls={trendingItemEls}
 						onItemsChange={() => redrawTrigger++}
@@ -1537,7 +1574,13 @@
 						<p class="section-heading">{accountPanelOpen ? 'Account' : 'Profile'}</p>
 						<h1 class="compose-title">
 							{accountPanelOpen
-								? 'Welcome to BirdsEye'
+								? authPanelMode === 'welcome'
+									? 'Welcome to BirdsEye'
+									: authPanelMode === 'signup'
+										? 'Create account'
+										: authPanelMode === 'verify'
+											? 'Verify code'
+											: 'Sign in'
 								: profileEditing
 									? 'Edit profile'
 									: (profileDetail?.displayName ?? 'Loading profile')}
@@ -1549,25 +1592,35 @@
 				</div>
 
 				{#if accountPanelOpen}
-					<div class="login-panel-body">
-						<section class="login-card">
-							<div class="auth-tabs" aria-label="Account mode">
-								<button
-									type="button"
-									class:active={authPanelMode === 'login'}
-									onclick={() => switchAuthMode('login')}
-								>
-									Sign in
-								</button>
-								<button
-									type="button"
-									class:active={authPanelMode === 'signup'}
-									onclick={() => switchAuthMode('signup')}
-								>
-									Create account
-								</button>
-							</div>
-
+					{#if authPanelMode === 'welcome'}
+						<div class="account-welcome">
+							<section class="login-card account-welcome-hero">
+								<p class="section-heading">BirdsEye account</p>
+								<h2>Join the local signal</h2>
+								<p class="muted">
+									Create a profile to publish posts, verify reports, and keep your community reputation in one place.
+								</p>
+								<div class="login-actions">
+									<button type="button" class="btn btn-primary" onclick={() => switchAuthMode('signup')}>
+										Create account
+									</button>
+									<button type="button" class="btn" onclick={() => switchAuthMode('login')}>
+										Sign in
+									</button>
+								</div>
+							</section>
+							<section class="login-card login-card-muted">
+								<h2>With an account you can</h2>
+								<ul>
+									<li>Publish local posts with an affected area.</li>
+									<li>Verify or dispute factual reports.</li>
+									<li>Build a visible reputation over time.</li>
+								</ul>
+							</section>
+						</div>
+					{:else}
+						<div class="login-panel-body auth-form-mode">
+							<section class="login-card auth-form-card">
 							<form class="inline-auth-form" onsubmit={handleInlineAuthSubmit}>
 								{#if authPanelMode === 'verify'}
 									<h2>Check your email</h2>
@@ -1657,22 +1710,15 @@
 										<button type="button" class="btn" onclick={resendInlineCode} disabled={authSubmitting}>
 											Resend code
 										</button>
-										<button type="button" class="btn" onclick={() => switchAuthMode('login')} disabled={authSubmitting}>
-											Back
-										</button>
 									{/if}
+									<button type="button" class="btn" onclick={() => switchAuthMode('welcome')} disabled={authSubmitting}>
+										Back
+									</button>
 								</div>
 							</form>
 						</section>
-						<section class="login-card login-card-muted">
-							<h2>With an account you can</h2>
-							<ul>
-								<li>Publish local posts with an affected area.</li>
-								<li>Verify or dispute factual reports.</li>
-								<li>Build a visible reputation over time.</li>
-							</ul>
-						</section>
-					</div>
+						</div>
+					{/if}
 				{:else if profileLoading}
 					<div class="panel-loading">
 						<div class="spinner"></div>
@@ -2251,9 +2297,12 @@
 		flex-shrink: 0;
 	}
 
-	.new-post-btn {
+	.header-action-btn,
+	.header-right :global(.header-action-btn) {
+		height: 36px;
+		min-width: 92px;
 		font-size: 13px;
-		padding: 7px 14px;
+		padding: 0 14px;
 	}
 
 	.main {
@@ -2491,6 +2540,19 @@
 		min-height: calc(100% - 62px);
 	}
 
+	.account-welcome {
+		display: grid;
+		grid-template-columns: minmax(320px, 1.05fr) minmax(280px, 0.85fr);
+		gap: 18px;
+		min-height: calc(100% - 62px);
+	}
+
+	.login-panel-body.auth-form-mode {
+		grid-template-columns: minmax(320px, 560px);
+		justify-content: center;
+		align-content: center;
+	}
+
 	.profile-summary,
 	.profile-notifications,
 	.profile-reputation,
@@ -2510,29 +2572,28 @@
 		min-height: 260px;
 	}
 
-	.auth-tabs {
-		display: grid;
-		grid-template-columns: 1fr 1fr;
-		gap: 4px;
-		padding: 4px;
-		border: 1px solid var(--border);
-		border-radius: var(--radius);
-		background: var(--surface-2);
+	.account-welcome-hero {
+		min-height: 420px;
+		padding: 28px;
 	}
 
-	.auth-tabs button {
-		border: 0;
-		border-radius: var(--radius-sm);
-		padding: 9px 10px;
-		background: transparent;
-		color: var(--text-2);
-		font-weight: 700;
+	.account-welcome-hero h2 {
+		font-size: clamp(32px, 5vw, 58px);
+		line-height: 0.98;
+		letter-spacing: 0;
+		max-width: 720px;
 	}
 
-	.auth-tabs button.active {
-		background: var(--surface);
-		color: var(--text);
-		box-shadow: var(--shadow-sm);
+	.account-welcome-hero p {
+		max-width: 560px;
+		font-size: 16px;
+		line-height: 1.55;
+	}
+
+	.auth-form-card {
+		width: min(100%, 560px);
+		min-height: 0;
+		padding: 24px;
 	}
 
 	.inline-auth-form {
@@ -3264,7 +3325,8 @@
 		}
 
 		.profile-panel-body,
-		.login-panel-body {
+		.login-panel-body,
+		.account-welcome {
 			grid-template-columns: 1fr;
 		}
 
