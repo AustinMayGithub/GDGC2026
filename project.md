@@ -144,10 +144,8 @@ The right tab can be minimised to read the article full-width.
   check."
 - **No comments → no note.** Skip the API call when the thread is empty; show a
   static "No discussion yet" placeholder instead.
-- **Regeneration is debounced** — not on every comment. Regenerate when ≥5 new
-  comments arrive *or* 10 minutes pass since the last note. Store the note in the
-  DB with the comment-count it was based on, and never block a page load on the
-  API call — return the stale note and refresh asynchronously.
+- **Regeneration runs after each posted comment.** Store the note in the DB with
+  the comment-count it was based on, and never block a page load on the API call.
 
 ### 4.6 Personal vs factual posts — divergent behaviour
 

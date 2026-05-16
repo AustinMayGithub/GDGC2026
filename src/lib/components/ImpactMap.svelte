@@ -14,7 +14,8 @@
 
 	let container: HTMLDivElement;
 	let map: import('maplibre-gl').Map | null = null;
-	let pinCoordinates = $state<[number, number]>([0, 0]);
+	let renderedLng = lng;
+	let renderedLat = lat;
 	let hasLoaded = false;
 
 	const OSM_STYLE = {
@@ -65,11 +66,11 @@
 		};
 	}
 
-	function updateCircle() {
+	function updateCircle(centerLng = lng, centerLat = lat, circleRadiusM = radiusM) {
 		if (!map) return;
 		const src = map.getSource('circle') as import('maplibre-gl').GeoJSONSource | undefined;
 		if (src) {
-			src.setData(buildCircle(lng, lat, radiusM));
+			src.setData(buildCircle(centerLng, centerLat, circleRadiusM));
 		}
 	}
 
@@ -81,9 +82,14 @@
 		}
 	}
 
-	function fitToImpactZone(duration = 0, centerLng = lng, centerLat = lat) {
+	function fitToImpactZone(
+		duration = 0,
+		centerLng = lng,
+		centerLat = lat,
+		circleRadiusM = radiusM
+	) {
 		if (!map) return;
-		const feature = buildCircle(centerLng, centerLat, radiusM);
+		const feature = buildCircle(centerLng, centerLat, circleRadiusM);
 		const ring = feature.geometry.coordinates[0];
 
 		let minLng = Infinity;
@@ -117,20 +123,14 @@
 		const currentRadiusM = radiusM;
 
 		// React to prop changes after mount.
-		if (!map) return;
-		const circleSource = map.getSource('circle') as
-			| import('maplibre-gl').GeoJSONSource
-			| undefined;
-		if (circleSource) {
-			circleSource.setData(buildCircle(currentLng, currentLat, currentRadiusM));
-		}
+		if (!map || !hasLoaded) return;
+		updateCircle(currentLng, currentLat, currentRadiusM);
 		updateMarker(currentLng, currentLat);
-		const nextCoordinates: [number, number] = [currentLng, currentLat];
-		const movedPin =
-			nextCoordinates[0] !== pinCoordinates[0] || nextCoordinates[1] !== pinCoordinates[1];
-		pinCoordinates = nextCoordinates;
+		const movedPin = currentLng !== renderedLng || currentLat !== renderedLat;
+		renderedLng = currentLng;
+		renderedLat = currentLat;
 		if (movedPin) {
-			fitToImpactZone(hasLoaded ? 350 : 180, currentLng, currentLat);
+			fitToImpactZone(350, currentLng, currentLat, currentRadiusM);
 		}
 	});
 
@@ -183,20 +183,20 @@
 			if (interactive && onpick) {
 				map.on('click', (e) => {
 					const { lng: clickLng, lat: clickLat } = e.lngLat;
-					pinCoordinates = [clickLng, clickLat];
+					renderedLng = clickLng;
+					renderedLat = clickLat;
 					updateMarker(clickLng, clickLat);
-					// Update circle too
-					const src = map!.getSource('circle') as import('maplibre-gl').GeoJSONSource;
-					if (src) src.setData(buildCircle(clickLng, clickLat, radiusM));
-					fitToImpactZone(350, clickLng, clickLat);
+					updateCircle(clickLng, clickLat, radiusM);
+					fitToImpactZone(350, clickLng, clickLat, radiusM);
 					onpick!(clickLng, clickLat);
 				});
 				map.getCanvas().style.cursor = 'crosshair';
 			}
 
 			hasLoaded = true;
-			pinCoordinates = [lng, lat];
-			fitToImpactZone(0);
+			renderedLng = lng;
+			renderedLat = lat;
+			fitToImpactZone(0, lng, lat, radiusM);
 		});
 	});
 

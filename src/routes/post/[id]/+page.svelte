@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { PostDetail, CommentItem, SessionUser } from '$lib/types';
+	import type { PostDetail, CommentItem, CommunityNote, SessionUser } from '$lib/types';
 	import UserMenu from '$lib/components/UserMenu.svelte';
 	import ImpactMap from '$lib/components/ImpactMap.svelte';
 	import CredibilityMeter from '$lib/components/CredibilityMeter.svelte';
@@ -20,6 +20,7 @@
 	const user = $derived(data.user);
 
 	let rightOpen = $state(true);
+	let communityNote = $state(post.communityNote);
 
 	function formatDate(isoString: string): string {
 		const date = new Date(isoString);
@@ -42,6 +43,10 @@
 		});
 		alert('Report submitted. Thank you.');
 	}
+
+	$effect(() => {
+		communityNote = post.communityNote;
+	});
 </script>
 
 <svelte:head>
@@ -126,7 +131,7 @@
 
 						<!-- 3. Community note -->
 						<section class="panel-section">
-							<CommunityNote note={post.communityNote} />
+							<CommunityNote note={communityNote} />
 						</section>
 					{/if}
 
@@ -138,7 +143,12 @@
 
 					<!-- 5. Comments -->
 					<section class="panel-section">
-						<CommentThread postId={post.id} {comments} {user} />
+						<CommentThread
+							postId={post.id}
+							{comments}
+							{user}
+							onCommunityNoteUpdated={(note: CommunityNote) => (communityNote = note)}
+						/>
 					</section>
 				</div>
 			{/if}

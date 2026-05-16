@@ -219,7 +219,7 @@
 								min={100}
 								max={50000}
 								step={100}
-								bind:value={radiusM}
+								value={radiusM}
 								oninput={handleRadiusInput}
 							/>
 							<div class="radius-hints muted">
