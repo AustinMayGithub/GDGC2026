@@ -36,13 +36,8 @@ function jitterLocation(lng: number, lat: number) {
 export const GET: RequestHandler = async ({ url }) => {
 	const scope = url.searchParams.get('scope');
 	const regionId = url.searchParams.get('regionId') ?? undefined;
-	try {
-		const list = await listPosts({ regionId: scope === 'local' ? regionId : undefined });
-		return json({ posts: list });
-	} catch (err) {
-		console.warn('Post feed failed; returning an empty feed so the page can render.', err);
-		return json({ posts: [] });
-	}
+	const list = await listPosts({ regionId: scope === 'local' ? regionId : undefined });
+	return json({ posts: list });
 };
 
 export const POST: RequestHandler = async ({ request, locals }) => {
