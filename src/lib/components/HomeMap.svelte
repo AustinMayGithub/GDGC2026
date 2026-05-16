@@ -66,6 +66,21 @@
 		return [lng - lngDelta, lat - latDelta, lng + lngDelta, lat + latDelta];
 	}
 
+	function zoomForRadius(lat: number, radiusKm: number) {
+		const width = container?.clientWidth ?? 1280;
+		const height = container?.clientHeight ?? 720;
+		const padding = width < 820 ? 20 : 28;
+		const usableHalfSpanPx = Math.max(Math.min(width, height) / 2 - padding, 80);
+		const radiusMeters = radiusKm * 1000;
+		const metersPerPixelAtZoom0 =
+			(Math.cos((lat * Math.PI) / 180) * 2 * Math.PI * 6378137) / 256;
+
+		return Math.min(
+			16,
+			Math.max(3, Math.log2((metersPerPixelAtZoom0 * usableHalfSpanPx) / radiusMeters))
+		);
+	}
+
 	function createMarkerEl(post: PostSummary, hovered: boolean): HTMLElement {
 		const el = document.createElement('div');
 		el.className = post.category === 'factual' ? 'marker-factual' : 'marker-personal';
@@ -169,7 +184,15 @@
 	}
 
 	export function focusOnLocation(lng: number, lat: number, radiusKm = 20) {
-		fitToBbox(bboxForRadius(lng, lat, radiusKm));
+		if (!map || !maplibre) return;
+		const ml = maplibre as typeof import('maplibre-gl');
+		const m = map as InstanceType<typeof ml.Map>;
+
+		m.easeTo({
+			center: [lng, lat],
+			zoom: zoomForRadius(lat, radiusKm),
+			duration: 800
+		});
 	}
 
 	onMount(async () => {
