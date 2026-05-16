@@ -8,8 +8,10 @@
 	interface Props {
 		posts: PostSummary[];
 		hoveredPostId: string | null;
+		selectedPostId: string | null;
 		onMapReady: (map: unknown) => void;
 		onMarkerPositionsChange: () => void;
+		onSelectPost: (id: string | null) => void;
 	}
 
 	type CameraOptions = {
@@ -25,13 +27,24 @@
 		bounds: [number, number, number, number];
 	};
 
-	let { posts, hoveredPostId, onMapReady, onMarkerPositionsChange }: Props = $props();
+	let {
+		posts,
+		hoveredPostId,
+		selectedPostId,
+		onMapReady,
+		onMarkerPositionsChange,
+		onSelectPost
+	}: Props = $props();
 
 	let container: HTMLDivElement;
 	let map: unknown = null;
 	let maplibre: typeof import('maplibre-gl') | null = null;
 
 	const NZ_VISUAL_CENTER: [number, number] = [174.25, -41.15];
+	const EMPTY_FEATURES: GeoJSON.FeatureCollection = {
+		type: 'FeatureCollection',
+		features: []
+	};
 
 	const BASEMAP_STYLE = {
 		version: 8 as const,
@@ -159,6 +172,115 @@
 		};
 	}
 
+	function buildCircle(
+		centerLng: number,
+		centerLat: number,
+		radiusMeters: number
+	): GeoJSON.Feature<GeoJSON.Polygon> {
+		const coords: [number, number][] = [];
+		const steps = 64;
+		const earthR = 6371000;
+		const angularRadius = radiusMeters / earthR;
+		const latR = (centerLat * Math.PI) / 180;
+		const lngR = (centerLng * Math.PI) / 180;
+
+		for (let i = 0; i <= steps; i++) {
+			const bearing = (i / steps) * 2 * Math.PI;
+			const pLat = Math.asin(
+				Math.sin(latR) * Math.cos(angularRadius) +
+					Math.cos(latR) * Math.sin(angularRadius) * Math.cos(bearing)
+			);
+			const pLng =
+				lngR +
+				Math.atan2(
+					Math.sin(bearing) * Math.sin(angularRadius) * Math.cos(latR),
+					Math.cos(angularRadius) - Math.sin(latR) * Math.sin(pLat)
+				);
+			coords.push([(pLng * 180) / Math.PI, (pLat * 180) / Math.PI]);
+		}
+
+		return {
+			type: 'Feature',
+			geometry: { type: 'Polygon', coordinates: [coords] },
+			properties: {}
+		};
+	}
+
+	function postsToFeatures(): GeoJSON.FeatureCollection<GeoJSON.Point> {
+		return {
+			type: 'FeatureCollection',
+			features: posts.map((post) => ({
+				type: 'Feature',
+				geometry: { type: 'Point', coordinates: [post.lng, post.lat] },
+				properties: {
+					id: post.id,
+					selected: post.id === selectedPostId,
+					hovered: post.id === hoveredPostId
+				}
+			}))
+		};
+	}
+
+	function selectedRadiusFeatures(): GeoJSON.FeatureCollection<GeoJSON.Polygon> {
+		const post = posts.find((item) => item.id === selectedPostId);
+		return {
+			type: 'FeatureCollection',
+			features: post ? [buildCircle(post.lng, post.lat, post.impactRadiusM)] : []
+		};
+	}
+
+	function syncPostLayers() {
+		if (!map || !maplibre) return;
+		const ml = maplibre as typeof import('maplibre-gl');
+		const m = map as InstanceType<typeof ml.Map>;
+		const postSource = m.getSource('posts') as import('maplibre-gl').GeoJSONSource | undefined;
+		const radiusSource = m.getSource('selected-radius') as
+			| import('maplibre-gl').GeoJSONSource
+			| undefined;
+
+		postSource?.setData(postsToFeatures());
+		radiusSource?.setData(selectedRadiusFeatures());
+	}
+
+	function fitToPostRadius(post: PostSummary) {
+		if (!map || !maplibre) return;
+		const ml = maplibre as typeof import('maplibre-gl');
+		const m = map as InstanceType<typeof ml.Map>;
+		const ring = buildCircle(post.lng, post.lat, post.impactRadiusM).geometry.coordinates[0];
+		const width = container.clientWidth;
+		const compact = width < 820;
+		const sidePadding = compact ? 24 : Math.min(320, Math.max(180, width * 0.22));
+
+		let minLng = Infinity;
+		let minLat = Infinity;
+		let maxLng = -Infinity;
+		let maxLat = -Infinity;
+
+		for (const [lng, lat] of ring) {
+			if (lng < minLng) minLng = lng;
+			if (lng > maxLng) maxLng = lng;
+			if (lat < minLat) minLat = lat;
+			if (lat > maxLat) maxLat = lat;
+		}
+
+		m.fitBounds(
+			[
+				[minLng, minLat],
+				[maxLng, maxLat]
+			],
+			{
+				padding: {
+					top: 116,
+					right: sidePadding,
+					bottom: 56,
+					left: sidePadding
+				},
+				duration: 450,
+				maxZoom: 12.5
+			}
+		);
+	}
+
 	export function getMarkerScreenPos(postId: string): { x: number; y: number } | null {
 		if (!map || !maplibre) return null;
 		const ml = maplibre as typeof import('maplibre-gl');
@@ -254,9 +376,75 @@
 		map = m;
 
 		m.on('load', () => {
+			m.addSource('selected-radius', { type: 'geojson', data: EMPTY_FEATURES });
+			m.addLayer({
+				id: 'selected-radius-fill',
+				type: 'fill',
+				source: 'selected-radius',
+				paint: { 'fill-color': '#6366f1', 'fill-opacity': 0.16 }
+			});
+			m.addLayer({
+				id: 'selected-radius-line',
+				type: 'line',
+				source: 'selected-radius',
+				paint: { 'line-color': '#4f46e5', 'line-width': 2.4, 'line-opacity': 0.78 }
+			});
+			m.addSource('posts', { type: 'geojson', data: postsToFeatures() });
+			m.addLayer({
+				id: 'post-point',
+				type: 'circle',
+				source: 'posts',
+				paint: {
+					'circle-radius': [
+						'case',
+						['==', ['get', 'selected'], true],
+						9,
+						['==', ['get', 'hovered'], true],
+						8,
+						6
+					],
+					'circle-color': [
+						'case',
+						['==', ['get', 'selected'], true],
+						'#4f46e5',
+						'#111827'
+					],
+					'circle-opacity': 0.95,
+					'circle-stroke-color': '#ffffff',
+					'circle-stroke-width': [
+						'case',
+						['==', ['get', 'selected'], true],
+						3,
+						2
+					]
+				}
+			});
+
 			fitToBbox(NZ_BBOX);
+			syncPostLayers();
 			onMarkerPositionsChange();
 			onMapReady(m);
+
+			m.on('click', 'post-point', (e) => {
+				const id = e.features?.[0]?.properties?.id as string | undefined;
+				const post = posts.find((item) => item.id === id);
+				if (!post) return;
+				onSelectPost(post.id);
+				fitToPostRadius(post);
+			});
+
+			m.on('click', (e) => {
+				const features = m.queryRenderedFeatures(e.point, { layers: ['post-point'] });
+				if (features.length === 0) onSelectPost(null);
+			});
+
+			m.on('mouseenter', 'post-point', () => {
+				m.getCanvas().style.cursor = 'pointer';
+			});
+
+			m.on('mouseleave', 'post-point', () => {
+				m.getCanvas().style.cursor = '';
+			});
 		});
 
 		m.on('move', onMarkerPositionsChange);
@@ -274,6 +462,8 @@
 	$effect(() => {
 		posts;
 		hoveredPostId;
+		selectedPostId;
+		syncPostLayers();
 	});
 </script>
 
