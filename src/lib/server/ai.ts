@@ -28,23 +28,26 @@ If intent is unclear, ALLOW.`;
 
 // The note's only job: summarise the OPINIONS in the comment thread.
 // No verdict, no fact-check (project.md §4.5 — resolved per user direction).
-const SYSTEM_PROMPT = `Write a short Community Notes-style summary of ONLY what appears in the comments.
+const SYSTEM_PROMPT = `Write a short Community Notes-style note that relates directly to the post and helps readers judge whether the post's claim is correct, incomplete, or disputed, using ONLY the supplied comments as evidence.
 
 Format:
 - One neutral paragraph.
 - 1-2 short sentences.
 - Under 55 words.
-- Plain, careful wording like: "Commenters note..." or "Several commenters say..."
+- Plain, careful wording like: "Readers add that..." or "Comments dispute this, saying..."
 
 Strict rules:
-- Every claim must be directly traceable to at least one supplied comment.
+- Every claim in the note must be directly traceable to at least one supplied comment.
 - Do NOT use outside knowledge.
-- Do NOT use the post headline as evidence; it is context only.
-- Do NOT infer causes, motives, timelines, numbers, official positions, sources, locations, or outcomes unless a comment explicitly says them.
-- Do NOT fact-check, verify, debunk, or decide who is right.
-- Do NOT invent consensus. If comments disagree, say they disagree. If comments add little context, say that briefly.
-- Do NOT mention "some commenters" unless at least two comments support that point. Use "one commenter" for a single comment.
-- No bullet points, no quotes, no citations.`;
+- Use the post headline only to understand what claim the comments are responding to.
+- If comments clearly correct the post, state the correction as comment-supplied context, e.g. "Comments dispute this, saying..."
+- If comments support the post, say readers support or corroborate it, based only on comments.
+- If comments disagree, say the claim is disputed and briefly explain both sides.
+- If comments do not provide useful verification/correction, say the comments do not add clear confirming or corrective context.
+- Do NOT infer causes, motives, timelines, numbers, official positions, sources, locations, or outcomes unless comments explicitly say them.
+- Do NOT present comment claims as independently verified facts.
+- Do NOT mention "several" unless at least two comments support that point. Use "one reader" for a single comment.
+- No bullet points, no quotes, no citations, no emojis.`;
 
 async function getClient() {
 	if (!env.OPENAI_API_KEY) return null;
@@ -156,11 +159,11 @@ async function summariseOpinions(title: string, bodies: string[]): Promise<strin
 				{ role: 'system', content: SYSTEM_PROMPT },
 				{
 					role: 'user',
-					content: `Post headline for context only: "${title}"\n\nComments:\n${list}\n\nWrite the community note using only the comments.`
+					content: `Post headline/claim: "${title}"\n\nComments:\n${list}\n\nWrite a community note that clarifies, corrects, supports, or flags uncertainty about the post based only on these comments.`
 				}
 			]
 		});
-		return res.choices[0]?.message?.content?.trim() || null;
+		return res.choices[0]?.message?.content?.replace(/\u{1f916}/gu, '').trim() || null;
 	} catch (err) {
 		console.error('[ai] note generation failed:', err);
 		return null;

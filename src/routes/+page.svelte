@@ -64,7 +64,7 @@
 		score: number;
 		engagement: number;
 	};
-	type AuthPanelMode = 'welcome' | 'login' | 'signup' | 'verify';
+	type AuthPanelMode = 'welcome' | 'login' | 'signup';
 
 	const DEFAULT_REGION_ID = 'auckland';
 	const REGION_CACHE_KEY = 'birdseye:local-region';
@@ -173,11 +173,9 @@
 	let authEmail = $state('');
 	let authPassword = $state('');
 	let authDisplayName = $state('');
-	let authCode = $state('');
 	let authSubmitting = $state(false);
 	let authError = $state('');
 	let authMessage = $state('');
-	let authDevOtp = $state<string | null>(null);
 
 	function toRadians(value: number) {
 		return (value * Math.PI) / 180;
@@ -449,7 +447,6 @@
 		authSubmitting = false;
 		authError = '';
 		authMessage = '';
-		authDevOtp = null;
 		profileRequestId++;
 		refreshPostsIfStale();
 	}
@@ -512,10 +509,8 @@
 		profileDeleteAccountError = '';
 		authPanelMode = 'welcome';
 		authPassword = '';
-		authCode = '';
 		authError = '';
 		authMessage = '';
-		authDevOtp = null;
 		accountPanelOpen = true;
 		composing = false;
 		void resizeMapAfterLayout();
@@ -863,16 +858,13 @@
 		authPanelMode = mode;
 		authError = '';
 		authMessage = '';
-		authDevOtp = null;
-		authCode = '';
-		if (mode !== 'verify') authPassword = '';
+		authPassword = '';
 	}
 
 	async function finishInlineAuth() {
 		authSubmitting = false;
 		authError = '';
 		authMessage = '';
-		authDevOtp = null;
 		await invalidateAll();
 		closeProfile();
 	}
@@ -889,9 +881,7 @@
 			const endpoint =
 				authPanelMode === 'signup'
 					? '/api/auth/signup'
-					: authPanelMode === 'verify'
-						? '/api/auth/verify'
-						: '/api/auth/login';
+					: '/api/auth/login';
 			const body =
 				authPanelMode === 'signup'
 					? {
@@ -899,9 +889,7 @@
 							email: authEmail.trim(),
 							password: authPassword
 						}
-					: authPanelMode === 'verify'
-						? { code: authCode }
-						: { email: authEmail.trim(), password: authPassword };
+					: { email: authEmail.trim(), password: authPassword };
 
 			const res = await fetch(endpoint, {
 				method: 'POST',
@@ -923,40 +911,6 @@
 				await finishInlineAuth();
 				return;
 			}
-
-			if (json.status === 'verify') {
-				authPanelMode = 'verify';
-				authPassword = '';
-				authCode = '';
-				authDevOtp = typeof json.devOtp === 'string' ? json.devOtp : null;
-				authMessage = `We sent a verification code to ${String(json.email ?? authEmail)}.`;
-			}
-		} catch {
-			authError = 'Network error. Please try again.';
-		} finally {
-			authSubmitting = false;
-		}
-	}
-
-	async function resendInlineCode() {
-		if (authSubmitting) return;
-		authSubmitting = true;
-		authError = '';
-		authMessage = '';
-
-		try {
-			const res = await fetch('/api/auth/resend', { method: 'POST' });
-			const text = await res.text();
-			const json = text ? (JSON.parse(text) as Record<string, unknown>) : {};
-			if (!res.ok) {
-				authError =
-					typeof json.message === 'string'
-						? json.message
-						: 'Could not resend the code. Please try again.';
-				return;
-			}
-			authDevOtp = typeof json.devOtp === 'string' ? json.devOtp : null;
-			authMessage = 'A new code has been sent.';
 		} catch {
 			authError = 'Network error. Please try again.';
 		} finally {
@@ -1805,9 +1759,7 @@
 									? 'Welcome to BirdsEye'
 									: authPanelMode === 'signup'
 										? 'Create account'
-										: authPanelMode === 'verify'
-											? 'Verify code'
-											: 'Sign in'
+										: 'Sign in'
 								: profileEditing
 									? 'Edit profile'
 									: (profileDetail?.displayName ?? 'Loading profile')}
@@ -1849,75 +1801,51 @@
 						<div class="login-panel-body auth-form-mode">
 							<section class="login-card auth-form-card">
 							<form class="inline-auth-form" onsubmit={handleInlineAuthSubmit}>
-								{#if authPanelMode === 'verify'}
-									<h2>Check your email</h2>
-									<p class="muted">
-										Enter the 6-digit code to finish {authPanelMode === 'verify' ? 'signing in' : 'setup'}.
-									</p>
+								<h2>{authPanelMode === 'signup' ? 'Create your account' : 'Sign in to your account'}</h2>
+								<p class="muted">
+									{authPanelMode === 'signup'
+										? 'Join BirdsEye to publish, verify, and build a local reputation.'
+										: 'Open your profile, manage your posts, and share updates with your community.'}
+								</p>
+								{#if authPanelMode === 'signup'}
 									<div class="field">
-										<label class="field-label" for="inline-auth-code">Verification code</label>
+										<label class="field-label" for="inline-auth-name">Display name</label>
 										<input
-											id="inline-auth-code"
+											id="inline-auth-name"
 											class="input"
 											type="text"
-											inputmode="numeric"
-											autocomplete="one-time-code"
-											bind:value={authCode}
-											maxlength="6"
-											disabled={authSubmitting}
-											required
-										/>
-									</div>
-								{:else}
-									<h2>{authPanelMode === 'signup' ? 'Create your account' : 'Sign in to your account'}</h2>
-									<p class="muted">
-										{authPanelMode === 'signup'
-											? 'Join BirdsEye to publish, verify, and build a local reputation.'
-											: 'Open your profile, manage your posts, and share updates with your community.'}
-									</p>
-									{#if authPanelMode === 'signup'}
-										<div class="field">
-											<label class="field-label" for="inline-auth-name">Display name</label>
-											<input
-												id="inline-auth-name"
-												class="input"
-												type="text"
-												bind:value={authDisplayName}
-												disabled={authSubmitting}
-												required
-											/>
-										</div>
-									{/if}
-									<div class="field">
-										<label class="field-label" for="inline-auth-email">Email</label>
-										<input
-											id="inline-auth-email"
-											class="input"
-											type="email"
-											bind:value={authEmail}
-											disabled={authSubmitting}
-											required
-										/>
-									</div>
-									<div class="field">
-										<label class="field-label" for="inline-auth-password">Password</label>
-										<input
-											id="inline-auth-password"
-											class="input"
-											type="password"
-											bind:value={authPassword}
-											autocomplete={authPanelMode === 'signup' ? 'new-password' : 'current-password'}
+											bind:value={authDisplayName}
 											disabled={authSubmitting}
 											required
 										/>
 									</div>
 								{/if}
+								<div class="field">
+									<label class="field-label" for="inline-auth-email">Email</label>
+									<input
+										id="inline-auth-email"
+										class="input"
+										type="email"
+										bind:value={authEmail}
+										disabled={authSubmitting}
+										required
+									/>
+								</div>
+								<div class="field">
+									<label class="field-label" for="inline-auth-password">Password</label>
+									<input
+										id="inline-auth-password"
+										class="input"
+										type="password"
+										bind:value={authPassword}
+										autocomplete={authPanelMode === 'signup' ? 'new-password' : 'current-password'}
+										disabled={authSubmitting}
+										required
+									/>
+								</div>
 
 								{#if authMessage}
 									<p class="auth-message">{authMessage}</p>
-								{/if}
-								{#if authDevOtp}
-									<p class="auth-message auth-dev-code">Dev code: {authDevOtp}</p>
 								{/if}
 								{#if authError}
 									<p class="error-text profile-save-error">{authError}</p>
@@ -1927,17 +1855,10 @@
 									<button class="btn btn-primary" type="submit" disabled={authSubmitting}>
 										{#if authPanelMode === 'signup'}
 											{authSubmitting ? 'Creating...' : 'Create account'}
-										{:else if authPanelMode === 'verify'}
-											{authSubmitting ? 'Verifying...' : 'Verify code'}
 										{:else}
 											{authSubmitting ? 'Signing in...' : 'Sign in'}
 										{/if}
 									</button>
-									{#if authPanelMode === 'verify'}
-										<button type="button" class="btn" onclick={resendInlineCode} disabled={authSubmitting}>
-											Resend code
-										</button>
-									{/if}
 									<button type="button" class="btn" onclick={() => switchAuthMode('welcome')} disabled={authSubmitting}>
 										Back
 									</button>
@@ -3012,12 +2933,6 @@
 		background: var(--surface-2);
 		color: var(--text-2);
 		font-size: 13px;
-	}
-
-	.auth-dev-code {
-		color: var(--text);
-		font-weight: 750;
-		letter-spacing: 0.04em;
 	}
 
 	.profile-summary {
