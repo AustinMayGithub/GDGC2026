@@ -1,7 +1,13 @@
 <script lang="ts">
 	import type { SessionUser } from '$lib/types';
 
-	let { user }: { user: SessionUser | null } = $props();
+	let {
+		user,
+		onProfileSelect
+	}: {
+		user: SessionUser | null;
+		onProfileSelect?: (id: string) => void;
+	} = $props();
 
 	function initials(name: string): string {
 		return name
@@ -12,6 +18,13 @@
 	}
 
 	let open = $state(false);
+
+	function handleProfileClick(e: MouseEvent, id: string) {
+		open = false;
+		if (!onProfileSelect) return;
+		e.preventDefault();
+		onProfileSelect(id);
+	}
 </script>
 
 {#if user}
@@ -25,7 +38,7 @@
 					<strong>{user.displayName}</strong>
 					<span class="email">{user.email}</span>
 				</div>
-				<a class="menu-link" href="/profile/{user.id}#posts" onclick={() => (open = false)}>
+				<a class="menu-link" href="/profile/{user.id}#posts" onclick={(e) => handleProfileClick(e, user.id)}>
 					My posts
 				</a>
 				<form method="POST" action="/auth/logout">

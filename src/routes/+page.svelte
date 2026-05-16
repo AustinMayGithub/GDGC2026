@@ -19,7 +19,8 @@
 		PostCategory,
 		PostDetail,
 		CommentItem,
-		CommunityNote as CommunityNoteData
+		CommunityNote as CommunityNoteData,
+		UserProfile
 	} from '$lib/types';
 	import { NZ_BBOX, NZ_REGIONS, regionForPoint } from '$lib/data/nz-regions';
 	import { getLocation, prewarm, seedCoarse, GeoError } from '$lib/location';
@@ -114,6 +115,12 @@
 	let localAutoNationalEnabledAt = 0;
 	let localPeakZoom: number | null = null;
 	let composeRadiusFitFrame: number | null = null;
+	let profileUserId = $state<string | null>(null);
+	let profileDetail = $state<UserProfile | null>(null);
+	let profileIsOwn = $state(false);
+	let profileLoading = $state(false);
+	let profileError = $state('');
+	let profileRequestId = 0;
 
 	function toRadians(value: number) {
 		return (value * Math.PI) / 180;
@@ -290,7 +297,8 @@
 			composeCategory !== null &&
 			!composeSubmitting
 	);
-	const viewingPost = $derived(selectedPostId !== null && !composing);
+	const viewingProfile = $derived(profileUserId !== null && !composing);
+	const viewingPost = $derived(selectedPostId !== null && !composing && !viewingProfile);
 	const mapPosts = $derived(visiblePosts);
 	const connectorPosts = $derived(trendingOpen ? trendingPosts : selectedPosts);
 	const connectorEls = $derived(trendingOpen ? trendingItemEls : listItemEls);
@@ -309,6 +317,44 @@
 		selectedPostError = '';
 		selectedPostRequestId++;
 		redrawTrigger++;
+	}
+
+	function closeProfile() {
+		profileUserId = null;
+		profileDetail = null;
+		profileIsOwn = false;
+		profileLoading = false;
+		profileError = '';
+		profileRequestId++;
+	}
+
+	async function loadProfile(id: string) {
+		const requestId = ++profileRequestId;
+		profileLoading = true;
+		profileError = '';
+
+		try {
+			const res = await fetch(`/api/users/${id}/profile`);
+			if (requestId !== profileRequestId) return;
+			if (!res.ok) throw new Error(`HTTP ${res.status}`);
+			const json = (await res.json()) as { profile: UserProfile; isOwn: boolean };
+			profileDetail = json.profile;
+			profileIsOwn = json.isOwn;
+		} catch {
+			if (requestId !== profileRequestId) return;
+			profileDetail = null;
+			profileIsOwn = false;
+			profileError = 'Failed to load this profile. Please try again.';
+		} finally {
+			if (requestId === profileRequestId) profileLoading = false;
+		}
+	}
+
+	function openProfile(id: string) {
+		profileUserId = id;
+		composing = false;
+		void resizeMapAfterLayout();
+		void loadProfile(id);
 	}
 
 	async function fetchPosts() {
@@ -345,6 +391,12 @@
 
 	async function switchToNational() {
 		clearSelectedPost();
+		closeProfile();
+		if (composing) {
+			composing = false;
+			composeError = '';
+			await resizeMapAfterLayout();
+		}
 		scope = 'national';
 		geoLoading = false;
 		geoError = null;
@@ -353,6 +405,7 @@
 
 	async function switchToLocal() {
 		clearSelectedPost();
+		closeProfile();
 		scope = 'local';
 		geoError = null;
 
@@ -376,6 +429,7 @@
 
 	function onRegionChange(e: Event) {
 		clearSelectedPost();
+		closeProfile();
 		selectedRegionId = (e.target as HTMLSelectElement).value;
 		writeCachedRegion(selectedRegionId);
 		scope = 'local';
@@ -491,6 +545,46 @@
 		});
 	}
 
+	function initials(name: string): string {
+		return name
+			.split(/\s+/)
+			.slice(0, 2)
+			.map((part) => part[0]?.toUpperCase() ?? '')
+			.join('');
+	}
+
+	function formatJoined(isoString: string): string {
+		return new Date(isoString).toLocaleDateString('en-NZ', { month: 'long', year: 'numeric' });
+	}
+
+	function timeAgo(isoString: string): string {
+		const diff = Date.now() - new Date(isoString).getTime();
+		const minutes = Math.floor(diff / 60000);
+		if (minutes < 1) return 'just now';
+		if (minutes < 60) return `${minutes}m ago`;
+		const hours = Math.floor(minutes / 60);
+		if (hours < 24) return `${hours}h ago`;
+		return `${Math.floor(hours / 24)}d ago`;
+	}
+
+	function regionName(regionId: string): string {
+		return NZ_REGIONS.find((region) => region.id === regionId)?.name ?? '';
+	}
+
+	function profileRepColor(profile: UserProfile): string {
+		const score = profile.reputation.score;
+		if (score === null) return 'var(--text-3)';
+		if (score >= 80) return 'var(--verify)';
+		if (score >= 60) return '#65a30d';
+		if (score >= 40) return '#d97706';
+		return 'var(--dispute)';
+	}
+
+	function openProfilePost(id: string) {
+		closeProfile();
+		handleSelectPost(id);
+	}
+
 	function sliderToRadius(value: number): number {
 		const t = Math.min(Math.max(value, 0), RADIUS_SLIDER_MAX) / RADIUS_SLIDER_MAX;
 		const raw = RADIUS_MIN_M * Math.pow(RADIUS_MAX_M / RADIUS_MIN_M, t);
@@ -559,6 +653,7 @@
 	}
 
 	function openCompose() {
+		closeProfile();
 		const target = userLocation ?? { lng: localFocusLng, lat: localFocusLat };
 		composeLng = target.lng;
 		composeLat = target.lat;
@@ -587,6 +682,7 @@
 
 	async function resetMapView() {
 		clearSelectedPost();
+		closeProfile();
 		composing = false;
 		composeError = '';
 		trendingOpen = false;
@@ -716,6 +812,7 @@
 
 	onDestroy(() => {
 		activeFetchController?.abort();
+		profileRequestId++;
 		if (composeRadiusFitFrame !== null) {
 			cancelAnimationFrame(composeRadiusFitFrame);
 		}
@@ -738,7 +835,7 @@
 	});
 </script>
 
-<div class="page" class:composing class:viewing-post={viewingPost}>
+<div class="page" class:composing class:viewing-post={viewingPost} class:viewing-profile={viewingProfile}>
 	<header class="header card">
 		<div
 			class="logo"
@@ -803,7 +900,7 @@
 				</svg>
 				New post
 			</button>
-			<UserMenu user={data.user} />
+			<UserMenu user={data.user} onProfileSelect={openProfile} />
 		</div>
 	</header>
 
@@ -832,7 +929,7 @@
 				onComposePick={handleComposePick}
 			/>
 
-			{#if !composing && !viewingPost}
+			{#if !composing && !viewingPost && !viewingProfile}
 				<div class="trending-overlay">
 					<TrendingDropdown
 						entries={trendingEntries}
@@ -857,7 +954,7 @@
 				/>
 			{/if}
 
-			{#if rankedPosts.length === 0 && !loading && !composing && !viewingPost}
+			{#if rankedPosts.length === 0 && !loading && !composing && !viewingPost && !viewingProfile}
 				<div class="empty-state card">
 					<div class="empty-icon">📍</div>
 					<h2 class="empty-title">No posts here yet</h2>
@@ -929,7 +1026,16 @@
 							{#if post.anonymous}
 								<span class="muted author">Anonymous</span>
 							{:else}
-								<a class="muted author author-link" href="/profile/{post.authorId}">{post.authorName}</a>
+								<a
+									class="muted author author-link"
+									href="/profile/{post.authorId}"
+									onclick={(e) => {
+										e.preventDefault();
+										openProfile(post.authorId);
+									}}
+								>
+									{post.authorName}
+								</a>
 							{/if}
 							<span class="muted meta-sep">·</span>
 							<time class="muted" datetime={post.createdAt}>{formatDate(post.createdAt)}</time>
@@ -982,6 +1088,137 @@
 								</button>
 							{/if}
 						</div>
+					</div>
+				{/if}
+			</aside>
+		{/if}
+
+		{#if viewingProfile}
+			<aside class="profile-panel card" transition:fly={{ y: 120, duration: 260 }}>
+				<div class="profile-panel-top">
+					<div>
+						<p class="section-heading">Profile</p>
+						<h1 class="compose-title">{profileDetail?.displayName ?? 'Loading profile'}</h1>
+					</div>
+					<button type="button" class="close-btn" aria-label="Close profile" onclick={closeProfile}>
+						<svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+							<path d="M3 3l10 10M13 3L3 13" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+						</svg>
+					</button>
+				</div>
+
+				{#if profileLoading}
+					<div class="panel-loading">
+						<div class="spinner"></div>
+						<span class="muted">Loading profile...</span>
+					</div>
+				{:else if profileError}
+					<div class="compose-gate">
+						<p class="error-text">{profileError}</p>
+						<div class="submit-row">
+							<button
+								type="button"
+								class="btn btn-primary"
+								onclick={() => profileUserId && loadProfile(profileUserId)}
+							>
+								Retry
+							</button>
+							<button type="button" class="btn" onclick={closeProfile}>Back to map</button>
+						</div>
+					</div>
+				{:else if profileDetail}
+					{@const profile = profileDetail}
+					{@const repColor = profileRepColor(profile)}
+					<div class="profile-panel-body">
+						<section class="profile-summary">
+							<div class="profile-avatar-wrap">
+								{#if profile.hasAvatar}
+									<img class="profile-avatar-img" src="/api/users/{profile.id}/avatar" alt={profile.displayName} />
+								{:else}
+									<div class="profile-avatar-initials">{initials(profile.displayName)}</div>
+								{/if}
+							</div>
+							<div class="profile-copy">
+								<h2 class="profile-name">{profile.displayName}</h2>
+								{#if profile.bio}
+									<p class="profile-bio">{profile.bio}</p>
+								{/if}
+								<div class="profile-meta">
+									{#if profile.location}
+										<span>{profile.location}</span>
+									{/if}
+									{#if profile.age}
+										<span>Age {profile.age}</span>
+									{/if}
+									<span>Joined {formatJoined(profile.joinedAt)}</span>
+								</div>
+								{#if profileIsOwn}
+									<a class="btn profile-edit-btn" href="/profile/{profile.id}">Edit profile</a>
+								{/if}
+							</div>
+						</section>
+
+						<section class="profile-reputation">
+							<div class="radius-label-row">
+								<span class="field-label">Reputation</span>
+								<span class="radius-value">{profile.reputation.label}</span>
+							</div>
+							{#if profile.reputation.score !== null}
+								<div class="profile-rep-track">
+									<div
+										class="profile-rep-fill"
+										style="width: {profile.reputation.score}%; background: {repColor};"
+									></div>
+								</div>
+								<p class="muted profile-rep-copy">
+									{profile.reputation.score}% verified from {profile.reputation.totalVotes}
+									{profile.reputation.totalVotes === 1 ? 'vote' : 'votes'}.
+								</p>
+							{:else}
+								<p class="muted profile-rep-copy">
+									{profile.reputation.postCount === 0
+										? 'No posts yet.'
+										: `Not enough votes yet (${profile.reputation.totalVotes}/5).`}
+								</p>
+							{/if}
+						</section>
+
+						<section class="profile-posts">
+							<div class="radius-label-row">
+								<span class="field-label">{profileIsOwn ? 'Your posts' : `Posts by ${profile.displayName}`}</span>
+								<span class="radius-value">{profile.posts.length}</span>
+							</div>
+							{#if profile.posts.length === 0}
+								<p class="muted profile-empty">No posts yet.</p>
+							{:else}
+								<div class="profile-post-grid">
+									{#each profile.posts as profilePost}
+										{@const totalVotes = profilePost.verifyCount + profilePost.disputeCount}
+										<article class="profile-post-item">
+											<div class="profile-post-top">
+												<span class={profilePost.category === 'factual' ? 'badge badge-factual' : 'badge'}>
+													{profilePost.category === 'factual' ? 'Factual' : 'Community'}
+												</span>
+												<span class="muted">{timeAgo(profilePost.createdAt)}</span>
+											</div>
+											<h3>{profilePost.title}</h3>
+											<div class="profile-post-meta muted">
+												{#if regionName(profilePost.regionId)}
+													<span>{regionName(profilePost.regionId)}</span>
+												{/if}
+												{#if profilePost.category === 'factual' && totalVotes > 0}
+													<span>{Math.round((profilePost.verifyCount / totalVotes) * 100)}% verified</span>
+												{/if}
+												<span>{profilePost.commentCount} comments</span>
+											</div>
+											<button type="button" class="btn profile-post-open" onclick={() => openProfilePost(profilePost.id)}>
+												View post
+											</button>
+										</article>
+									{/each}
+								</div>
+							{/if}
+						</section>
 					</div>
 				{/if}
 			</aside>
@@ -1104,7 +1341,7 @@
 		{/if}
 	</main>
 
-	{#if mapReady && !composing && !viewingPost}
+	{#if mapReady && !composing && !viewingPost && !viewingProfile}
 		<ConnectorLines
 			posts={connectorPosts}
 			{hoveredPostId}
@@ -1270,6 +1507,12 @@
 		padding: 0;
 	}
 
+	.page.viewing-profile .main {
+		display: block;
+		overflow: hidden;
+		padding: 0;
+	}
+
 	.map-area {
 		position: sticky;
 		top: 0;
@@ -1289,6 +1532,12 @@
 		height: 100vh;
 	}
 
+	.page.viewing-profile .map-area {
+		position: absolute;
+		inset: 0;
+		height: 100vh;
+	}
+
 	.feed-scroll-space {
 		width: 100%;
 	}
@@ -1298,6 +1547,10 @@
 	}
 
 	.page.viewing-post .feed-scroll-space {
+		display: none;
+	}
+
+	.page.viewing-profile .feed-scroll-space {
 		display: none;
 	}
 
@@ -1416,7 +1669,31 @@
 		box-shadow: 0 18px 44px rgba(15, 23, 42, 0.12);
 	}
 
+	.profile-panel {
+		position: absolute;
+		left: 20px;
+		right: 20px;
+		bottom: 20px;
+		z-index: 22;
+		max-height: min(76vh, 760px);
+		margin: 0;
+		padding: 24px;
+		overflow-y: auto;
+		background: rgba(255, 255, 255, 0.95);
+		backdrop-filter: blur(18px);
+		border-radius: var(--radius-lg);
+		box-shadow: 0 18px 44px rgba(15, 23, 42, 0.14);
+	}
+
 	.post-panel-top {
+		display: flex;
+		align-items: flex-start;
+		justify-content: space-between;
+		gap: 16px;
+		margin-bottom: 18px;
+	}
+
+	.profile-panel-top {
 		display: flex;
 		align-items: flex-start;
 		justify-content: space-between;
@@ -1430,6 +1707,144 @@
 		gap: 20px;
 		max-width: 760px;
 		margin: 0 auto;
+	}
+
+	.profile-panel-body {
+		display: grid;
+		grid-template-columns: minmax(280px, 0.9fr) minmax(280px, 1fr);
+		gap: 18px;
+	}
+
+	.profile-summary,
+	.profile-reputation,
+	.profile-posts {
+		border: 1px solid var(--border);
+		background: rgba(255, 255, 255, 0.72);
+		border-radius: var(--radius);
+		padding: 18px;
+	}
+
+	.profile-summary {
+		display: flex;
+		gap: 18px;
+		align-items: flex-start;
+	}
+
+	.profile-reputation {
+		grid-column: 1;
+	}
+
+	.profile-posts {
+		grid-column: 2;
+		grid-row: 1 / span 2;
+	}
+
+	.profile-avatar-wrap {
+		flex: 0 0 auto;
+	}
+
+	.profile-avatar-img,
+	.profile-avatar-initials {
+		width: 76px;
+		height: 76px;
+		border-radius: 50%;
+	}
+
+	.profile-avatar-img {
+		display: block;
+		object-fit: cover;
+	}
+
+	.profile-avatar-initials {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		background: var(--gradient);
+		color: #fff;
+		font-size: 24px;
+		font-weight: 750;
+	}
+
+	.profile-copy {
+		min-width: 0;
+		display: flex;
+		flex-direction: column;
+		gap: 8px;
+	}
+
+	.profile-name {
+		font-size: 22px;
+		font-weight: 750;
+		line-height: 1.15;
+	}
+
+	.profile-bio {
+		margin: 0;
+		color: var(--text-2);
+		font-size: 14px;
+		line-height: 1.55;
+	}
+
+	.profile-meta,
+	.profile-post-meta,
+	.profile-post-top {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 8px;
+		font-size: 12px;
+	}
+
+	.profile-edit-btn {
+		align-self: flex-start;
+		margin-top: 2px;
+	}
+
+	.profile-rep-track {
+		height: 8px;
+		background: var(--surface-3);
+		border-radius: 999px;
+		overflow: hidden;
+		margin: 12px 0 8px;
+	}
+
+	.profile-rep-fill {
+		height: 100%;
+		border-radius: 999px;
+	}
+
+	.profile-rep-copy,
+	.profile-empty {
+		margin: 0;
+		font-size: 13px;
+	}
+
+	.profile-post-grid {
+		display: grid;
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+		gap: 10px;
+		margin-top: 12px;
+	}
+
+	.profile-post-item {
+		display: flex;
+		flex-direction: column;
+		gap: 9px;
+		min-width: 0;
+		padding: 14px;
+		border: 1px solid var(--border);
+		border-radius: var(--radius-sm);
+		background: var(--surface);
+	}
+
+	.profile-post-item h3 {
+		margin: 0;
+		font-size: 14px;
+		line-height: 1.35;
+	}
+
+	.profile-post-open {
+		align-self: flex-start;
+		margin-top: auto;
 	}
 
 	.panel-loading {
@@ -1717,6 +2132,12 @@
 			padding: 0;
 		}
 
+		.page.viewing-profile .main {
+			display: block;
+			overflow: hidden;
+			padding: 0;
+		}
+
 		.page.composing .map-area {
 			position: absolute;
 			inset: 0;
@@ -1725,6 +2146,13 @@
 		}
 
 		.page.viewing-post .map-area {
+			position: absolute;
+			inset: 0;
+			width: 100%;
+			height: 100vh;
+		}
+
+		.page.viewing-profile .map-area {
 			position: absolute;
 			inset: 0;
 			width: 100%;
@@ -1747,6 +2175,23 @@
 			bottom: 16px;
 			width: auto;
 			min-width: 0;
+		}
+
+		.profile-panel {
+			left: 12px;
+			right: 12px;
+			bottom: 16px;
+			max-height: calc(100vh - 170px);
+		}
+
+		.profile-panel-body {
+			grid-template-columns: 1fr;
+		}
+
+		.profile-reputation,
+		.profile-posts {
+			grid-column: auto;
+			grid-row: auto;
 		}
 	}
 
@@ -1773,6 +2218,18 @@
 
 		.post-panel {
 			padding: 18px;
+		}
+
+		.profile-panel {
+			padding: 18px;
+		}
+
+		.profile-summary {
+			flex-direction: column;
+		}
+
+		.profile-post-grid {
+			grid-template-columns: 1fr;
 		}
 
 		.post-header-image {
