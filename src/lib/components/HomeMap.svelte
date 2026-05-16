@@ -9,6 +9,9 @@
 		posts: PostSummary[];
 		hoveredPostId: string | null;
 		selectedPostId: string | null;
+		disableSelection?: boolean;
+		showAllRadii?: boolean;
+		radiusPosts?: PostSummary[];
 		onMapReady: (map: unknown) => void;
 		onMarkerPositionsChange: () => void;
 		onSelectPost: (id: string | null) => void;
@@ -36,6 +39,9 @@
 		posts,
 		hoveredPostId,
 		selectedPostId,
+		disableSelection = false,
+		showAllRadii = false,
+		radiusPosts = [],
 		onMapReady,
 		onMarkerPositionsChange,
 		onSelectPost,
@@ -232,6 +238,16 @@
 	}
 
 	function selectedRadiusFeatures(): GeoJSON.FeatureCollection<GeoJSON.Polygon> {
+		if (showAllRadii) {
+			const postsWithOpenRadii = radiusPosts.length > 0 ? radiusPosts : posts;
+			return {
+				type: 'FeatureCollection',
+				features: postsWithOpenRadii.map((post) =>
+					buildCircle(post.lng, post.lat, post.impactRadiusM)
+				)
+			};
+		}
+
 		const post = posts.find((item) => item.id === selectedPostId);
 		return {
 			type: 'FeatureCollection',
@@ -317,6 +333,50 @@
 				},
 				duration: 450,
 				maxZoom: 12.5
+			}
+		);
+	}
+
+	export function fitToPosts(postsToFit: PostSummary[]) {
+		if (!map || !maplibre || postsToFit.length === 0) return;
+		const ml = maplibre as typeof import('maplibre-gl');
+		const m = map as InstanceType<typeof ml.Map>;
+		const compact = container.clientWidth < 820;
+
+		if (postsToFit.length === 1) {
+			fitToPostRadius(postsToFit[0]);
+			return;
+		}
+
+		let minLng = Infinity;
+		let minLat = Infinity;
+		let maxLng = -Infinity;
+		let maxLat = -Infinity;
+
+		for (const post of postsToFit) {
+			const ring = buildCircle(post.lng, post.lat, post.impactRadiusM).geometry.coordinates[0];
+			for (const [lng, lat] of ring) {
+				if (lng < minLng) minLng = lng;
+				if (lng > maxLng) maxLng = lng;
+				if (lat < minLat) minLat = lat;
+				if (lat > maxLat) maxLat = lat;
+			}
+		}
+
+		m.fitBounds(
+			[
+				[minLng, minLat],
+				[maxLng, maxLat]
+			],
+			{
+				padding: {
+					top: compact ? 150 : 120,
+					right: compact ? 28 : 72,
+					bottom: compact ? 118 : 48,
+					left: compact ? 28 : 360
+				},
+				duration: 650,
+				maxZoom: 10.5
 			}
 		);
 	}
@@ -514,7 +574,7 @@
 			onMapReady(m);
 
 			m.on('click', 'post-point', (e) => {
-				if (composing) return;
+				if (composing || disableSelection) return;
 				const id = e.features?.[0]?.properties?.id as string | undefined;
 				const post = posts.find((item) => item.id === id);
 				if (!post) return;
@@ -527,6 +587,7 @@
 					onComposePick?.(e.lngLat.lng, e.lngLat.lat);
 					return;
 				}
+				if (disableSelection) return;
 				const features = m.queryRenderedFeatures(e.point, { layers: ['post-point'] });
 				if (features.length === 0) onSelectPost(null);
 			});
@@ -560,6 +621,9 @@
 		composeLng;
 		composeLat;
 		composeRadiusM;
+		disableSelection;
+		showAllRadii;
+		radiusPosts;
 		syncPostLayers();
 		if (map && maplibre) {
 			const ml = maplibre as typeof import('maplibre-gl');

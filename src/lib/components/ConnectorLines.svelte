@@ -8,9 +8,17 @@
 		getMarkerScreenPos: (id: string) => { x: number; y: number } | null;
 		listItemEls: Map<string, HTMLElement>;
 		redrawTrigger: number;
+		arrowheads?: boolean;
 	}
 
-	let { posts, hoveredPostId, getMarkerScreenPos, listItemEls, redrawTrigger }: Props = $props();
+	let {
+		posts,
+		hoveredPostId,
+		getMarkerScreenPos,
+		listItemEls,
+		redrawTrigger,
+		arrowheads = false
+	}: Props = $props();
 
 	interface Line {
 		id: string;
@@ -109,21 +117,24 @@
 			stroke-dasharray={line.hovered ? 'none' : '5 8'}
 			stroke-linecap="round"
 			opacity={line.hovered ? 1 : 0.92}
+			marker-end={arrowheads ? 'url(#connector-arrow)' : null}
 		/>
-		<circle
-			cx={line.x1}
-			cy={line.y1}
-			r={line.hovered ? 3.2 : 2.2}
-			fill={line.hovered ? 'var(--brand-1)' : 'rgba(71, 85, 105, 0.4)'}
-		/>
-		<circle
-			cx={line.x2}
-			cy={line.y2}
-			r={line.hovered ? 6.5 : 5}
-			fill="rgba(255, 255, 255, 0.96)"
-			stroke="rgba(17, 24, 39, 0.92)"
-			stroke-width={line.hovered ? 2.4 : 1.8}
-		/>
+		{#if !arrowheads}
+			<circle
+				cx={line.x1}
+				cy={line.y1}
+				r={line.hovered ? 3.2 : 2.2}
+				fill={line.hovered ? 'var(--brand-1)' : 'rgba(71, 85, 105, 0.4)'}
+			/>
+			<circle
+				cx={line.x2}
+				cy={line.y2}
+				r={line.hovered ? 6.5 : 5}
+				fill="rgba(255, 255, 255, 0.96)"
+				stroke="rgba(17, 24, 39, 0.92)"
+				stroke-width={line.hovered ? 2.4 : 1.8}
+			/>
+		{/if}
 	{/each}
 
 	<defs>
@@ -131,6 +142,17 @@
 			<stop offset="0%" stop-color="var(--brand-1)" />
 			<stop offset="100%" stop-color="var(--brand-2)" />
 		</linearGradient>
+		<marker
+			id="connector-arrow"
+			viewBox="0 0 10 10"
+			refX="8"
+			refY="5"
+			markerWidth="6"
+			markerHeight="6"
+			orient="auto-start-reverse"
+		>
+			<path d="M 0 0 L 10 5 L 0 10 z" fill="rgba(17, 24, 39, 0.78)" />
+		</marker>
 	</defs>
 </svg>
 

@@ -30,21 +30,21 @@
 		zoom: number;
 		bounds: [number, number, number, number];
 	};
+	type RankedPost = {
+		post: PostSummary;
+		score: number;
+		engagement: number;
+	};
 
 	const DEFAULT_REGION_ID = 'auckland';
 	const REGION_CACHE_KEY = 'birdseye:local-region';
-	const GEO_MAX_AGE_MS = 10 * 60 * 1000;
+	const GEO_MAX_AGE_MS = 15 * 60 * 1000;
+	const GEO_TIMEOUT_MS = 900;
 	const LOCAL_FOCUS_RADIUS_KM = 5;
-	const INITIAL_VISIBLE_POSTS = 18;
-	const POSTS_PER_SCROLL_STEP = 10;
-	const SCROLL_STEP_PX = 220;
-	const DESKTOP_BUBBLE_BREAKPOINT = 820;
-	const COMPACT_BUBBLE_BREAKPOINT = 1100;
-	const MIN_BUBBLES_PER_RAIL = 2;
-	const BUBBLE_ASPECT_RATIO = 1.32;
-	const BUBBLE_GAP_PX = 18;
-	const STABILITY_BONUS = 28;
-	const VIEWPORT_RERANK_DEBOUNCE_MS = 600;
+	const LOCAL_TRENDING_RADIUS_KM = 10;
+	const LOCAL_AUTO_NATIONAL_ZOOM = 6.4;
+	const LOCAL_AUTO_NATIONAL_GRACE_MS = 1400;
+	const LOCAL_ZOOM_OUT_EPSILON = 0.05;
 	const orderedRegions = [
 		...NZ_REGIONS.filter((region) => region.id === DEFAULT_REGION_ID),
 		...NZ_REGIONS.filter((region) => region.id !== DEFAULT_REGION_ID)
@@ -56,9 +56,11 @@
 	let error = $state<string | null>(null);
 	let hoveredPostId = $state<string | null>(null);
 	let selectedPostId = $state<string | null>(null);
-	let visibleCount = $state(INITIAL_VISIBLE_POSTS);
 
 	let selectedRegionId = $state<string>(DEFAULT_REGION_ID);
+	let localFocusLng = $state(174.76);
+	let localFocusLat = $state(-36.85);
+	let userLocation: { lng: number; lat: number } | null = $state(null);
 	let geoError = $state<string | null>(null);
 	let geoLoading = $state(false);
 
@@ -67,14 +69,11 @@
 	let mapReady = $state(false);
 	let redrawTrigger = $state(0);
 	let mapViewport = $state<MapViewportState | null>(null);
-	let viewportWidth = $state(1440);
-	let viewportHeight = $state(900);
 	let listItemEls = new Map<string, HTMLElement>();
+	let trendingItemEls = new Map<string, HTMLElement>();
 	let activeFetchController: AbortController | null = null;
 	let fetchRequestId = 0;
 	let geoRequestId = 0;
-	let stablePostIds = $state<Set<string>>(new Set());
-	let viewportRerankTimer: ReturnType<typeof setTimeout> | null = null;
 	let composing = $state(false);
 	let composeTitle = $state('');
 	let composeBody = $state('');
@@ -86,10 +85,10 @@
 	let composeAnonymous = $state(false);
 	let composeSubmitting = $state(false);
 	let composeError = $state('');
-
-	function clamp(min: number, value: number, max: number) {
-		return Math.min(Math.max(value, min), max);
-	}
+	let trendingOpen = $state(false);
+	let lastTrendingFitKey = '';
+	let localAutoNationalEnabledAt = 0;
+	let localPeakZoom: number | null = null;
 
 	function toRadians(value: number) {
 		return (value * Math.PI) / 180;
@@ -108,71 +107,70 @@
 		return earthRadiusKm * 2 * Math.atan2(Math.sqrt(haversine), Math.sqrt(1 - haversine));
 	}
 
-	function isLngWithinBounds(lng: number, west: number, east: number) {
-		if (west <= east) return lng >= west && lng <= east;
-		return lng >= west || lng <= east;
+	function regionCenter(regionId: string): [number, number] {
+		return NZ_REGIONS.find((region) => region.id === regionId)?.center ?? [174.76, -36.85];
 	}
 
-	function isPostInViewport(post: PostSummary, view: MapViewportState) {
-		const [west, south, east, north] = view.bounds;
-		return (
-			post.lat >= south &&
-			post.lat <= north &&
-			isLngWithinBounds(post.lng, west, east)
-		);
+	function setLocalFocus(lng: number, lat: number) {
+		localFocusLng = lng;
+		localFocusLat = lat;
 	}
 
-	function locationRelevanceScore(post: PostSummary): number {
-		if (!mapViewport) return 0;
-
-		const distanceFromCenterKm = distanceKm(
-			mapViewport.centerLat,
-			mapViewport.centerLng,
-			post.lat,
-			post.lng
-		);
-		const zoomDistanceKm =
-			mapViewport.zoom >= 11
-				? 10
-				: mapViewport.zoom >= 9
-					? 24
-					: mapViewport.zoom >= 7
-						? 60
-						: mapViewport.zoom >= 5.5
-							? 140
-							: 280;
-		const centeredBoost = Math.max(0, 1 - distanceFromCenterKm / zoomDistanceKm) * 28;
-		const viewportBoost = isPostInViewport(post, mapViewport)
-			? mapViewport.zoom >= 9
-				? 40
-				: 28
-			: 0;
-		const scopeBoost = scope === 'local' ? 8 : 0;
-
-		return centeredBoost + viewportBoost + scopeBoost;
+	function pauseLocalAutoNational() {
+		localAutoNationalEnabledAt = Date.now() + LOCAL_AUTO_NATIONAL_GRACE_MS;
+		localPeakZoom = null;
 	}
 
-	function currentBubbleRailWidth() {
-		if (viewportWidth <= DESKTOP_BUBBLE_BREAKPOINT) return 0;
-		if (viewportWidth <= COMPACT_BUBBLE_BREAKPOINT) {
-			return clamp(164, viewportWidth * 0.2, 236);
+	function applyUserLocation(lng: number, lat: number, focusMap: boolean) {
+		const regionId = regionForPoint(lng, lat);
+		userLocation = { lng, lat };
+		selectedRegionId = regionId;
+		writeCachedRegion(regionId);
+		setLocalFocus(lng, lat);
+
+		if (focusMap && scope === 'local') {
+			pauseLocalAutoNational();
+			mapComponent?.focusOnLocation(lng, lat, LOCAL_FOCUS_RADIUS_KM);
 		}
-		return clamp(180, viewportWidth * 0.18, 272);
 	}
 
-	function maxHomepagePostsForViewport() {
-		if (viewportWidth <= DESKTOP_BUBBLE_BREAKPOINT) return INITIAL_VISIBLE_POSTS;
+	function requestUserLocation(focusMap = false) {
+		if (typeof navigator === 'undefined' || !navigator.geolocation) {
+			geoLoading = false;
+			geoError = 'Geolocation not available, pick your region below.';
+			return;
+		}
 
-		const stageTop = viewportWidth <= COMPACT_BUBBLE_BREAKPOINT ? 118 : 110;
-		const stageBottom = viewportWidth <= COMPACT_BUBBLE_BREAKPOINT ? 18 : 22;
-		const availableHeight = Math.max(viewportHeight - stageTop - stageBottom, 0);
-		const cardWidth = currentBubbleRailWidth();
-		if (!cardWidth || availableHeight <= 0) return MIN_BUBBLES_PER_RAIL * 2;
+		geoLoading = true;
+		const requestId = ++geoRequestId;
+		navigator.geolocation.getCurrentPosition(
+			(pos) => {
+				if (requestId !== geoRequestId) return;
+				geoLoading = false;
+				geoError = null;
+				applyUserLocation(pos.coords.longitude, pos.coords.latitude, focusMap);
+			},
+			(err) => {
+				if (requestId !== geoRequestId) return;
+				geoLoading = false;
+				geoError =
+					err.code === err.PERMISSION_DENIED
+						? 'Using your selected region below.'
+						: 'Using a saved region for now.';
 
-		const cardHeight = cardWidth / BUBBLE_ASPECT_RATIO;
-		const slotHeight = cardHeight + BUBBLE_GAP_PX;
-		const slotsPerRail = Math.max(MIN_BUBBLES_PER_RAIL, Math.floor(availableHeight / slotHeight));
-		return slotsPerRail * 2;
+				if (focusMap && scope === 'local') {
+					const [fallbackLng, fallbackLat] = regionCenter(selectedRegionId);
+					setLocalFocus(fallbackLng, fallbackLat);
+					pauseLocalAutoNational();
+					mapComponent?.focusOnLocation(fallbackLng, fallbackLat, LOCAL_FOCUS_RADIUS_KM);
+				}
+			},
+			{
+				enableHighAccuracy: false,
+				maximumAge: GEO_MAX_AGE_MS,
+				timeout: GEO_TIMEOUT_MS
+			}
+		);
 	}
 
 	function readCachedRegion(): string | null {
@@ -210,58 +208,51 @@
 		return engagement * (0.7 + approval * 0.6) + freshnessBoost;
 	}
 
-	function adjustedScore(post: PostSummary): number {
-		const base = popularityScore(post) + locationRelevanceScore(post);
-		if (!stablePostIds.has(post.id)) return base;
-		// Distance-weighted stability: far-away articles shed their bonus first
-		let bonus = STABILITY_BONUS;
-		if (mapViewport) {
-			const dist = distanceKm(mapViewport.centerLat, mapViewport.centerLng, post.lat, post.lng);
-			bonus *= Math.max(0, 1 - dist / 300);
-		}
-		return base + bonus;
+	function engagementFor(post: PostSummary): number {
+		const votes = post.verifyCount + post.disputeCount;
+		return post.commentCount * 4 + post.reactionCount * 3 + votes * 2;
 	}
 
-	function computeStableSet(incoming: PostSummary[]): Set<string> {
-		if (!incoming.length) return new Set();
-		const limit = maxHomepagePostsForViewport();
-		const scored = incoming
-			.map((p) => ({ id: p.id, score: adjustedScore(p) }))
-			.sort((a, b) => b.score - a.score);
-		return new Set(scored.slice(0, limit).map((p) => p.id));
-	}
-
-	function scheduleViewportRerank() {
-		if (viewportRerankTimer !== null) clearTimeout(viewportRerankTimer);
-		viewportRerankTimer = setTimeout(() => {
-			viewportRerankTimer = null;
-			stablePostIds = computeStableSet(posts);
-		}, VIEWPORT_RERANK_DEBOUNCE_MS);
+	function trendScore(post: PostSummary): number {
+		const engagement = engagementFor(post);
+		const ageHours = Math.max((Date.now() - new Date(post.createdAt).getTime()) / 36e5, 0);
+		return Math.round((engagement * 100) / Math.max(ageHours + 2, 2));
 	}
 
 	const rankedPosts = $derived.by(() => {
-		const visible = posts.filter((p) => stablePostIds.has(p.id));
-		return visible.sort((a, b) => {
-			const diff =
-				popularityScore(b) +
-				locationRelevanceScore(b) -
-				(popularityScore(a) + locationRelevanceScore(a));
+		return [...posts].sort((a, b) => {
+			const diff = popularityScore(b) - popularityScore(a);
 			if (Math.abs(diff) > 0.001) return diff;
 			return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
 		});
 	});
 
-	const maxHomepagePosts = $derived(maxHomepagePostsForViewport());
-	const feedCapacity = $derived(Math.min(rankedPosts.length, maxHomepagePosts));
-	const visiblePosts = $derived(rankedPosts.slice(0, Math.min(visibleCount, feedCapacity)));
+	const visiblePosts = $derived(rankedPosts);
+	const trendingEntries = $derived.by(() => {
+		const trendingSource =
+			scope === 'local'
+				? visiblePosts.filter(
+						(post) =>
+							distanceKm(localFocusLat, localFocusLng, post.lat, post.lng) <=
+							LOCAL_TRENDING_RADIUS_KM
+					)
+				: visiblePosts;
+		const entries: RankedPost[] = trendingSource
+			.map((post) => ({
+				post,
+				score: trendScore(post),
+				engagement: engagementFor(post)
+			}))
+			.filter((entry) => entry.engagement > 0)
+			.sort((a, b) => b.score - a.score || b.engagement - a.engagement);
+
+		return entries.slice(0, 6);
+	});
+	const trendingPosts = $derived(trendingEntries.map((entry) => entry.post));
 	const selectedPosts = $derived(
-		selectedPostId ? visiblePosts.filter((post) => post.id === selectedPostId) : []
-	);
-	const hiddenPostCount = $derived(Math.max(feedCapacity - visiblePosts.length, 0));
-	const scrollSpacerHeight = $derived(
-		composing || hiddenPostCount === 0
-			? 0
-			: Math.ceil(hiddenPostCount / POSTS_PER_SCROLL_STEP) * SCROLL_STEP_PX
+		!trendingOpen && selectedPostId
+			? visiblePosts.filter((post) => post.id === selectedPostId)
+			: []
 	);
 	const canSubmitPost = $derived(
 		Boolean(data.user) &&
@@ -270,9 +261,12 @@
 			composeCategory !== null &&
 			!composeSubmitting
 	);
+	const mapPosts = $derived(visiblePosts);
+	const connectorPosts = $derived(trendingOpen ? trendingPosts : selectedPosts);
+	const connectorEls = $derived(trendingOpen ? trendingItemEls : listItemEls);
+	const scrollSpacerHeight = $derived(0);
 
 	function resetFeedVisibility() {
-		visibleCount = Math.min(INITIAL_VISIBLE_POSTS, maxHomepagePosts);
 		scrollHost?.scrollTo({ top: 0, behavior: 'auto' });
 	}
 
@@ -282,17 +276,7 @@
 		redrawTrigger++;
 	}
 
-	function handleFeedScroll() {
-		if (!scrollHost) return;
-		const extraSteps = Math.floor(scrollHost.scrollTop / SCROLL_STEP_PX);
-		const nextVisible = Math.min(
-			feedCapacity,
-			INITIAL_VISIBLE_POSTS + extraSteps * POSTS_PER_SCROLL_STEP
-		);
-		if (nextVisible !== visibleCount) visibleCount = nextVisible;
-	}
-
-	async function fetchPosts(scopeToFetch: Scope = scope, regionId = selectedRegionId) {
+	async function fetchPosts() {
 		const requestId = ++fetchRequestId;
 		activeFetchController?.abort();
 		const controller = new AbortController();
@@ -300,16 +284,11 @@
 		loading = true;
 		error = null;
 		try {
-			const url =
-				scopeToFetch === 'national'
-					? '/api/posts?scope=national'
-					: `/api/posts?scope=local&regionId=${regionId}`;
-			const res = await fetch(url, { signal: controller.signal });
+			const res = await fetch('/api/posts?scope=national', { signal: controller.signal });
 			if (!res.ok) throw new Error(`HTTP ${res.status}`);
 			const json = await res.json();
 			if (requestId !== fetchRequestId) return;
 			posts = json.posts as PostSummary[];
-			stablePostIds = computeStableSet(json.posts as PostSummary[]);
 			if (selectedPostId && !posts.some((post) => post.id === selectedPostId)) {
 				selectedPostId = null;
 				hoveredPostId = null;
@@ -320,7 +299,6 @@
 			if (requestId !== fetchRequestId) return;
 			error = 'Failed to load posts. Please try again.';
 			posts = [];
-			stablePostIds = new Set();
 			resetFeedVisibility();
 		} finally {
 			if (requestId === fetchRequestId) {
@@ -336,82 +314,61 @@
 		geoLoading = false;
 		geoError = null;
 		mapComponent?.fitToBbox(NZ_BBOX);
-		await fetchPosts('national');
 	}
 
 	async function switchToLocal() {
 		clearSelectedPost();
 		scope = 'local';
 		geoError = null;
-		zoomToRegion(selectedRegionId);
-		void fetchPosts('local', selectedRegionId);
 
-		if (typeof navigator !== 'undefined' && navigator.geolocation) {
-			geoLoading = true;
-			const requestId = ++geoRequestId;
-			navigator.geolocation.getCurrentPosition(
-				(pos) => {
-					if (requestId !== geoRequestId || scope !== 'local') return;
-					const regionId = regionForPoint(pos.coords.longitude, pos.coords.latitude);
-					const changedRegion = regionId !== selectedRegionId;
-					selectedRegionId = regionId;
-					writeCachedRegion(regionId);
-					geoLoading = false;
-					geoError = null;
-					mapComponent?.focusOnLocation(
-						pos.coords.longitude,
-						pos.coords.latitude,
-						LOCAL_FOCUS_RADIUS_KM
-					);
-					if (changedRegion) {
-						void fetchPosts('local', regionId);
-					}
-				},
-				(err) => {
-					if (requestId !== geoRequestId || scope !== 'local') return;
-					geoLoading = false;
-					geoError =
-						err.code === err.PERMISSION_DENIED
-							? 'Using your selected region below.'
-							: 'Using a saved region for now.';
-				},
-				{
-					enableHighAccuracy: false,
-					maximumAge: GEO_MAX_AGE_MS,
-					timeout: 2500
-				}
-			);
+		if (userLocation) {
+			setLocalFocus(userLocation.lng, userLocation.lat);
+			pauseLocalAutoNational();
+			mapComponent?.focusOnLocation(userLocation.lng, userLocation.lat, LOCAL_FOCUS_RADIUS_KM);
 		} else {
-			geoLoading = false;
-			geoError = 'Geolocation not available, pick your region below.';
+			requestUserLocation(true);
 		}
 	}
 
 	function zoomToRegion(regionId: string) {
 		const region = NZ_REGIONS.find((r) => r.id === regionId);
 		if (region && mapComponent) {
+			setLocalFocus(region.center[0], region.center[1]);
+			pauseLocalAutoNational();
 			mapComponent.fitToBbox(region.bbox);
 		}
 	}
 
-	async function onRegionChange(e: Event) {
+	function onRegionChange(e: Event) {
 		clearSelectedPost();
 		selectedRegionId = (e.target as HTMLSelectElement).value;
 		writeCachedRegion(selectedRegionId);
+		scope = 'local';
 		zoomToRegion(selectedRegionId);
-		await fetchPosts('local', selectedRegionId);
 	}
 
 	function handleMapReady(_map: unknown) {
 		mapReady = true;
 		mapViewport = mapComponent?.getViewportState() ?? null;
-		stablePostIds = computeStableSet(posts);
 		redrawTrigger++;
 	}
 
 	function handleMarkerPositionsChange() {
 		mapViewport = mapComponent?.getViewportState() ?? mapViewport;
-		scheduleViewportRerank();
+		if (scope === 'local' && !trendingOpen && mapViewport && Date.now() >= localAutoNationalEnabledAt) {
+			if (localPeakZoom === null || mapViewport.zoom > localPeakZoom) {
+				localPeakZoom = mapViewport.zoom;
+			} else if (
+				mapViewport.zoom < LOCAL_AUTO_NATIONAL_ZOOM ||
+				mapViewport.zoom < localPeakZoom - LOCAL_ZOOM_OUT_EPSILON
+			) {
+				scope = 'national';
+				geoLoading = false;
+				geoError = null;
+				localPeakZoom = null;
+				clearSelectedPost();
+			}
+		}
 		redrawTrigger++;
 	}
 
@@ -420,6 +377,10 @@
 	}
 
 	function handleSelectPost(id: string | null) {
+		if (trendingOpen) {
+			clearSelectedPost();
+			return;
+		}
 		selectedPostId = id;
 		hoveredPostId = id;
 		redrawTrigger++;
@@ -509,35 +470,46 @@
 		}
 	}
 
+	function handleTrendingOpenChange(open: boolean) {
+		trendingOpen = open;
+		if (open) {
+			clearSelectedPost();
+		} else {
+			hoveredPostId = null;
+			lastTrendingFitKey = '';
+			redrawTrigger++;
+		}
+	}
+
 	onMount(() => {
-		const syncViewport = () => {
-			viewportWidth = window.innerWidth;
-			viewportHeight = window.innerHeight;
-		};
-
-		syncViewport();
-		window.addEventListener('resize', syncViewport);
-
 		const cachedRegionId = readCachedRegion();
 		if (cachedRegionId) {
 			selectedRegionId = cachedRegionId;
 		}
+		const [cachedLng, cachedLat] = regionCenter(selectedRegionId);
+		setLocalFocus(cachedLng, cachedLat);
+		requestUserLocation(false);
 		fetchPosts();
-
-		return () => {
-			window.removeEventListener('resize', syncViewport);
-		};
 	});
 
 	onDestroy(() => {
 		activeFetchController?.abort();
-		if (viewportRerankTimer !== null) clearTimeout(viewportRerankTimer);
 	});
 
 	$effect(() => {
 		posts;
 		mapReady;
 		redrawTrigger;
+	});
+
+	$effect(() => {
+		if (!trendingOpen || !mapReady || trendingPosts.length === 0) return;
+		const fitKey = trendingPosts.map((post) => post.id).join('|');
+		if (fitKey === lastTrendingFitKey) return;
+		lastTrendingFitKey = fitKey;
+		clearSelectedPost();
+		mapComponent?.fitToPosts(trendingPosts);
+		redrawTrigger++;
 	});
 </script>
 
@@ -610,7 +582,7 @@
 		</div>
 	</header>
 
-	<main class="main" bind:this={scrollHost} onscroll={handleFeedScroll}>
+	<main class="main" bind:this={scrollHost}>
 		<div class="map-area">
 			{#if loading}
 				<div class="map-loading" aria-live="polite">
@@ -620,9 +592,12 @@
 
 			<HomeMap
 				bind:this={mapComponent}
-				posts={visiblePosts}
+				posts={mapPosts}
 				{hoveredPostId}
 				{selectedPostId}
+				disableSelection={trendingOpen}
+				showAllRadii={trendingOpen}
+				radiusPosts={trendingPosts}
 				onMapReady={handleMapReady}
 				onMarkerPositionsChange={handleMarkerPositionsChange}
 				onSelectPost={handleSelectPost}
@@ -635,7 +610,14 @@
 
 			{#if !composing}
 				<div class="trending-overlay">
-					<TrendingDropdown posts={visiblePosts} {scope} />
+					<TrendingDropdown
+						entries={trendingEntries}
+						{scope}
+						open={trendingOpen}
+						onOpenChange={handleTrendingOpenChange}
+						itemEls={trendingItemEls}
+						onItemsChange={() => redrawTrigger++}
+					/>
 				</div>
 
 				<HeadlineList
@@ -788,11 +770,12 @@
 
 	{#if mapReady && !composing}
 		<ConnectorLines
-			posts={selectedPosts}
+			posts={connectorPosts}
 			{hoveredPostId}
 			{getMarkerScreenPos}
-			{listItemEls}
+			listItemEls={connectorEls}
 			{redrawTrigger}
+			arrowheads={trendingOpen}
 		/>
 	{/if}
 </div>
