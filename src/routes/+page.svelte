@@ -5,6 +5,7 @@
 	import HomeMap from '$lib/components/HomeMap.svelte';
 	import HeadlineList from '$lib/components/HeadlineList.svelte';
 	import ConnectorLines from '$lib/components/ConnectorLines.svelte';
+	import TrendingDropdown from '$lib/components/TrendingDropdown.svelte';
 	import type { SessionUser, PostSummary } from '$lib/types';
 	import { NZ_BBOX, NZ_REGIONS, regionForPoint } from '$lib/data/nz-regions';
 
@@ -40,14 +41,14 @@
 	let listItemEls = new Map<string, HTMLElement>();
 
 	// --- Data fetching ---
-	async function fetchPosts(scopeToFetch: Scope = scope, regionId = selectedRegionId) {
+	async function fetchPosts() {
 		loading = true;
 		error = null;
 		try {
 			const url =
-				scopeToFetch === 'national'
+				scope === 'national'
 					? '/api/posts?scope=national'
-					: `/api/posts?scope=local&regionId=${regionId}`;
+					: `/api/posts?scope=local&regionId=${selectedRegionId}`;
 			const res = await fetch(url);
 			if (!res.ok) throw new Error(`HTTP ${res.status}`);
 			const json = await res.json();
@@ -65,7 +66,7 @@
 		scope = 'national';
 		geoError = null;
 		mapComponent?.fitToBbox(NZ_BBOX);
-		await fetchPosts('national');
+		await fetchPosts();
 	}
 
 	async function switchToLocal() {
@@ -80,13 +81,13 @@
 					selectedRegionId = regionId;
 					geoLoading = false;
 					zoomToRegion(regionId);
-					await fetchPosts('local', regionId);
+					await fetchPosts();
 				},
 				async () => {
 					geoError = 'Location access denied - pick your region below.';
 					geoLoading = false;
 					zoomToRegion(selectedRegionId);
-					await fetchPosts('local');
+					await fetchPosts();
 				},
 				{ timeout: 8000 }
 			);
@@ -94,7 +95,7 @@
 			geoError = 'Geolocation not available - pick your region below.';
 			geoLoading = false;
 			zoomToRegion(selectedRegionId);
-			await fetchPosts('local');
+			await fetchPosts();
 		}
 	}
 
@@ -108,7 +109,7 @@
 	async function onRegionChange(e: Event) {
 		selectedRegionId = (e.target as HTMLSelectElement).value;
 		zoomToRegion(selectedRegionId);
-		await fetchPosts('local');
+		await fetchPosts();
 	}
 
 	// --- Map callbacks ---
@@ -231,6 +232,8 @@
 
 		<!-- Headline list panel -->
 		<div class="panel-area">
+			<TrendingDropdown {posts} {scope} />
+
 			{#if posts.length === 0 && !loading}
 				<div class="empty-state card">
 					<div class="empty-icon">📍</div>
