@@ -430,6 +430,7 @@
 	function handleComposePick(newLng: number, newLat: number) {
 		composeLng = newLng;
 		composeLat = newLat;
+		mapComponent?.focusOnLocation(newLng, newLat, LOCAL_FOCUS_RADIUS_KM);
 	}
 
 	function handleRadiusInput(e: Event) {
@@ -948,10 +949,9 @@
 	}
 
 	.page.composing .main {
-		display: flex;
-		gap: 18px;
+		display: block;
 		overflow: hidden;
-		padding: 96px 20px 20px;
+		padding: 0;
 	}
 
 	.map-area {
@@ -962,12 +962,9 @@
 	}
 
 	.page.composing .map-area {
-		position: relative;
-		flex: 0 0 42%;
-		min-width: 360px;
-		height: calc(100vh - 116px);
-		border-radius: var(--radius-lg);
-		box-shadow: 0 18px 42px rgba(15, 23, 42, 0.08);
+		position: absolute;
+		inset: 0;
+		height: 100vh;
 	}
 
 	.feed-scroll-space {
@@ -1060,11 +1057,13 @@
 	}
 
 	.compose-panel {
-		position: relative;
+		position: absolute;
+		top: 96px;
+		right: 20px;
+		bottom: 20px;
 		z-index: 18;
-		flex: 1 1 58%;
-		min-width: 0;
-		height: calc(100vh - 116px);
+		width: min(760px, calc(58vw - 20px));
+		min-width: 520px;
 		margin: 0;
 		padding: 24px;
 		overflow-y: auto;
@@ -1260,21 +1259,24 @@
 
 		.page.composing .main {
 			display: block;
-			overflow-y: auto;
-			padding: 154px 12px 16px;
+			overflow: hidden;
+			padding: 0;
 		}
 
 		.page.composing .map-area {
-			min-width: 0;
+			position: absolute;
+			inset: 0;
 			width: 100%;
-			height: 42vh;
-			margin-bottom: 14px;
+			height: 100vh;
 		}
 
 		.compose-panel {
-			margin: 0;
-			height: auto;
-			min-height: calc(58vh - 30px);
+			top: 154px;
+			left: 12px;
+			right: 12px;
+			bottom: 16px;
+			width: auto;
+			min-width: 0;
 		}
 	}
 
