@@ -52,6 +52,7 @@
 	const GEO_MAX_AGE_MS = 15 * 60 * 1000;
 	const GEO_TIMEOUT_MS = 900;
 	const LOCAL_FOCUS_RADIUS_KM = 2.5;
+	const COMPOSE_FOCUS_RADIUS_KM = 0.8;
 	const LOCAL_TRENDING_RADIUS_KM = 10;
 	const LOCAL_AUTO_NATIONAL_ZOOM = 6.4;
 	const LOCAL_AUTO_NATIONAL_GRACE_MS = 1400;
@@ -414,19 +415,12 @@
 		return mapComponent?.getMarkerScreenPos(id) ?? null;
 	}
 
-	function postPanelOffset(): [number, number] {
-		if (typeof window === 'undefined' || window.innerWidth <= 980) return [0, 0];
-		const panelWidth = Math.max(420, Math.min(640, window.innerWidth * 0.46 - 20));
-		return [(panelWidth + 20) / 2, 0];
-	}
-
 	function focusSelectedPost(post: PostSummary | PostDetail) {
-		mapComponent?.focusOnLocation(
-			post.lng,
-			post.lat,
-			Math.max(post.impactRadiusM / 1000, LOCAL_FOCUS_RADIUS_KM),
-			postPanelOffset()
-		);
+		mapComponent?.fitToPostRadius(post, {
+			panelSide: 'left',
+			paddingScale: 1.18,
+			maxZoom: 14
+		});
 	}
 
 	async function loadSelectedPost(id: string) {
@@ -527,7 +521,7 @@
 	}
 
 	function focusComposeLocation(lng: number, lat: number) {
-		mapComponent?.focusOnLocation(lng, lat, LOCAL_FOCUS_RADIUS_KM, composeMapOffset());
+		mapComponent?.focusOnLocation(lng, lat, COMPOSE_FOCUS_RADIUS_KM, composeMapOffset());
 	}
 
 	function openCompose() {

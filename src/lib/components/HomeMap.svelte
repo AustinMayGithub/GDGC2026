@@ -34,6 +34,12 @@
 		zoom: number;
 		bounds: [number, number, number, number];
 	};
+	type RadiusFitOptions = {
+		panelSide?: 'left' | 'right' | 'none';
+		paddingScale?: number;
+		duration?: number;
+		maxZoom?: number;
+	};
 
 	let {
 		posts,
@@ -326,14 +332,21 @@
 		composePinSource?.setData(composePinFeatures());
 	}
 
-	function fitToPostRadius(post: PostSummary) {
+	export function fitToPostRadius(post: PostSummary, options: RadiusFitOptions = {}) {
 		if (!map || !maplibre) return;
 		const ml = maplibre as typeof import('maplibre-gl');
 		const m = map as InstanceType<typeof ml.Map>;
-		const ring = buildCircle(post.lng, post.lat, post.impactRadiusM).geometry.coordinates[0];
+		const paddingScale = options.paddingScale ?? 1.18;
+		const ring = buildCircle(post.lng, post.lat, post.impactRadiusM * paddingScale).geometry
+			.coordinates[0];
 		const width = container.clientWidth;
 		const compact = width < 820;
+		const panelSide = options.panelSide ?? 'none';
+		const panelWidth = Math.max(420, Math.min(640, width * 0.46 - 20));
+		const panelPadding = panelWidth + 64;
 		const sidePadding = compact ? 24 : Math.min(320, Math.max(180, width * 0.22));
+		const leftPadding = compact ? 28 : panelSide === 'left' ? panelPadding : sidePadding;
+		const rightPadding = compact ? 28 : panelSide === 'right' ? panelPadding : sidePadding;
 
 		let minLng = Infinity;
 		let minLat = Infinity;
@@ -355,12 +368,12 @@
 			{
 				padding: {
 					top: 116,
-					right: sidePadding,
+					right: rightPadding,
 					bottom: 56,
-					left: sidePadding
+					left: leftPadding
 				},
-				duration: 450,
-				maxZoom: 12.5
+				duration: options.duration ?? 450,
+				maxZoom: options.maxZoom ?? 14
 			}
 		);
 	}
@@ -479,7 +492,7 @@
 
 		m.easeTo({
 			center: [lng, lat],
-			zoom: radiusKm <= 5 ? 12 : 10,
+			zoom: radiusKm <= 1 ? 13.4 : radiusKm <= 5 ? 12 : 10,
 			offset,
 			duration: 450
 		});
