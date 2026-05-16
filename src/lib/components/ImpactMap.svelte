@@ -331,10 +331,10 @@
 							'interpolate', ['linear'], ['zoom'],
 							8, 16, 13, 30, 18, 52
 						] as never,
-						'circle-color': '#dc2626',
+						'circle-color': '#991b1b',
 						'circle-opacity': [
 							'interpolate', ['linear'], ['zoom'],
-							8, 0.18, 13, 0.24, 18, 0.3
+							8, 0.2, 13, 0.27, 18, 0.34
 						] as never,
 						'circle-blur': 0.88
 					}
@@ -362,8 +362,8 @@
 							'interpolate', ['linear'], ['zoom'],
 							8, 7, 13, 11, 18, 18
 						] as never,
-						'circle-color': '#dc2626',
-						'circle-opacity': 0.22,
+						'circle-color': '#7f1d1d',
+						'circle-opacity': 0.28,
 						'circle-blur': 0.5
 					}
 				});

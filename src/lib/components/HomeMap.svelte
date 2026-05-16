@@ -702,7 +702,7 @@
 				id: 'selected-radius-fill',
 				type: 'fill',
 				source: 'selected-radius',
-				paint: { 'fill-color': '#f8fafc', 'fill-opacity': 0.16 }
+				paint: { 'fill-color': '#6366f1', 'fill-opacity': 0.16 }
 			});
 			m.addSource('selected-verify-votes', {
 				type: 'geojson',
@@ -729,8 +729,8 @@
 				source: 'selected-dispute-votes',
 				paint: {
 					'circle-radius': ['interpolate', ['linear'], ['zoom'], 5, 20, 10, 34, 16, 52],
-					'circle-color': '#dc2626',
-					'circle-opacity': ['interpolate', ['linear'], ['zoom'], 5, 0.16, 10, 0.22, 16, 0.3],
+					'circle-color': '#991b1b',
+					'circle-opacity': ['interpolate', ['linear'], ['zoom'], 5, 0.18, 10, 0.25, 16, 0.34],
 					'circle-blur': 0.88
 				}
 			});
@@ -751,8 +751,8 @@
 				source: 'selected-dispute-votes',
 				paint: {
 					'circle-radius': ['interpolate', ['linear'], ['zoom'], 5, 8, 10, 12, 16, 18],
-					'circle-color': '#dc2626',
-					'circle-opacity': ['interpolate', ['linear'], ['zoom'], 5, 0.14, 10, 0.2, 16, 0.28],
+					'circle-color': '#7f1d1d',
+					'circle-opacity': ['interpolate', ['linear'], ['zoom'], 5, 0.18, 10, 0.24, 16, 0.32],
 					'circle-blur': 0.52
 				}
 			});
@@ -760,7 +760,7 @@
 				id: 'selected-radius-line',
 				type: 'line',
 				source: 'selected-radius',
-				paint: { 'line-color': '#cbd5e1', 'line-width': 2.2, 'line-opacity': 0.92 }
+				paint: { 'line-color': '#4f46e5', 'line-width': 2.4, 'line-opacity': 0.78 }
 			});
 			m.addSource('compose-radius', { type: 'geojson', data: EMPTY_FEATURES });
 			m.addLayer({
