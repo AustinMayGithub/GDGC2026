@@ -61,6 +61,7 @@
 	let container: HTMLDivElement;
 	let map: unknown = null;
 	let maplibre: typeof import('maplibre-gl') | null = null;
+	let skipNextBackgroundClick = false;
 
 	const NZ_VISUAL_CENTER: [number, number] = [174.25, -41.15];
 	const EMPTY_FEATURES: GeoJSON.FeatureCollection = {
@@ -332,13 +333,17 @@
 		composePinSource?.setData(composePinFeatures());
 	}
 
-	export function fitToPostRadius(post: PostSummary, options: RadiusFitOptions = {}) {
+	export function fitToRadius(
+		lng: number,
+		lat: number,
+		radiusM: number,
+		options: RadiusFitOptions = {}
+	) {
 		if (!map || !maplibre) return;
 		const ml = maplibre as typeof import('maplibre-gl');
 		const m = map as InstanceType<typeof ml.Map>;
 		const paddingScale = options.paddingScale ?? 1.18;
-		const ring = buildCircle(post.lng, post.lat, post.impactRadiusM * paddingScale).geometry
-			.coordinates[0];
+		const ring = buildCircle(lng, lat, radiusM * paddingScale).geometry.coordinates[0];
 		const width = container.clientWidth;
 		const compact = width < 820;
 		const panelSide = options.panelSide ?? 'none';
@@ -388,6 +393,10 @@
 				maxZoom: options.maxZoom ?? 14
 			}
 		);
+	}
+
+	export function fitToPostRadius(post: PostSummary, options: RadiusFitOptions = {}) {
+		fitToRadius(post.lng, post.lat, post.impactRadiusM, options);
 	}
 
 	export function fitToPosts(postsToFit: PostSummary[]) {
@@ -653,11 +662,15 @@
 				const id = e.features?.[0]?.properties?.id as string | undefined;
 				const post = posts.find((item) => item.id === id);
 				if (!post) return;
+				skipNextBackgroundClick = true;
 				onSelectPost(post.id);
-				fitToPostRadius(post);
 			});
 
 			m.on('click', (e) => {
+				if (skipNextBackgroundClick) {
+					skipNextBackgroundClick = false;
+					return;
+				}
 				if (composing) {
 					onComposePick?.(e.lngLat.lng, e.lngLat.lat);
 					return;

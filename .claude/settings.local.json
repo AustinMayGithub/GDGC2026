@@ -5,7 +5,9 @@
       "PowerShell(Get-Content *)",
       "PowerShell(npm run *)",
       "PowerShell(Get-NetTCPConnection *)",
-      "PowerShell(Remove-Item *)"
+      "PowerShell(Remove-Item *)",
+      "PowerShell(Test-Path *)",
+      "PowerShell(Get-ChildItem *)"
     ]
   }
 }

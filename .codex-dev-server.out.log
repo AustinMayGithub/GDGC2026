@@ -1,0 +1,95 @@
+
+> birdseye@0.1.0 dev
+> vite dev --host 127.0.0.1
+
+
+  [32m[1mVITE[22m v5.4.21[39m  [2mready in [0m[1m8866[22m[2m[0m ms[22m
+
+  [32m➜[39m  [1mLocal[22m:   [36mhttp://127.0.0.1:[1m5173[22m/[39m
+[2m8:38:30 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/hooks.server.ts[22m
+[2m8:38:30 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/hooks.server.ts[22m
+[2m8:38:35 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/routes/+layout.server.ts[22m
+[2m8:38:50 am[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/routes/+page.svelte[22m
+[2m8:38:50 am[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/lib/components/HomeMap.svelte[22m
+[2m8:38:53 am[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/routes/+page.svelte[22m
+[2m8:39:05 am[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/routes/+page.svelte[22m
+[2m8:39:11 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/0.js[22m
+[2m8:39:11 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/1.js[22m
+[2m8:39:12 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/2.js[22m
+[2m8:39:12 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/3.js[22m
+[2m8:39:12 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/5.js[22m
+[2m8:39:12 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/app.js[22m
+[2m8:39:12 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/server/internal.js[22m
+[2m8:39:12 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/matchers.js[22m
+[2m8:39:12 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/root.js[22m
+[2m8:39:20 am[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/routes/+page.svelte[22m
+[2m8:39:22 am[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/routes/+page.svelte[22m
+[2m8:39:27 am[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/lib/components/CredibilityMeter.svelte[22m
+[2m8:39:30 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/0.js[22m
+[2m8:39:30 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/1.js[22m
+[2m8:39:31 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/2.js[22m
+[2m8:39:31 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/3.js[22m
+[2m8:39:31 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/5.js[22m
+[2m8:39:31 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/app.js[22m
+[2m8:39:31 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/server/internal.js[22m
+[2m8:39:31 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/matchers.js[22m
+[2m8:39:31 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/root.js[22m
+[2m8:39:53 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/0.js[22m
+[2m8:39:53 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/1.js[22m
+[2m8:39:53 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/2.js[22m
+[2m8:39:53 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/3.js[22m
+[2m8:39:53 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/5.js[22m
+[2m8:39:53 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/app.js[22m
+[2m8:39:53 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/server/internal.js[22m
+[2m8:39:53 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/matchers.js[22m
+[2m8:39:53 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/root.js[22m
+[2m8:39:59 am[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/routes/+page.svelte[22m
+[2m8:40:15 am[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/lib/components/CredibilityMeter.svelte[22m
+[2m8:40:22 am[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/lib/components/CredibilityMeter.svelte[22m
+[2m8:40:22 am[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/lib/components/CredibilityMeter.svelte[22m
+[2m8:40:35 am[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/lib/components/HomeMap.svelte[22m
+[2m8:40:43 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/0.js[22m
+[2m8:40:43 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/1.js[22m
+[2m8:40:43 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/2.js[22m
+[2m8:40:43 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/3.js[22m
+[2m8:40:43 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/5.js[22m
+[2m8:40:43 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/app.js[22m
+[2m8:40:43 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/server/internal.js[22m
+[2m8:40:43 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/matchers.js[22m
+[2m8:40:43 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/root.js[22m
+[2m8:40:59 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/0.js[22m
+[2m8:41:00 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/1.js[22m
+[2m8:41:00 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/2.js[22m
+[2m8:41:00 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/3.js[22m
+[2m8:41:00 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/5.js[22m
+[2m8:41:00 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/app.js[22m
+[2m8:41:00 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/server/internal.js[22m
+[2m8:41:00 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/matchers.js[22m
+[2m8:41:00 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/root.js[22m
+[2m8:41:09 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/0.js[22m
+[2m8:41:09 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/1.js[22m
+[2m8:41:09 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/2.js[22m
+[2m8:41:09 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/3.js[22m
+[2m8:41:09 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/5.js[22m
+[2m8:41:09 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/app.js[22m
+[2m8:41:09 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/server/internal.js[22m
+[2m8:41:09 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/matchers.js[22m
+[2m8:41:09 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/root.js[22m
+[2m8:41:17 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/0.js[22m
+[2m8:41:17 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/1.js[22m
+[2m8:41:17 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/2.js[22m
+[2m8:41:17 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/3.js[22m
+[2m8:41:17 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/5.js[22m
+[2m8:41:17 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/app.js[22m
+[2m8:41:17 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/server/internal.js[22m
+[2m8:41:17 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/matchers.js[22m
+[2m8:41:17 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/root.js[22m
+[2m8:41:29 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/0.js[22m
+[2m8:41:29 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/1.js[22m
+[2m8:41:29 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/2.js[22m
+[2m8:41:29 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/3.js[22m
+[2m8:41:29 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/5.js[22m
+[2m8:41:29 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/app.js[22m
+[2m8:41:29 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/server/internal.js[22m
+[2m8:41:29 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/matchers.js[22m
+[2m8:41:29 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/root.js[22m

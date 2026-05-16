@@ -1,6 +1,8 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
 	import type { PostDetail, SessionUser, VoteValue, VotePoint } from '$lib/types';
 	import { haversineMeters, formatDistance, MAX_ACCURACY_BUFFER_M } from '$lib/geo';
+	import { getLocation, prewarm, type GeoFix } from '$lib/location';
 
 	interface VoteResult {
 		verifyCount: number;
@@ -30,40 +32,22 @@
 	const verifyPct = $derived(total === 0 ? 50 : Math.round((verifyCount / total) * 100));
 	const disputePct = $derived(100 - verifyPct);
 
-	/** Resolve the browser's current position, or reject with a friendly message. */
-	function getPosition(): Promise<GeolocationPosition> {
-		return new Promise((resolve, reject) => {
-			if (!navigator.geolocation) {
-				reject(new Error('This device cannot share a location, so voting is unavailable.'));
-				return;
-			}
-			navigator.geolocation.getCurrentPosition(resolve, (err) => {
-				if (err.code === err.PERMISSION_DENIED) {
-					reject(
-						new Error(
-							'Location access was blocked. BirdsEye only counts votes from people inside the story’s impact zone — allow location to vote.'
-						)
-					);
-				} else {
-					reject(new Error('Could not get your location. Check your connection and try again.'));
-				}
-			}, {
-				enableHighAccuracy: true,
-				timeout: 10_000,
-				maximumAge: 60_000
-			});
-		});
-	}
+	// Warm the location provider as soon as the meter is on screen, so the
+	// voter isn't waiting on a cold GPS fix the moment they click Verify.
+	onMount(() => {
+		if (user?.emailVerified) prewarm();
+	});
 
 	async function vote(value: VoteValue) {
 		if (loading || locating) return;
 		error = '';
 
 		// 1. Establish where the voter is — required to vote (project.md §4.4).
+		//    The shared service usually has a warm fix ready, so this is instant.
 		locating = true;
-		let pos: GeolocationPosition;
+		let fix: GeoFix;
 		try {
-			pos = await getPosition();
+			fix = await getLocation();
 		} catch (e) {
 			error = e instanceof Error ? e.message : 'Could not get your location.';
 			locating = false;
@@ -71,9 +55,9 @@
 		}
 		locating = false;
 
-		const voterLng = pos.coords.longitude;
-		const voterLat = pos.coords.latitude;
-		const accuracyM = pos.coords.accuracy ?? 0;
+		const voterLng = fix.lng;
+		const voterLat = fix.lat;
+		const accuracyM = fix.accuracyM;
 
 		// 2. Fail fast client-side with a clear distance message before the round trip.
 		const distance = haversineMeters(post.lng, post.lat, voterLng, voterLat);

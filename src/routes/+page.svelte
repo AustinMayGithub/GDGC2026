@@ -22,10 +22,12 @@
 		CommunityNote as CommunityNoteData
 	} from '$lib/types';
 	import { NZ_BBOX, NZ_REGIONS, regionForPoint } from '$lib/data/nz-regions';
+	import { getLocation, prewarm, seedCoarse, GeoError } from '$lib/location';
 	import logo from '$lib/data/birdseye.png';
 
 	interface PageData {
 		user: SessionUser | null;
+		coarseLocation: { lng: number; lat: number } | null;
 	}
 
 	let { data }: { data: PageData } = $props();
@@ -50,9 +52,8 @@
 	const DEFAULT_REGION_ID = 'auckland';
 	const REGION_CACHE_KEY = 'birdseye:local-region';
 	const GEO_MAX_AGE_MS = 15 * 60 * 1000;
-	const GEO_TIMEOUT_MS = 900;
+	const GEO_TIMEOUT_MS = 10_000;
 	const LOCAL_FOCUS_RADIUS_KM = 2.5;
-	const COMPOSE_FOCUS_RADIUS_KM = 0.8;
 	const LOCAL_TRENDING_RADIUS_KM = 10;
 	const LOCAL_AUTO_NATIONAL_ZOOM = 6.4;
 	const LOCAL_AUTO_NATIONAL_GRACE_MS = 1400;
@@ -112,6 +113,7 @@
 	let lastTrendingFitKey = '';
 	let localAutoNationalEnabledAt = 0;
 	let localPeakZoom: number | null = null;
+	let composeRadiusFitFrame: number | null = null;
 
 	function toRadians(value: number) {
 		return (value * Math.PI) / 180;
@@ -166,26 +168,24 @@
 	}
 
 	function requestUserLocation(focusMap = false) {
-		if (typeof navigator === 'undefined' || !navigator.geolocation) {
-			geoLoading = false;
-			geoError = 'Geolocation not available, pick your region below.';
-			return;
-		}
-
 		geoLoading = true;
+		geoError = null;
 		const requestId = ++geoRequestId;
-		navigator.geolocation.getCurrentPosition(
-			(pos) => {
+
+		// The shared service keeps the location provider warm, so this resolves
+		// instantly once the first fix is in — no per-call cold start.
+		getLocation({ maxAgeMs: GEO_MAX_AGE_MS, timeoutMs: GEO_TIMEOUT_MS })
+			.then((fix) => {
 				if (requestId !== geoRequestId) return;
 				geoLoading = false;
 				geoError = null;
-				applyUserLocation(pos.coords.longitude, pos.coords.latitude, focusMap);
-			},
-			(err) => {
+				applyUserLocation(fix.lng, fix.lat, focusMap);
+			})
+			.catch((err) => {
 				if (requestId !== geoRequestId) return;
 				geoLoading = false;
 				geoError =
-					err.code === err.PERMISSION_DENIED
+					err instanceof GeoError && err.kind === 'denied'
 						? 'Using your selected region below.'
 						: 'Using a saved region for now.';
 
@@ -199,13 +199,7 @@
 						mapComponent?.focusOnLocation(fallbackLng, fallbackLat, LOCAL_FOCUS_RADIUS_KM);
 					}
 				}
-			},
-			{
-				enableHighAccuracy: false,
-				maximumAge: GEO_MAX_AGE_MS,
-				timeout: GEO_TIMEOUT_MS
-			}
-		);
+			});
 	}
 
 	function readCachedRegion(): string | null {
@@ -516,14 +510,33 @@
 		setTimeout(() => mapComponent?.triggerResize(), 320);
 	}
 
-	function composeMapOffset(): [number, number] {
-		if (typeof window === 'undefined' || window.innerWidth <= 980) return [0, 0];
-		const panelWidth = Math.max(520, Math.min(760, window.innerWidth * 0.58 - 20));
-		return [-(panelWidth + 20) / 2, 0];
+	function fitComposeRadius(duration = 160) {
+		mapComponent?.fitToRadius(composeLng, composeLat, composeRadiusM, {
+			panelSide: 'right',
+			paddingScale: 1.18,
+			duration,
+			maxZoom: 15
+		});
+	}
+
+	function scheduleComposeRadiusFit(duration = 120) {
+		if (typeof window === 'undefined') {
+			fitComposeRadius(duration);
+			return;
+		}
+		if (composeRadiusFitFrame !== null) {
+			cancelAnimationFrame(composeRadiusFitFrame);
+		}
+		composeRadiusFitFrame = requestAnimationFrame(() => {
+			composeRadiusFitFrame = null;
+			fitComposeRadius(duration);
+		});
 	}
 
 	function focusComposeLocation(lng: number, lat: number) {
-		mapComponent?.focusOnLocation(lng, lat, COMPOSE_FOCUS_RADIUS_KM, composeMapOffset());
+		composeLng = lng;
+		composeLat = lat;
+		fitComposeRadius(420);
 	}
 
 	async function refreshComposeAreaLabel() {
@@ -613,6 +626,7 @@
 	function handleRadiusInput(e: Event) {
 		composeRadiusM = sliderToRadius(Number((e.currentTarget as HTMLInputElement).value));
 		void refreshComposeAreaLabel();
+		scheduleComposeRadiusFit();
 	}
 
 	function handleComposeCategory(cat: PostCategory) {
@@ -679,18 +693,32 @@
 	}
 
 	onMount(() => {
-		const cachedRegionId = readCachedRegion();
-		if (cachedRegionId) {
-			selectedRegionId = cachedRegionId;
+		// Instant, prompt-free starting point: the server's IP-derived location
+		// beats a stale region cache. Fall back to the cached region otherwise.
+		if (data.coarseLocation) {
+			const { lng, lat } = data.coarseLocation;
+			seedCoarse(lng, lat);
+			selectedRegionId = regionForPoint(lng, lat);
+			setLocalFocus(lng, lat);
+		} else {
+			const cachedRegionId = readCachedRegion();
+			if (cachedRegionId) {
+				selectedRegionId = cachedRegionId;
+			}
+			const [cachedLng, cachedLat] = regionCenter(selectedRegionId);
+			setLocalFocus(cachedLng, cachedLat);
 		}
-		const [cachedLng, cachedLat] = regionCenter(selectedRegionId);
-		setLocalFocus(cachedLng, cachedLat);
+		// Warm the precise GPS fix in the background so the first vote/post is instant.
+		prewarm();
 		requestUserLocation(false);
 		fetchPosts();
 	});
 
 	onDestroy(() => {
 		activeFetchController?.abort();
+		if (composeRadiusFitFrame !== null) {
+			cancelAnimationFrame(composeRadiusFitFrame);
+		}
 	});
 
 	$effect(() => {
