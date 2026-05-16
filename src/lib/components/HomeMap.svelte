@@ -11,6 +11,7 @@
 		selectedPostId: string | null;
 		disableSelection?: boolean;
 		showAllRadii?: boolean;
+		radiusPosts?: PostSummary[];
 		onMapReady: (map: unknown) => void;
 		onMarkerPositionsChange: () => void;
 		onSelectPost: (id: string | null) => void;
@@ -35,6 +36,7 @@
 		selectedPostId,
 		disableSelection = false,
 		showAllRadii = false,
+		radiusPosts = [],
 		onMapReady,
 		onMarkerPositionsChange,
 		onSelectPost
@@ -227,9 +229,12 @@
 
 	function selectedRadiusFeatures(): GeoJSON.FeatureCollection<GeoJSON.Polygon> {
 		if (showAllRadii) {
+			const postsWithOpenRadii = radiusPosts.length > 0 ? radiusPosts : posts;
 			return {
 				type: 'FeatureCollection',
-				features: posts.map((post) => buildCircle(post.lng, post.lat, post.impactRadiusM))
+				features: postsWithOpenRadii.map((post) =>
+					buildCircle(post.lng, post.lat, post.impactRadiusM)
+				)
 			};
 		}
 
@@ -522,6 +527,7 @@
 		selectedPostId;
 		disableSelection;
 		showAllRadii;
+		radiusPosts;
 		syncPostLayers();
 	});
 </script>
