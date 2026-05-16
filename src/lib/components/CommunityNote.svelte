@@ -7,15 +7,13 @@
 	}
 
 	let { note }: Props = $props();
-
 </script>
 
 <div class="note-card card">
 	<div class="note-header">
-		<span class="note-icon">🤖</span>
 		<div class="note-titles">
 			<span class="note-title">Community Note</span>
-			<span class="note-subtitle muted">Summary of reader context — not a fact check</span>
+			<span class="note-subtitle muted">Reader context about this post - not independently verified</span>
 		</div>
 	</div>
 
@@ -27,7 +25,7 @@
 		</p>
 	{:else}
 		<p class="note-empty muted">
-			No discussion yet — be the first to comment below.
+			No discussion yet - be the first to comment below.
 		</p>
 	{/if}
 </div>
@@ -45,11 +43,6 @@
 		display: flex;
 		align-items: flex-start;
 		gap: 10px;
-	}
-	.note-icon {
-		font-size: 18px;
-		line-height: 1.2;
-		flex-shrink: 0;
 	}
 	.note-titles {
 		display: flex;
