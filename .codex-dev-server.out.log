@@ -538,3 +538,252 @@
 [2m10:26:35 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/4.js[22m
 [2m10:26:35 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/matchers.js[22m
 [2m10:26:35 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/root.js[22m
+[2m10:27:10 am[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/lib/components/CredibilityMeter.svelte[22m
+[2m10:27:10 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/lib/server/posts.ts[22m
+[2m10:27:10 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/lib/components/HomeMap.svelte[22m
+[2m10:27:10 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/lib/server/posts.ts[22m
+[2m10:27:10 am[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/lib/components/ReactionBar.svelte[22m
+[2m10:27:10 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/lib/components/HomeMap.svelte[22m
+[2m10:27:11 am[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/routes/+page.svelte[22m
+[2m10:27:56 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/lib/components/HomeMap.svelte[22m
+[2m10:28:21 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/0.js[22m
+[2m10:28:21 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/1.js[22m
+[2m10:28:21 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/0.js[22m
+[2m10:28:21 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/2.js[22m
+[2m10:28:21 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/3.js[22m
+[2m10:28:21 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/4.js[22m
+[2m10:28:21 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/5.js[22m
+[2m10:28:21 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/app.js[22m
+[2m10:28:21 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/server/internal.js[22m
+[2m10:28:21 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/matchers.js[22m
+[2m10:28:21 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/root.js[22m
+[2m10:28:39 am[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/lib/components/HomeMap.svelte[22m
+[2m10:28:58 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/0.js[22m
+[2m10:28:58 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/1.js[22m
+[2m10:28:58 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/2.js[22m
+[2m10:28:58 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/3.js[22m
+[2m10:28:58 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/4.js[22m
+[2m10:28:58 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/5.js[22m
+[2m10:28:58 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/app.js[22m
+[2m10:28:58 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/server/internal.js[22m
+[2m10:28:58 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/matchers.js[22m
+[2m10:28:58 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/root.js[22m
+[2m10:29:06 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/0.js[22m
+[2m10:29:06 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/1.js[22m
+[2m10:29:06 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/2.js[22m
+[2m10:29:06 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/3.js[22m
+[2m10:29:06 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/4.js[22m
+[2m10:29:06 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/5.js[22m
+[2m10:29:06 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/app.js[22m
+[2m10:29:06 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/server/internal.js[22m
+[2m10:29:06 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/matchers.js[22m
+[2m10:29:06 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/root.js[22m
+[2m10:33:53 am[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/lib/components/HomeMap.svelte[22m
+[2m10:34:17 am[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/lib/components/HomeMap.svelte[22m
+[2m10:37:42 am[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/routes/+page.svelte[22m
+[2m10:37:53 am[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/routes/+page.svelte?svelte&type=style&lang.css, /src/routes/+page.svelte[22m
+[2m10:37:53 am[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/routes/+page.svelte?svelte&type=style&lang.css, /src/routes/+page.svelte[22m
+10:37:53 am [vite-plugin-svelte] src/routes/+page.svelte:2482:1 Unused CSS selector ".auth-tabs"
+https://svelte.dev/e/css_unused_selector
+10:37:53 am [vite-plugin-svelte] src/routes/+page.svelte:2492:1 Unused CSS selector ".auth-tabs button"
+https://svelte.dev/e/css_unused_selector
+10:37:53 am [vite-plugin-svelte] src/routes/+page.svelte:2501:1 Unused CSS selector ".auth-tabs button.active"
+https://svelte.dev/e/css_unused_selector
+10:38:01 am [vite-plugin-svelte] src/routes/+page.svelte:2519:1 Unused CSS selector ".auth-tabs"
+https://svelte.dev/e/css_unused_selector
+10:38:01 am [vite-plugin-svelte] src/routes/+page.svelte:2529:1 Unused CSS selector ".auth-tabs button"
+https://svelte.dev/e/css_unused_selector
+10:38:01 am [vite-plugin-svelte] src/routes/+page.svelte:2538:1 Unused CSS selector ".auth-tabs button.active"
+https://svelte.dev/e/css_unused_selector
+[2m10:38:01 am[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/routes/+page.svelte?svelte&type=style&lang.css[22m
+10:38:02 am [vite-plugin-svelte] src/routes/+page.svelte:2519:1 Unused CSS selector ".auth-tabs"
+https://svelte.dev/e/css_unused_selector
+10:38:02 am [vite-plugin-svelte] src/routes/+page.svelte:2529:1 Unused CSS selector ".auth-tabs button"
+https://svelte.dev/e/css_unused_selector
+10:38:02 am [vite-plugin-svelte] src/routes/+page.svelte:2538:1 Unused CSS selector ".auth-tabs button.active"
+https://svelte.dev/e/css_unused_selector
+[2m10:38:02 am[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/routes/+page.svelte?svelte&type=style&lang.css[22m
+10:38:03 am [vite-plugin-svelte] src/routes/+page.svelte:2519:1 Unused CSS selector ".auth-tabs"
+https://svelte.dev/e/css_unused_selector
+10:38:03 am [vite-plugin-svelte] src/routes/+page.svelte:2529:1 Unused CSS selector ".auth-tabs button"
+https://svelte.dev/e/css_unused_selector
+10:38:03 am [vite-plugin-svelte] src/routes/+page.svelte:2538:1 Unused CSS selector ".auth-tabs button.active"
+https://svelte.dev/e/css_unused_selector
+[2m10:38:03 am[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/routes/+page.svelte?svelte&type=style&lang.css[22m
+10:38:04 am [vite-plugin-svelte] src/routes/+page.svelte:2519:1 Unused CSS selector ".auth-tabs"
+https://svelte.dev/e/css_unused_selector
+10:38:04 am [vite-plugin-svelte] src/routes/+page.svelte:2529:1 Unused CSS selector ".auth-tabs button"
+https://svelte.dev/e/css_unused_selector
+10:38:04 am [vite-plugin-svelte] src/routes/+page.svelte:2538:1 Unused CSS selector ".auth-tabs button.active"
+https://svelte.dev/e/css_unused_selector
+[2m10:38:04 am[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/routes/+page.svelte?svelte&type=style&lang.css[22m
+[2m10:38:26 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/0.js[22m
+[2m10:38:26 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/1.js[22m
+[2m10:38:26 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/2.js[22m
+[2m10:38:26 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/3.js[22m
+[2m10:38:26 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/4.js[22m
+[2m10:38:26 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/5.js[22m
+[2m10:38:26 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/app.js[22m
+[2m10:38:26 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/server/internal.js[22m
+[2m10:38:26 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/matchers.js[22m
+[2m10:38:26 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/root.js[22m
+10:38:27 am [vite-plugin-svelte] src/routes/+page.svelte:2519:1 Unused CSS selector ".auth-tabs"
+https://svelte.dev/e/css_unused_selector
+10:38:27 am [vite-plugin-svelte] src/routes/+page.svelte:2529:1 Unused CSS selector ".auth-tabs button"
+https://svelte.dev/e/css_unused_selector
+10:38:27 am [vite-plugin-svelte] src/routes/+page.svelte:2538:1 Unused CSS selector ".auth-tabs button.active"
+https://svelte.dev/e/css_unused_selector
+10:38:32 am [vite-plugin-svelte] src/routes/+page.svelte:2519:1 Unused CSS selector ".auth-tabs"
+https://svelte.dev/e/css_unused_selector
+10:38:32 am [vite-plugin-svelte] src/routes/+page.svelte:2529:1 Unused CSS selector ".auth-tabs button"
+https://svelte.dev/e/css_unused_selector
+10:38:32 am [vite-plugin-svelte] src/routes/+page.svelte:2538:1 Unused CSS selector ".auth-tabs button.active"
+https://svelte.dev/e/css_unused_selector
+[2m10:38:33 am[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/routes/+page.svelte[22m
+[2m10:38:39 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/0.js[22m
+[2m10:38:39 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/1.js[22m
+[2m10:38:39 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/2.js[22m
+[2m10:38:39 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/3.js[22m
+[2m10:38:39 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/4.js[22m
+[2m10:38:39 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/5.js[22m
+[2m10:38:39 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/app.js[22m
+[2m10:38:39 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/server/internal.js[22m
+[2m10:38:39 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/matchers.js[22m
+[2m10:38:39 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/root.js[22m
+[2m10:38:54 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/0.js[22m
+[2m10:38:54 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/1.js[22m
+[2m10:38:54 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/2.js[22m
+[2m10:38:54 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/3.js[22m
+[2m10:38:54 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/4.js[22m
+[2m10:38:54 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/5.js[22m
+[2m10:38:54 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/app.js[22m
+[2m10:38:54 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/server/internal.js[22m
+[2m10:38:54 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/matchers.js[22m
+[2m10:38:54 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/root.js[22m
+[2m10:40:46 am[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/routes/+page.svelte[22m
+[2m10:40:52 am[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/routes/+page.svelte[22m
+[2m10:40:56 am[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/routes/+page.svelte[22m
+[2m10:41:06 am[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/lib/components/TrendingDropdown.svelte[22m
+[2m10:41:22 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/0.js[22m
+[2m10:41:22 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/1.js[22m
+[2m10:41:22 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/2.js[22m
+[2m10:41:22 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/3.js[22m
+[2m10:41:22 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/4.js[22m
+[2m10:41:22 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/5.js[22m
+[2m10:41:22 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/app.js[22m
+[2m10:41:22 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/server/internal.js[22m
+[2m10:41:22 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/matchers.js[22m
+[2m10:41:22 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/root.js[22m
+[2m10:41:30 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/0.js[22m
+[2m10:41:30 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/1.js[22m
+[2m10:41:30 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/2.js[22m
+[2m10:41:30 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/3.js[22m
+[2m10:41:30 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/4.js[22m
+[2m10:41:30 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/5.js[22m
+[2m10:41:30 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/app.js[22m
+[2m10:41:30 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/server/internal.js[22m
+[2m10:41:30 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/matchers.js[22m
+[2m10:41:30 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/root.js[22m
+[2m10:42:53 am[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/lib/components/HomeMap.svelte[22m
+[2m10:42:56 am[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/routes/+page.svelte[22m
+[2m10:42:59 am[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/routes/+page.svelte[22m
+[2m10:43:05 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/0.js[22m
+[2m10:43:05 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/1.js[22m
+[2m10:43:05 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/2.js[22m
+[2m10:43:05 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/3.js[22m
+[2m10:43:05 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/4.js[22m
+[2m10:43:05 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/5.js[22m
+[2m10:43:05 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/app.js[22m
+[2m10:43:05 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/server/internal.js[22m
+[2m10:43:05 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/matchers.js[22m
+[2m10:43:05 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/root.js[22m
+[2m10:43:18 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/0.js[22m
+[2m10:43:18 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/1.js[22m
+[2m10:43:18 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/2.js[22m
+[2m10:43:18 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/3.js[22m
+[2m10:43:18 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/4.js[22m
+[2m10:43:18 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/5.js[22m
+[2m10:43:18 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/app.js[22m
+[2m10:43:18 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/server/internal.js[22m
+[2m10:43:18 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/matchers.js[22m
+[2m10:43:18 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/root.js[22m
+[2m10:46:50 am[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/routes/+page.svelte[22m
+[2m10:46:52 am[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/lib/components/UserMenu.svelte[22m
+[2m10:47:12 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/0.js[22m
+[2m10:47:12 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/1.js[22m
+[2m10:47:12 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/2.js[22m
+[2m10:47:12 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/3.js[22m
+[2m10:47:12 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/4.js[22m
+[2m10:47:12 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/5.js[22m
+[2m10:47:12 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/app.js[22m
+[2m10:47:12 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/server/internal.js[22m
+[2m10:47:12 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/matchers.js[22m
+[2m10:47:12 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/root.js[22m
+[2m10:47:20 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/0.js[22m
+[2m10:47:20 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/1.js[22m
+[2m10:47:20 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/2.js[22m
+[2m10:47:20 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/3.js[22m
+[2m10:47:20 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/4.js[22m
+[2m10:47:20 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/5.js[22m
+[2m10:47:20 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/app.js[22m
+[2m10:47:20 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/server/internal.js[22m
+[2m10:47:20 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/matchers.js[22m
+[2m10:47:20 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/root.js[22m
+[2m10:48:14 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/lib/server/ai.ts[22m
+[2m10:48:33 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/0.js[22m
+[2m10:48:33 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/1.js[22m
+[2m10:48:33 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/2.js[22m
+[2m10:48:33 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/3.js[22m
+[2m10:48:33 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/4.js[22m
+[2m10:48:33 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/5.js[22m
+[2m10:48:34 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/app.js[22m
+[2m10:48:34 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/server/internal.js[22m
+[2m10:48:34 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/matchers.js[22m
+[2m10:48:34 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/root.js[22m
+[2m10:48:38 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/lib/server/ai.ts[22m
+[2m10:48:44 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/0.js[22m
+[2m10:48:44 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/1.js[22m
+[2m10:48:44 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/2.js[22m
+[2m10:48:44 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/3.js[22m
+[2m10:48:44 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/4.js[22m
+[2m10:48:44 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/5.js[22m
+[2m10:48:44 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/app.js[22m
+[2m10:48:44 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/server/internal.js[22m
+[2m10:48:44 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/matchers.js[22m
+[2m10:48:44 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/root.js[22m
+[2m10:48:56 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/0.js[22m
+[2m10:48:56 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/1.js[22m
+[2m10:48:56 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/2.js[22m
+[2m10:48:56 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/3.js[22m
+[2m10:48:56 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/4.js[22m
+[2m10:48:56 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/5.js[22m
+[2m10:48:56 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/app.js[22m
+[2m10:48:56 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/server/internal.js[22m
+[2m10:48:57 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/matchers.js[22m
+[2m10:48:57 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/root.js[22m
+[2m10:49:55 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/lib/server/ai.ts[22m
+[2m10:50:03 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/0.js[22m
+[2m10:50:03 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/1.js[22m
+[2m10:50:03 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/2.js[22m
+[2m10:50:03 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/3.js[22m
+[2m10:50:03 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/4.js[22m
+[2m10:50:03 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/5.js[22m
+[2m10:50:03 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/app.js[22m
+[2m10:50:03 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/server/internal.js[22m
+[2m10:50:03 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/matchers.js[22m
+[2m10:50:03 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/root.js[22m
+[2m10:50:18 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/0.js[22m
+[2m10:50:18 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/1.js[22m
+[2m10:50:18 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/2.js[22m
+[2m10:50:18 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/3.js[22m
+[2m10:50:18 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/4.js[22m
+[2m10:50:18 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/5.js[22m
+[2m10:50:18 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/app.js[22m
+[2m10:50:18 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/server/internal.js[22m
+[2m10:50:18 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/2.js[22m
+[2m10:50:19 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/3.js[22m
+[2m10:50:19 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/4.js[22m
+[2m10:50:19 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/app.js[22m
+[2m10:50:19 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/matchers.js[22m
+[2m10:50:19 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/server/internal.js[22m
+[2m10:50:19 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.svelte-kit/generated/root.js[22m

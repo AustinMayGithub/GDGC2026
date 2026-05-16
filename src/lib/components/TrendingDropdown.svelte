@@ -5,12 +5,16 @@
 	interface Props {
 		entries: RankedPost[];
 		scope: 'national' | 'local';
+		mode: TrendMode;
 		open: boolean;
 		onOpenChange: (open: boolean) => void;
+		onModeChange: (mode: TrendMode) => void;
 		onSelect: (id: string) => void;
 		itemEls?: Map<string, HTMLElement>;
 		onItemsChange?: () => void;
 	}
+
+	type TrendMode = 'new' | 'trending' | 'rising';
 
 	type RankedPost = {
 		post: PostSummary;
@@ -18,7 +22,23 @@
 		engagement: number;
 	};
 
-	let { entries, scope, open, onOpenChange, onSelect, itemEls, onItemsChange }: Props = $props();
+	const modeLabels: Record<TrendMode, string> = {
+		new: 'New',
+		trending: 'Trending',
+		rising: 'Rising'
+	};
+
+	let {
+		entries,
+		scope,
+		mode,
+		open,
+		onOpenChange,
+		onModeChange,
+		onSelect,
+		itemEls,
+		onItemsChange
+	}: Props = $props();
 
 	function timeAgo(iso: string): string {
 		const diff = Date.now() - new Date(iso).getTime();
@@ -35,7 +55,9 @@
 	}
 
 	const scopeCopy = $derived(
-		scope === 'local' ? 'Trending in your area' : 'Trending across New Zealand'
+		scope === 'local'
+			? `${modeLabels[mode]} in your area`
+			: `${modeLabels[mode]} across New Zealand`
 	);
 
 	function setOpen(nextOpen: boolean) {
@@ -63,7 +85,7 @@
 		aria-expanded={open}
 	>
 		<div class="toggle-copy">
-			<span class="toggle-kicker">Trending now</span>
+			<span class="toggle-kicker">{modeLabels[mode]}</span>
 			<span class="toggle-sub">{scopeCopy}</span>
 		</div>
 		<div class="toggle-meta">
@@ -78,8 +100,29 @@
 
 	{#if open}
 		<div class="trending-menu">
+			<div class="trend-tabs" role="tablist" aria-label="Story sort">
+				{#each (['new', 'trending', 'rising'] as TrendMode[]) as tab}
+					<button
+						type="button"
+						role="tab"
+						class:active={mode === tab}
+						aria-selected={mode === tab}
+						onclick={() => onModeChange(tab)}
+					>
+						{modeLabels[tab]}
+					</button>
+				{/each}
+			</div>
 			{#if entries.length === 0}
-				<p class="empty-copy muted">Nothing is trending yet. Once people start reacting and commenting, stories will surface here.</p>
+				<p class="empty-copy muted">
+					{#if mode === 'new'}
+						No new posts here yet.
+					{:else if mode === 'rising'}
+						Nothing is rising yet. Early reactions and comments will surface stories here.
+					{:else}
+						Nothing is trending yet. Once people start reacting and commenting, stories will surface here.
+					{/if}
+				</p>
 			{:else}
 				<ul class="trending-list">
 					{#each entries as item (item.post.id)}
@@ -184,6 +227,32 @@
 	.trending-menu {
 		border-top: 1px solid var(--border);
 		background: var(--surface);
+	}
+
+	.trend-tabs {
+		display: grid;
+		grid-template-columns: repeat(3, 1fr);
+		gap: 4px;
+		padding: 8px;
+		border-bottom: 1px solid var(--border);
+		background: var(--surface-2);
+	}
+
+	.trend-tabs button {
+		border: 0;
+		border-radius: var(--radius-sm);
+		padding: 8px 6px;
+		background: transparent;
+		color: var(--text-2);
+		font-size: 12px;
+		font-weight: 750;
+		cursor: pointer;
+	}
+
+	.trend-tabs button.active {
+		background: var(--surface);
+		color: var(--text);
+		box-shadow: var(--shadow-sm);
 	}
 
 	.empty-copy {

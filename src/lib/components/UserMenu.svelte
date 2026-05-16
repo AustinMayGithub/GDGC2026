@@ -44,7 +44,7 @@
 		</a>
 	</div>
 {:else}
-	<a class="btn signin" href="/auth/login" onclick={handleLoginClick}>Sign in</a>
+	<a class="btn header-action-btn" href="/auth/login" onclick={handleLoginClick}>Sign in</a>
 {/if}
 
 <style>
@@ -63,8 +63,5 @@
 		display: flex;
 		align-items: center;
 		justify-content: center;
-	}
-	.signin {
-		padding: 8px 16px;
 	}
 </style>
