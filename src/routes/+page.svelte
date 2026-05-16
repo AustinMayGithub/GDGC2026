@@ -281,7 +281,7 @@
 	}
 
 	function popularityScore(post: PostSummary): number {
-		const ageHours = Math.max((Date.now() - new Date(post.createdAt).getTime()) / 36e5, 0);
+		const ageHours = ageHoursFor(post);
 		const voteTotal = post.verifyCount + post.disputeCount;
 		const approval = voteTotal === 0 ? 0.5 : post.verifyCount / voteTotal;
 		const engagement =
@@ -298,17 +298,30 @@
 		return post.commentCount * 4 + post.reactionCount * 3 + votes * 2;
 	}
 
+	function ageHoursFor(post: PostSummary): number {
+		const timestamp = new Date(post.createdAt).getTime();
+		if (!Number.isFinite(timestamp)) return 0;
+		return Math.max((Date.now() - timestamp) / 36e5, 0);
+	}
+
 	function trendScore(post: PostSummary): number {
 		const engagement = engagementFor(post);
-		const ageHours = Math.max((Date.now() - new Date(post.createdAt).getTime()) / 36e5, 0);
-		return Math.round((engagement * 100) / Math.max(ageHours + 2, 2));
+		const voteTotal = post.verifyCount + post.disputeCount;
+		const conversation = post.commentCount * 5 + post.reactionCount * 2 + voteTotal * 2;
+		const credibilitySignal = post.category === 'factual' ? Math.min(voteTotal, 12) * 1.5 : 0;
+		const ageHours = ageHoursFor(post);
+		const ageDecay = 1 / Math.pow(ageHours + 12, 0.35);
+		return Math.round((engagement * 8 + conversation + credibilitySignal) * ageDecay * 100);
 	}
 
 	function risingScore(post: PostSummary): number {
 		const engagement = engagementFor(post);
-		const ageHours = Math.max((Date.now() - new Date(post.createdAt).getTime()) / 36e5, 0);
-		const freshness = 36 / (ageHours + 3);
-		return Math.round((engagement * 85) / Math.max(ageHours + 1.5, 1.5) + freshness);
+		const ageHours = ageHoursFor(post);
+		if (ageHours > 72) return 0;
+		const velocity = engagement / Math.max(ageHours + 0.75, 0.75);
+		const freshness = Math.max(0, 72 - ageHours) / 72;
+		const earlyBoost = post.commentCount > 0 || post.reactionCount > 0 ? 8 : 0;
+		return Math.round((velocity * 120 + freshness * 35 + earlyBoost) * 100);
 	}
 
 	const rankedPosts = $derived.by(() => {
@@ -351,8 +364,15 @@
 				score: trendMode === 'rising' ? risingScore(post) : trendScore(post),
 				engagement: engagementFor(post)
 			}))
-			.filter((entry) => entry.engagement > 0)
-			.sort((a, b) => b.score - a.score || b.engagement - a.engagement);
+			.filter((entry) => entry.engagement > 0 && entry.score > 0)
+			.sort((a, b) => {
+				const scoreDiff = b.score - a.score;
+				if (scoreDiff !== 0) return scoreDiff;
+				if (trendMode === 'rising') {
+					return new Date(b.post.createdAt).getTime() - new Date(a.post.createdAt).getTime();
+				}
+				return b.engagement - a.engagement;
+			});
 
 		return entries.slice(0, 6);
 	});
