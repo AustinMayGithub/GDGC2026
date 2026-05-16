@@ -42,6 +42,10 @@
 		lat = newLat;
 	}
 
+	function handleRadiusInput(e: Event) {
+		radiusM = Number((e.currentTarget as HTMLInputElement).value);
+	}
+
 	function handleCategory(cat: PostCategory) {
 		category = cat;
 	}
@@ -216,6 +220,7 @@
 								max={50000}
 								step={100}
 								bind:value={radiusM}
+								oninput={handleRadiusInput}
 							/>
 							<div class="radius-hints muted">
 								<span>100 m</span>

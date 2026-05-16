@@ -78,6 +78,9 @@
 	$effect(() => {
 		// react to prop changes after mount
 		if (!map) return;
+		lng;
+		lat;
+		radiusM;
 		updateCircle();
 		updateMarker(lng, lat);
 	});
