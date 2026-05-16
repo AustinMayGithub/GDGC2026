@@ -44,6 +44,8 @@
 	let pinchStartDistance = 0;
 	let pinchStartZoom = 1;
 	let pinching = false;
+	let draggedImageId = $state<string | null>(null);
+	let dragOverImageId = $state<string | null>(null);
 
 	const hasImage = $derived(images.length > 0);
 	const activeImage = $derived(images.find((image) => image.id === activeId) ?? null);
@@ -320,16 +322,54 @@
 		updateImage(activeImage.id, { zoom: clampZoom(activeImage.zoom + step) });
 	}
 
-	function moveImage(id: string, direction: -1 | 1) {
-		const index = images.findIndex((image) => image.id === id);
-		const nextIndex = index + direction;
-		if (disabled || index < 0 || nextIndex < 0 || nextIndex >= images.length) return;
+	function reorderImage(draggedId: string, targetId: string, insertAfter: boolean) {
+		if (disabled || draggedId === targetId) return;
+		const draggedIndex = images.findIndex((image) => image.id === draggedId);
+		const targetIndex = images.findIndex((image) => image.id === targetId);
+		if (draggedIndex < 0 || targetIndex < 0) return;
+
 		const nextImages = [...images];
-		const [movedImage] = nextImages.splice(index, 1);
-		nextImages.splice(nextIndex, 0, movedImage);
+		const [movedImage] = nextImages.splice(draggedIndex, 1);
+		let insertIndex = targetIndex + (insertAfter ? 1 : 0);
+		if (draggedIndex < insertIndex) insertIndex -= 1;
+		nextImages.splice(insertIndex, 0, movedImage);
 		images = nextImages;
-		activeId = id;
+		activeId = draggedId;
 		emitImages(nextImages);
+	}
+
+	function handleThumbDragStart(event: DragEvent, id: string) {
+		if (disabled || images.length < 2) return;
+		draggedImageId = id;
+		activeId = id;
+		if (event.dataTransfer) {
+			event.dataTransfer.effectAllowed = 'move';
+			event.dataTransfer.setData('text/plain', id);
+		}
+	}
+
+	function handleThumbDragOver(event: DragEvent, id: string) {
+		if (!draggedImageId || draggedImageId === id) return;
+		event.preventDefault();
+		dragOverImageId = id;
+		if (event.dataTransfer) event.dataTransfer.dropEffect = 'move';
+	}
+
+	function handleThumbDrop(event: DragEvent, id: string) {
+		event.preventDefault();
+		const draggedId = draggedImageId ?? event.dataTransfer?.getData('text/plain') ?? null;
+		draggedImageId = null;
+		dragOverImageId = null;
+		if (!draggedId) return;
+
+		const target = event.currentTarget as HTMLElement;
+		const rect = target.getBoundingClientRect();
+		reorderImage(draggedId, id, event.clientX > rect.left + rect.width / 2);
+	}
+
+	function handleThumbDragEnd() {
+		draggedImageId = null;
+		dragOverImageId = null;
 	}
 
 	function removeImage(id: string) {
@@ -352,6 +392,8 @@
 		activePointers = new Map();
 		pinching = false;
 		pinchStartDistance = 0;
+		draggedImageId = null;
+		dragOverImageId = null;
 		if (fileInput) fileInput.value = '';
 		emitImages([]);
 	}
@@ -414,33 +456,21 @@
 								type="button"
 								class="thumb"
 								class:active={image.id === activeImage.id}
+								class:draggingThumb={draggedImageId === image.id}
+								class:dropTarget={dragOverImageId === image.id}
 								onclick={() => (activeId = image.id)}
+								draggable={!disabled && images.length > 1}
+								ondragstart={(event) => handleThumbDragStart(event, image.id)}
+								ondragover={(event) => handleThumbDragOver(event, image.id)}
+								ondragenter={(event) => handleThumbDragOver(event, image.id)}
+								ondrop={(event) => handleThumbDrop(event, image.id)}
+								ondragend={handleThumbDragEnd}
 								disabled={disabled}
 								aria-label={`Edit image ${index + 1}`}
 							>
 								<img src={image.dataUrl ?? image.sourceUrl} alt="" />
 								<span>{index + 1}</span>
 							</button>
-							{#if image.id === activeImage.id}
-								<div class="thumb-actions">
-									<button
-										type="button"
-										disabled={disabled || index === 0}
-										aria-label={`Move image ${index + 1} earlier`}
-										onclick={() => moveImage(image.id, -1)}
-									>
-										&lt;
-									</button>
-									<button
-										type="button"
-										disabled={disabled || index === images.length - 1}
-										aria-label={`Move image ${index + 1} later`}
-										onclick={() => moveImage(image.id, 1)}
-									>
-										&gt;
-									</button>
-								</div>
-							{/if}
 						</div>
 					{/each}
 				</div>
@@ -595,11 +625,22 @@
 		border: 2px solid transparent;
 		border-radius: var(--radius-sm);
 		background: var(--surface);
+		cursor: grab;
 		overflow: hidden;
 	}
 
 	.thumb.active {
 		border-color: var(--accent);
+	}
+
+	.thumb.draggingThumb {
+		opacity: 0.45;
+		cursor: grabbing;
+	}
+
+	.thumb.dropTarget {
+		border-color: var(--accent);
+		box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent);
 	}
 
 	.thumb img {
@@ -625,31 +666,7 @@
 		font-weight: 800;
 	}
 
-	.thumb-actions {
-		display: grid;
-		grid-template-columns: 1fr 1fr;
-		gap: 4px;
-	}
-
-	.thumb-actions button {
-		height: 22px;
-		padding: 0;
-		border: 1px solid var(--border);
-		border-radius: var(--radius-sm);
-		background: var(--surface);
-		color: var(--text-2);
-		font-size: 12px;
-		font-weight: 800;
-		line-height: 1;
-	}
-
-	.thumb-actions button:hover:not(:disabled) {
-		border-color: var(--accent);
-		color: var(--accent);
-	}
-
-	.thumb-actions button:disabled {
-		opacity: 0.38;
+	.thumb:disabled {
 		cursor: not-allowed;
 	}
 
