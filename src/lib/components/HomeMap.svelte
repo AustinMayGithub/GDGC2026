@@ -36,13 +36,13 @@
 		const width = typeof window === 'undefined' ? 1440 : window.innerWidth;
 		const compact = width < 820;
 		const isNational = bbox[2] - bbox[0] > 8;
-		const sidePadding = compact ? 24 : isNational ? Math.min(360, Math.max(220, width * 0.22)) : 72;
+		const sidePadding = compact ? 18 : isNational ? 44 : 32;
 
 		return {
 			padding: {
-				top: 112,
+				top: compact ? 96 : 108,
 				right: sidePadding,
-				bottom: compact ? 36 : 56,
+				bottom: compact ? 28 : 36,
 				left: sidePadding
 			},
 			duration: 800,
@@ -150,10 +150,6 @@
 			renderWorldCopies: false,
 			dragRotate: false,
 			touchPitch: false,
-			maxBounds: [
-				[160, -49.8],
-				[185, -31.5]
-			],
 			attributionControl: false
 		});
 
@@ -200,27 +196,6 @@
 		background:
 			radial-gradient(circle at top, rgba(255, 255, 255, 0.55), transparent 34%),
 			linear-gradient(180deg, #f7f8fb 0%, #eff2f7 100%);
-	}
-
-	.map-wrap::before,
-	.map-wrap::after {
-		content: '';
-		position: absolute;
-		top: 0;
-		bottom: 0;
-		width: 24%;
-		pointer-events: none;
-		z-index: 2;
-	}
-
-	.map-wrap::before {
-		left: 0;
-		background: linear-gradient(90deg, rgba(245, 247, 251, 0.92), rgba(245, 247, 251, 0));
-	}
-
-	.map-wrap::after {
-		right: 0;
-		background: linear-gradient(270deg, rgba(245, 247, 251, 0.92), rgba(245, 247, 251, 0));
 	}
 
 	.map-container {
