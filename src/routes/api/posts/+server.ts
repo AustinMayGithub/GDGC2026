@@ -1,4 +1,4 @@
-import { json, error } from '@sveltejs/kit';
+import { json, error, isHttpError } from '@sveltejs/kit';
 import { db } from '$lib/server/db';
 import { posts } from '$lib/server/db/schema';
 import { NZ_REGIONS, regionForPoint } from '$lib/data/nz-regions';
@@ -48,7 +48,7 @@ export const GET: RequestHandler = async ({ url }) => {
 	return json({ posts: list });
 };
 
-export const POST: RequestHandler = async ({ request, locals }) => {
+async function createPost({ request, locals }: Parameters<RequestHandler>[0]) {
 	if (!locals.user) throw error(401, 'Sign in to post.');
 
 	const data = await request.json().catch(() => null);
@@ -100,7 +100,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 		regionId: regionForPoint(postLocation.lng, postLocation.lat)
 	};
 
-	let post: { id: string };
+	let post: { id: string } | undefined;
 	try {
 		[post] = await db
 			.insert(posts)
@@ -115,5 +115,22 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 		[post] = await db.insert(posts).values(baseValues).returning({ id: posts.id });
 	}
 
+	if (!post) throw error(500, 'Post could not be created.');
 	return json({ id: post.id }, { status: 201 });
+};
+
+export const POST: RequestHandler = async (event) => {
+	try {
+		return await createPost(event);
+	} catch (err) {
+		if (isHttpError(err)) {
+			return json({ message: err.body.message }, { status: err.status });
+		}
+
+		console.error('[api/posts] create post failed:', err);
+		return json(
+			{ message: 'Something went wrong while publishing. Please try again.' },
+			{ status: 500 }
+		);
+	}
 };

@@ -121,6 +121,7 @@
 	let profileLoading = $state(false);
 	let profileError = $state('');
 	let profileRequestId = 0;
+	let accountPanelOpen = $state(false);
 
 	function toRadians(value: number) {
 		return (value * Math.PI) / 180;
@@ -297,7 +298,7 @@
 			composeCategory !== null &&
 			!composeSubmitting
 	);
-	const viewingProfile = $derived(profileUserId !== null && !composing);
+	const viewingProfile = $derived((profileUserId !== null || accountPanelOpen) && !composing);
 	const viewingPost = $derived(selectedPostId !== null && !composing && !viewingProfile);
 	const mapPosts = $derived(visiblePosts);
 	const connectorPosts = $derived(trendingOpen ? trendingPosts : selectedPosts);
@@ -325,6 +326,7 @@
 		profileIsOwn = false;
 		profileLoading = false;
 		profileError = '';
+		accountPanelOpen = false;
 		profileRequestId++;
 	}
 
@@ -351,10 +353,23 @@
 	}
 
 	function openProfile(id: string) {
+		accountPanelOpen = false;
 		profileUserId = id;
 		composing = false;
 		void resizeMapAfterLayout();
 		void loadProfile(id);
+	}
+
+	function openAccountPanel() {
+		clearSelectedPost();
+		profileUserId = null;
+		profileDetail = null;
+		profileIsOwn = false;
+		profileError = '';
+		profileLoading = false;
+		accountPanelOpen = true;
+		composing = false;
+		void resizeMapAfterLayout();
 	}
 
 	async function fetchPosts() {
@@ -900,7 +915,7 @@
 				</svg>
 				New post
 			</button>
-			<UserMenu user={data.user} onProfileSelect={openProfile} />
+			<UserMenu user={data.user} onProfileSelect={openProfile} onLoginSelect={openAccountPanel} />
 		</div>
 	</header>
 
@@ -1097,8 +1112,10 @@
 			<aside class="profile-panel card" transition:fly={{ y: 120, duration: 260 }}>
 				<div class="profile-panel-top">
 					<div>
-						<p class="section-heading">Profile</p>
-						<h1 class="compose-title">{profileDetail?.displayName ?? 'Loading profile'}</h1>
+						<p class="section-heading">{accountPanelOpen ? 'Account' : 'Profile'}</p>
+						<h1 class="compose-title">
+							{accountPanelOpen ? 'Welcome to BirdsEye' : profileDetail?.displayName ?? 'Loading profile'}
+						</h1>
 					</div>
 					<button type="button" class="close-btn" aria-label="Close profile" onclick={closeProfile}>
 						<svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
@@ -1107,7 +1124,28 @@
 					</button>
 				</div>
 
-				{#if profileLoading}
+				{#if accountPanelOpen}
+					<div class="login-panel-body">
+						<section class="login-card">
+							<h2>Sign in to your account</h2>
+							<p class="muted">
+								Open your profile, manage your posts, and share updates with your community.
+							</p>
+							<div class="login-actions">
+								<a class="btn btn-primary" href="/auth/login">Sign in</a>
+								<a class="btn" href="/auth/signup">Create account</a>
+							</div>
+						</section>
+						<section class="login-card login-card-muted">
+							<h2>With an account you can</h2>
+							<ul>
+								<li>Publish local posts with an affected area.</li>
+								<li>Verify or dispute factual reports.</li>
+								<li>Build a visible reputation over time.</li>
+							</ul>
+						</section>
+					</div>
+				{:else if profileLoading}
 					<div class="panel-loading">
 						<div class="spinner"></div>
 						<span class="muted">Loading profile...</span>
@@ -1153,7 +1191,12 @@
 									<span>Joined {formatJoined(profile.joinedAt)}</span>
 								</div>
 								{#if profileIsOwn}
-									<a class="btn profile-edit-btn" href="/profile/{profile.id}">Edit profile</a>
+									<div class="profile-account-actions">
+										<a class="btn profile-edit-btn" href="/profile/{profile.id}">Edit profile</a>
+										<form method="POST" action="/auth/logout">
+											<button class="btn" type="submit">Sign out</button>
+										</form>
+									</div>
 								{/if}
 							</div>
 						</section>
@@ -1671,11 +1714,11 @@
 
 	.profile-panel {
 		position: absolute;
+		top: 96px;
 		left: 20px;
 		right: 20px;
 		bottom: 20px;
 		z-index: 22;
-		max-height: min(76vh, 760px);
 		margin: 0;
 		padding: 24px;
 		overflow-y: auto;
@@ -1713,15 +1756,61 @@
 		display: grid;
 		grid-template-columns: minmax(280px, 0.9fr) minmax(280px, 1fr);
 		gap: 18px;
+		min-height: calc(100% - 62px);
+	}
+
+	.login-panel-body {
+		display: grid;
+		grid-template-columns: minmax(280px, 0.9fr) minmax(280px, 1fr);
+		gap: 18px;
+		min-height: calc(100% - 62px);
 	}
 
 	.profile-summary,
 	.profile-reputation,
-	.profile-posts {
+	.profile-posts,
+	.login-card {
 		border: 1px solid var(--border);
 		background: rgba(255, 255, 255, 0.72);
 		border-radius: var(--radius);
 		padding: 18px;
+	}
+
+	.login-card {
+		display: flex;
+		flex-direction: column;
+		justify-content: center;
+		gap: 14px;
+		min-height: 260px;
+	}
+
+	.login-card h2 {
+		margin: 0;
+		font-size: 22px;
+		line-height: 1.15;
+	}
+
+	.login-card p,
+	.login-card ul {
+		margin: 0;
+	}
+
+	.login-card ul {
+		display: flex;
+		flex-direction: column;
+		gap: 10px;
+		padding-left: 20px;
+		color: var(--text-2);
+	}
+
+	.login-card-muted {
+		background: rgba(247, 248, 250, 0.8);
+	}
+
+	.login-actions {
+		display: flex;
+		gap: 10px;
+		flex-wrap: wrap;
 	}
 
 	.profile-summary {
@@ -1794,8 +1883,11 @@
 		font-size: 12px;
 	}
 
-	.profile-edit-btn {
-		align-self: flex-start;
+	.profile-account-actions {
+		display: flex;
+		align-items: center;
+		gap: 10px;
+		flex-wrap: wrap;
 		margin-top: 2px;
 	}
 
@@ -2178,13 +2270,14 @@
 		}
 
 		.profile-panel {
+			top: 154px;
 			left: 12px;
 			right: 12px;
 			bottom: 16px;
-			max-height: calc(100vh - 170px);
 		}
 
-		.profile-panel-body {
+		.profile-panel-body,
+		.login-panel-body {
 			grid-template-columns: 1fr;
 		}
 
@@ -2230,6 +2323,11 @@
 
 		.profile-post-grid {
 			grid-template-columns: 1fr;
+		}
+
+		.login-card {
+			justify-content: flex-start;
+			min-height: 0;
 		}
 
 		.post-header-image {
