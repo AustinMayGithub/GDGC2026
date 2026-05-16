@@ -1,4 +1,4 @@
-# BirdsEye — Project Design
+# BirdsEye — Project Design v1
 
 A location-based social platform for community news. Part Facebook grapevine,
 part bulletin board, part news site — posts surface on a map of New Zealand,
