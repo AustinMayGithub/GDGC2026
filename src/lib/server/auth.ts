@@ -1,14 +1,11 @@
-import { randomBytes, scryptSync, timingSafeEqual, createHash } from 'node:crypto';
+import { randomBytes, scryptSync, timingSafeEqual } from 'node:crypto';
 import { eq } from 'drizzle-orm';
 import { db } from './db';
 import { sessions, users } from './db/schema';
 import type { SessionUser } from '$lib/types';
 
 export const SESSION_COOKIE = 'birdseye_session';
-export const PENDING_COOKIE = 'birdseye_pending';
-export const DEV_OTP_COOKIE = 'birdseye_dev_otp';
 const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000;
-const OTP_TTL_MS = 10 * 60 * 1000;
 
 export function hashPassword(password: string): string {
 	const salt = randomBytes(16).toString('hex');
@@ -22,22 +19,6 @@ export function verifyPassword(password: string, stored: string): boolean {
 	const test = scryptSync(password, salt, 64);
 	const original = Buffer.from(derived, 'hex');
 	return test.length === original.length && timingSafeEqual(test, original);
-}
-
-export function generateOtp(): string {
-	return String(Math.floor(100000 + Math.random() * 900000));
-}
-
-export function normalizeOtp(code: string): string {
-	return code.replace(/\D/g, '');
-}
-
-export function hashOtp(code: string): string {
-	return createHash('sha256').update(normalizeOtp(code)).digest('hex');
-}
-
-export function otpExpiry(): Date {
-	return new Date(Date.now() + OTP_TTL_MS);
 }
 
 export async function createSession(
@@ -103,17 +84,3 @@ export function isDisposableEmail(email: string): boolean {
 	return domain ? DISPOSABLE_DOMAINS.has(domain) : false;
 }
 
-export type PendingPurpose = 'signup' | 'login';
-
-export function encodePending(userId: string, purpose: PendingPurpose): string {
-	return `${userId}:${purpose}`;
-}
-
-export function parsePending(
-	raw: string | undefined
-): { userId: string; purpose: PendingPurpose } | null {
-	if (!raw) return null;
-	const [userId, purpose] = raw.split(':');
-	if (!userId || (purpose !== 'signup' && purpose !== 'login')) return null;
-	return { userId, purpose };
-}

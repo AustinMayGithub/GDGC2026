@@ -129,7 +129,7 @@ async function createPost({ request, locals }: Parameters<RequestHandler>[0]) {
 		: Array.isArray(data.images)
 			? data.images
 			: [];
-	const imageDataUrls = rawImages
+	const imageDataUrls: string[] = rawImages
 		.map((value: unknown) => (typeof value === 'string' ? value.trim() : ''))
 		.filter(Boolean)
 		.slice(0, MAX_POST_IMAGES);
@@ -202,7 +202,7 @@ async function createPost({ request, locals }: Parameters<RequestHandler>[0]) {
 	if (imageDataUrls.length > 0) {
 		try {
 			await db.insert(postImages).values(
-				imageDataUrls.map((dataUrl, position) => ({
+				imageDataUrls.map((dataUrl: string, position: number) => ({
 					postId: post!.id,
 					dataUrl,
 					position

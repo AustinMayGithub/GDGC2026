@@ -5,7 +5,7 @@
 
 	interface Props {
 		entries: RankedPost[];
-		scope: 'national' | 'local';
+		scope: 'national' | 'region' | 'local';
 		mode: TrendMode;
 		open: boolean;
 		onOpenChange: (open: boolean) => void;
@@ -47,8 +47,10 @@
 
 	const scopeCopy = $derived(
 		scope === 'local'
-			? `${modeLabels[mode]} in your area`
-			: `${modeLabels[mode]} across New Zealand`
+			? 'In your area'
+			: scope === 'region'
+				? 'In this region'
+				: 'Across New Zealand'
 	);
 
 	function setOpen(nextOpen: boolean) {
@@ -218,6 +220,15 @@
 	.trending-menu {
 		border-top: 1px solid var(--border);
 		background: var(--surface);
+		max-height: calc(100vh - 180px);
+		overflow-y: auto;
+		overscroll-behavior: contain;
+		scrollbar-width: none;
+		-ms-overflow-style: none;
+	}
+
+	.trending-menu::-webkit-scrollbar {
+		display: none;
 	}
 
 	.trend-tabs {
@@ -311,5 +322,11 @@
 		font-size: 11px;
 		font-weight: 700;
 		color: var(--text-2);
+	}
+
+	@media (max-width: 820px) {
+		.trending-menu {
+			max-height: min(58vh, 460px);
+		}
 	}
 </style>

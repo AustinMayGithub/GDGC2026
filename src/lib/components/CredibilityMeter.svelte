@@ -36,7 +36,7 @@
 	// Warm the location provider as soon as the meter is on screen, so the
 	// voter isn't waiting on a cold GPS fix the moment they click Verify.
 	onMount(() => {
-		if (user?.emailVerified) prewarm();
+		if (user) prewarm();
 	});
 
 	async function vote(value: VoteValue) {
@@ -148,10 +148,6 @@
 	{#if !user}
 		<p class="prompt muted">
 			<a href="/auth/login" class="link">Sign in</a> to verify or dispute this post.
-		</p>
-	{:else if !user.emailVerified}
-		<p class="prompt muted">
-			Verify your email to cast a vote.
 		</p>
 	{:else}
 		<div class="vote-row">

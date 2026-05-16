@@ -13,9 +13,7 @@ function coord(value: unknown): number | null {
 }
 
 export const POST: RequestHandler = async ({ request, params, locals }) => {
-	// Voting is gated to email-verified accounts, server-side (project.md §4.4).
 	if (!locals.user) throw error(401, 'Sign in to vote.');
-	if (!locals.user.emailVerified) throw error(403, 'Verify your email to vote.');
 
 	const data = await request.json().catch(() => null);
 	const vote = data?.vote;
