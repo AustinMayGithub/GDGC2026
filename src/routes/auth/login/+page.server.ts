@@ -1,5 +1,5 @@
 import { fail, redirect } from '@sveltejs/kit';
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import { db } from '$lib/server/db';
 import { users, emailOtps } from '$lib/server/db/schema';
 import {
@@ -34,6 +34,16 @@ export const actions: Actions = {
 		// Unverified accounts, or accounts with login-OTP enabled, go via /verify.
 		if (!user.emailVerified || user.loginOtpEnabled) {
 			const purpose = user.emailVerified ? 'login' : 'signup';
+			await db
+				.update(emailOtps)
+				.set({ used: true })
+				.where(
+					and(
+						eq(emailOtps.userId, user.id),
+						eq(emailOtps.purpose, purpose),
+						eq(emailOtps.used, false)
+					)
+				);
 			const code = generateOtp();
 			await db.insert(emailOtps).values({
 				userId: user.id,

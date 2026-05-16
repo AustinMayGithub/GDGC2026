@@ -67,6 +67,17 @@ export const actions: Actions = {
 			.values({ email, displayName, passwordHash: hashPassword(password) })
 			.returning({ id: users.id });
 
+		await db
+			.update(emailOtps)
+			.set({ used: true })
+			.where(
+				and(
+					eq(emailOtps.userId, user.id),
+					eq(emailOtps.purpose, 'signup'),
+					eq(emailOtps.used, false)
+				)
+			);
+
 		const code = generateOtp();
 		await db.insert(emailOtps).values({
 			userId: user.id,
