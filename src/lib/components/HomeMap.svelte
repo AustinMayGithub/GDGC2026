@@ -224,7 +224,7 @@
 
 	function voteStatus(post: PostSummary) {
 		const total = post.verifyCount + post.disputeCount;
-		if (total === 0) return 'decisive';
+		if (total === 0) return 'untouched';
 		const verifyRatio = post.verifyCount / total;
 		if (verifyRatio >= 0.4 && verifyRatio <= 0.6) return 'decisive';
 		return verifyRatio > 0.6 ? 'factual' : 'disputed';
@@ -575,10 +575,17 @@
 						'#dc2626',
 						'decisive',
 						'#eab308',
+						'untouched',
+						'#ffffff',
 						'#111827'
 					],
 					'circle-opacity': 0.95,
-					'circle-stroke-color': '#ffffff',
+					'circle-stroke-color': [
+						'case',
+						['==', ['get', 'status'], 'untouched'],
+						'#111827',
+						'#ffffff'
+					],
 					'circle-stroke-width': [
 						'case',
 						['==', ['get', 'selected'], true],
