@@ -47,7 +47,7 @@ Strict rules:
 - Do NOT infer causes, motives, timelines, numbers, official positions, sources, locations, or outcomes unless comments explicitly say them.
 - Do NOT present comment claims as independently verified facts.
 - Do NOT mention "several" unless at least two comments support that point. Use "one reader" for a single comment.
-- No bullet points, no quotes, no citations.`;
+- No bullet points, no quotes, no citations, no emojis.`;
 
 async function getClient() {
 	if (!env.OPENAI_API_KEY) return null;
@@ -163,7 +163,7 @@ async function summariseOpinions(title: string, bodies: string[]): Promise<strin
 				}
 			]
 		});
-		return res.choices[0]?.message?.content?.trim() || null;
+		return res.choices[0]?.message?.content?.replace(/\u{1f916}/gu, '').trim() || null;
 	} catch (err) {
 		console.error('[ai] note generation failed:', err);
 		return null;

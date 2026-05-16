@@ -7,6 +7,10 @@
 	}
 
 	let { note }: Props = $props();
+
+	function withoutDisallowedEmoji(text: string) {
+		return text.replace(/\u{1f916}/gu, '').trim();
+	}
 </script>
 
 <div class="note-card card">
@@ -18,7 +22,7 @@
 	</div>
 
 	{#if note}
-		<p class="note-body">{note.body}</p>
+		<p class="note-body">{withoutDisallowedEmoji(note.body)}</p>
 		<p class="note-meta muted">
 			Updated {timeAgo(note.generatedAt)}, based on {note.basedOnCommentCount}
 			{note.basedOnCommentCount === 1 ? 'comment' : 'comments'}
