@@ -43,7 +43,7 @@ export const actions: Actions = {
 			.select({ id: signupAttempts.id })
 			.from(signupAttempts)
 			.where(and(eq(signupAttempts.ip, ip), gte(signupAttempts.createdAt, since)));
-		if (recent.length >= 3)
+		if (recent.length >= 20)
 			return fail(429, {
 				email,
 				displayName,
