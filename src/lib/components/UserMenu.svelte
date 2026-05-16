@@ -57,10 +57,10 @@
 		position: relative;
 	}
 	.avatar {
-		width: 56px;
-		height: 56px;
-		border-radius: 8px;
-		border: 1px solid rgba(255, 255, 255, 0.72);
+		width: 38px;
+		height: 38px;
+		border-radius: 50%;
+		border: none;
 		background: var(--gradient);
 		color: #fff;
 		font-weight: 700;
@@ -69,19 +69,11 @@
 		align-items: center;
 		justify-content: center;
 		position: relative;
-		box-shadow: 0 14px 34px rgba(15, 23, 42, 0.12);
-		transition: transform 0.16s ease, box-shadow 0.16s ease;
-	}
-	.avatar:hover {
-		box-shadow: 0 18px 42px rgba(15, 23, 42, 0.16);
-	}
-	.avatar:active {
-		transform: translateY(1px);
 	}
 	.notification-dot {
 		position: absolute;
-		top: 5px;
-		right: 5px;
+		top: 1px;
+		right: 1px;
 		width: 10px;
 		height: 10px;
 		border: 2px solid var(--surface);
