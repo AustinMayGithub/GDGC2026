@@ -702,7 +702,7 @@
 				id: 'selected-radius-fill',
 				type: 'fill',
 				source: 'selected-radius',
-				paint: { 'fill-color': '#ffffff', 'fill-opacity': 0.1 }
+				paint: { 'fill-color': '#f8fafc', 'fill-opacity': 0.16 }
 			});
 			m.addSource('selected-verify-votes', {
 				type: 'geojson',
@@ -714,16 +714,16 @@
 				source: 'selected-verify-votes',
 				paint: {
 					'heatmap-weight': 1,
-					'heatmap-intensity': ['interpolate', ['linear'], ['zoom'], 6, 1, 14, 2.4],
-					'heatmap-radius': ['interpolate', ['linear'], ['zoom'], 5, 18, 10, 34, 16, 72],
+					'heatmap-intensity': ['interpolate', ['linear'], ['zoom'], 6, 0.72, 14, 1.75],
+					'heatmap-radius': ['interpolate', ['linear'], ['zoom'], 5, 16, 10, 28, 16, 56],
 					'heatmap-opacity': [
 						'interpolate',
 						['linear'],
 						['zoom'],
 						4,
-						0.68,
+						0.42,
 						12,
-						0.82
+						0.66
 					],
 					'heatmap-color': [
 						'interpolate',
@@ -731,14 +731,18 @@
 						['heatmap-density'],
 						0,
 						'rgba(22,163,74,0)',
-						0.25,
-						'rgba(134,239,172,0.46)',
-						0.55,
-						'rgba(34,197,94,0.68)',
-						0.85,
-						'rgba(22,163,74,0.88)',
+						0.18,
+						'rgba(220,252,231,0.18)',
+						0.4,
+						'rgba(187,247,208,0.34)',
+						0.62,
+						'rgba(134,239,172,0.5)',
+						0.82,
+						'rgba(74,222,128,0.62)',
+						0.94,
+						'rgba(34,197,94,0.72)',
 						1,
-						'rgba(21,128,61,0.96)'
+						'rgba(21,128,61,0.8)'
 					]
 				}
 			});
@@ -752,16 +756,16 @@
 				source: 'selected-dispute-votes',
 				paint: {
 					'heatmap-weight': 1,
-					'heatmap-intensity': ['interpolate', ['linear'], ['zoom'], 6, 1, 14, 2.4],
-					'heatmap-radius': ['interpolate', ['linear'], ['zoom'], 5, 18, 10, 34, 16, 72],
+					'heatmap-intensity': ['interpolate', ['linear'], ['zoom'], 6, 0.72, 14, 1.75],
+					'heatmap-radius': ['interpolate', ['linear'], ['zoom'], 5, 16, 10, 28, 16, 56],
 					'heatmap-opacity': [
 						'interpolate',
 						['linear'],
 						['zoom'],
 						4,
-						0.68,
+						0.42,
 						12,
-						0.82
+						0.66
 					],
 					'heatmap-color': [
 						'interpolate',
@@ -769,14 +773,18 @@
 						['heatmap-density'],
 						0,
 						'rgba(220,38,38,0)',
-						0.25,
+						0.18,
+						'rgba(254,242,242,0.18)',
+						0.4,
+						'rgba(254,202,202,0.34)',
+						0.62,
 						'rgba(252,165,165,0.5)',
-						0.55,
-						'rgba(239,68,68,0.7)',
-						0.85,
-						'rgba(220,38,38,0.9)',
+						0.82,
+						'rgba(248,113,113,0.62)',
+						0.94,
+						'rgba(239,68,68,0.72)',
 						1,
-						'rgba(185,28,28,0.98)'
+						'rgba(185,28,28,0.8)'
 					]
 				}
 			});
@@ -784,7 +792,7 @@
 				id: 'selected-radius-line',
 				type: 'line',
 				source: 'selected-radius',
-				paint: { 'line-color': '#4f46e5', 'line-width': 2.4, 'line-opacity': 0.78 }
+				paint: { 'line-color': '#cbd5e1', 'line-width': 2.2, 'line-opacity': 0.92 }
 			});
 			m.addSource('compose-radius', { type: 'geojson', data: EMPTY_FEATURES });
 			m.addLayer({
