@@ -62,6 +62,10 @@
 		<!-- LEFT: article -->
 		<main class="article-col">
 			<article class="article card">
+				{#if post.headerImageDataUrl}
+					<img class="header-image" src={post.headerImageDataUrl} alt="" />
+				{/if}
+
 				<!-- Category + meta row -->
 				<div class="article-meta">
 					{#if post.category === 'factual'}
@@ -194,6 +198,18 @@
 		max-width: 720px;
 		margin: 0 auto;
 		padding: 32px;
+		overflow: hidden;
+	}
+
+	.header-image {
+		display: block;
+		width: calc(100% + 64px);
+		aspect-ratio: 20 / 9;
+		height: auto;
+		object-fit: cover;
+		margin: -32px -32px 28px;
+		background: var(--surface-2);
+		border-bottom: 1px solid var(--border);
 	}
 
 	.article-meta {
