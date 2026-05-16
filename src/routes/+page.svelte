@@ -2144,58 +2144,70 @@
 		right: 20px;
 		display: flex;
 		align-items: center;
-		gap: 16px;
-		padding: 0 16px;
-		height: 64px;
-		border-radius: var(--radius-lg);
-		border: 1px solid rgba(255, 255, 255, 0.72);
+		justify-content: space-between;
+		gap: 12px;
+		padding: 0;
+		min-height: 56px;
+		border-radius: 0;
+		border: none;
 		z-index: 22;
-		background: rgba(255, 255, 255, 0.82);
-		backdrop-filter: blur(18px);
-		box-shadow: 0 18px 40px rgba(15, 23, 42, 0.08);
+		background: transparent;
+		backdrop-filter: none;
+		box-shadow: none;
+		pointer-events: none;
 	}
 
 	.logo {
 		display: flex;
 		align-items: center;
-		gap: 8px;
+		justify-content: center;
+		width: 56px;
+		height: 56px;
+		border: 1px solid rgba(255, 255, 255, 0.72);
+		border-radius: 8px;
+		background: rgba(255, 255, 255, 0.86);
+		backdrop-filter: blur(18px);
+		box-shadow: 0 14px 34px rgba(15, 23, 42, 0.12);
 		cursor: pointer;
 		flex-shrink: 0;
+		pointer-events: auto;
+		transition: transform 0.16s ease, box-shadow 0.16s ease, background 0.16s ease;
+	}
+
+	.logo:hover {
+		background: rgba(255, 255, 255, 0.96);
+		box-shadow: 0 18px 42px rgba(15, 23, 42, 0.16);
+	}
+
+	.logo:active {
+		transform: translateY(1px);
 	}
 
 	.header-center {
-		flex: 1;
+		flex: 0 1 auto;
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		gap: 12px;
+		gap: 8px;
 		flex-wrap: wrap;
+		pointer-events: auto;
 	}
 
 	.scope-toggle {
-		display: grid;
-		grid-template-columns: 1fr 1fr;
-		position: relative;
-		background: rgba(247, 247, 249, 0.8);
-		border: 1px solid var(--border);
-		border-radius: var(--radius-sm);
-		padding: 3px;
-		gap: 2px;
-		min-width: 194px;
-		overflow: hidden;
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		position: static;
+		background: transparent;
+		border: none;
+		border-radius: 0;
+		padding: 0;
+		min-width: 0;
+		overflow: visible;
 	}
 
 	.toggle-indicator {
-		position: absolute;
-		top: 3px;
-		left: 3px;
-		width: calc(50% - 4px);
-		height: calc(100% - 6px);
-		border-radius: calc(var(--radius-sm) - 2px);
-		background: rgba(255, 255, 255, 0.92);
-		box-shadow: var(--shadow-sm);
-		transition: transform 0.2s ease;
-		pointer-events: none;
+		display: none;
 	}
 
 	.scope-toggle.local .toggle-indicator {
@@ -2207,25 +2219,34 @@
 	}
 
 	.toggle-btn {
-		padding: 5px 16px;
-		border-radius: calc(var(--radius-sm) - 2px);
-		border: none;
-		background: transparent;
+		width: 76px;
+		height: 56px;
+		padding: 0 8px;
+		border-radius: 8px;
+		border: 1px solid rgba(255, 255, 255, 0.72);
+		background: rgba(255, 255, 255, 0.86);
+		backdrop-filter: blur(18px);
+		box-shadow: 0 14px 34px rgba(15, 23, 42, 0.12);
 		color: var(--text-2);
-		font-size: 13px;
-		font-weight: 550;
-		transition: color 0.15s ease, transform 0.15s ease;
+		font-size: 12px;
+		font-weight: 750;
+		transition: color 0.15s ease, transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
 		position: relative;
 		z-index: 1;
 	}
 
 	.toggle-btn.active {
-		color: var(--text);
-		font-weight: 700;
+		color: #ffffff;
+		border-color: rgba(17, 24, 39, 0.88);
+		background: #111827;
+		box-shadow: 0 16px 38px rgba(17, 24, 39, 0.22);
+		font-weight: 800;
 	}
 
 	.toggle-btn:not(.active):hover:enabled {
 		color: var(--text);
+		background: rgba(255, 255, 255, 0.96);
+		box-shadow: 0 18px 42px rgba(15, 23, 42, 0.16);
 	}
 
 	.toggle-btn:enabled:active {
@@ -2239,17 +2260,32 @@
 	.map-mode-toggle {
 		display: inline-flex;
 		align-items: center;
-		gap: 8px;
-		height: 34px;
-		padding: 0 10px;
-		border: 1px solid var(--border);
-		border-radius: var(--radius-sm);
-		background: rgba(247, 247, 249, 0.8);
+		justify-content: center;
+		flex-direction: column;
+		gap: 4px;
+		width: 56px;
+		height: 56px;
+		padding: 7px 6px 6px;
+		border: 1px solid rgba(255, 255, 255, 0.72);
+		border-radius: 8px;
+		background: rgba(255, 255, 255, 0.86);
+		backdrop-filter: blur(18px);
+		box-shadow: 0 14px 34px rgba(15, 23, 42, 0.12);
 		color: var(--text-2);
-		font-size: 13px;
+		font-size: 11px;
 		font-weight: 700;
 		cursor: pointer;
 		user-select: none;
+		transition: color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+	}
+
+	.map-mode-toggle:hover {
+		background: rgba(255, 255, 255, 0.96);
+		box-shadow: 0 18px 42px rgba(15, 23, 42, 0.16);
+	}
+
+	.map-mode-toggle:active {
+		transform: translateY(1px);
 	}
 
 	.map-mode-toggle input {
@@ -2260,8 +2296,8 @@
 
 	.mode-track {
 		position: relative;
-		width: 36px;
-		height: 20px;
+		width: 34px;
+		height: 18px;
 		border-radius: 999px;
 		background: var(--surface-3);
 		box-shadow: inset 0 0 0 1px var(--border-strong);
@@ -2272,8 +2308,8 @@
 		position: absolute;
 		top: 3px;
 		left: 3px;
-		width: 14px;
-		height: 14px;
+		width: 12px;
+		height: 12px;
 		border-radius: 50%;
 		background: #ffffff;
 		box-shadow: 0 1px 3px rgba(15, 23, 42, 0.24);
@@ -2296,7 +2332,7 @@
 
 	.map-mode-toggle:has(input:checked) {
 		color: var(--text);
-		background: rgba(255, 255, 255, 0.92);
+		background: rgba(255, 255, 255, 0.96);
 	}
 
 	.region-controls {
@@ -2309,12 +2345,13 @@
 		position: relative;
 		display: inline-flex;
 		align-items: center;
-		height: 36px;
+		height: 56px;
 		min-width: 174px;
-		border: 1px solid rgba(15, 23, 42, 0.12);
-		border-radius: var(--radius-sm);
-		background: rgba(255, 255, 255, 0.92);
-		box-shadow: 0 8px 22px rgba(15, 23, 42, 0.07);
+		border: 1px solid rgba(255, 255, 255, 0.72);
+		border-radius: 8px;
+		background: rgba(255, 255, 255, 0.86);
+		backdrop-filter: blur(18px);
+		box-shadow: 0 14px 34px rgba(15, 23, 42, 0.12);
 		color: var(--text);
 		transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
 	}
@@ -2378,16 +2415,21 @@
 	.header-right {
 		display: flex;
 		align-items: center;
-		gap: 10px;
+		gap: 8px;
 		flex-shrink: 0;
+		pointer-events: auto;
 	}
 
 	.header-action-btn,
 	.header-right :global(.header-action-btn) {
-		height: 36px;
-		min-width: 92px;
-		font-size: 13px;
-		padding: 0 14px;
+		height: 56px;
+		min-width: 56px;
+		border-radius: 8px;
+		border: 1px solid rgba(255, 255, 255, 0.72);
+		box-shadow: 0 14px 34px rgba(15, 23, 42, 0.12);
+		font-size: 12px;
+		font-weight: 800;
+		padding: 0 12px;
 	}
 
 	.main {
@@ -3323,7 +3365,7 @@
 			left: 12px;
 			right: 12px;
 			height: auto;
-			padding: 12px 14px;
+			padding: 0;
 			flex-wrap: wrap;
 		}
 
@@ -3437,8 +3479,8 @@
 
 	@media (max-width: 720px) {
 		.header-right {
-			width: 100%;
-			justify-content: space-between;
+			width: auto;
+			justify-content: flex-end;
 		}
 
 		.compose-panel {
