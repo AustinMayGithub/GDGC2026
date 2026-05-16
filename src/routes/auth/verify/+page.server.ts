@@ -1,0 +1,94 @@
+import { fail, redirect } from '@sveltejs/kit';
+import { and, desc, eq } from 'drizzle-orm';
+import { db } from '$lib/server/db';
+import { users, emailOtps } from '$lib/server/db/schema';
+import {
+	hashOtp,
+	generateOtp,
+	otpExpiry,
+	createSession,
+	parsePending,
+	SESSION_COOKIE,
+	PENDING_COOKIE
+} from '$lib/server/auth';
+import { sendOtpEmail } from '$lib/server/email';
+import type { Actions, PageServerLoad } from './$types';
+
+export const load: PageServerLoad = async ({ cookies, locals }) => {
+	if (locals.user?.emailVerified) throw redirect(302, '/');
+	const pending = parsePending(cookies.get(PENDING_COOKIE));
+	if (!pending) throw redirect(302, '/auth/login');
+
+	const [user] = await db
+		.select({ email: users.email })
+		.from(users)
+		.where(eq(users.id, pending.userId));
+	if (!user) throw redirect(302, '/auth/login');
+
+	return { email: user.email, purpose: pending.purpose };
+};
+
+export const actions: Actions = {
+	verify: async ({ request, cookies }) => {
+		const pending = parsePending(cookies.get(PENDING_COOKIE));
+		if (!pending) throw redirect(302, '/auth/login');
+
+		const form = await request.formData();
+		const code = String(form.get('code') ?? '').trim();
+		if (!/^\d{6}$/.test(code)) return fail(400, { error: 'Enter the 6-digit code.' });
+
+		const [otp] = await db
+			.select()
+			.from(emailOtps)
+			.where(
+				and(
+					eq(emailOtps.userId, pending.userId),
+					eq(emailOtps.purpose, pending.purpose),
+					eq(emailOtps.used, false)
+				)
+			)
+			.orderBy(desc(emailOtps.createdAt))
+			.limit(1);
+
+		if (!otp || otp.expiresAt.getTime() < Date.now() || otp.codeHash !== hashOtp(code))
+			return fail(400, { error: 'That code is invalid or has expired.' });
+
+		await db.update(emailOtps).set({ used: true }).where(eq(emailOtps.id, otp.id));
+		if (pending.purpose === 'signup')
+			await db
+				.update(users)
+				.set({ emailVerified: true })
+				.where(eq(users.id, pending.userId));
+
+		const { token, expiresAt } = await createSession(pending.userId);
+		cookies.set(SESSION_COOKIE, token, {
+			path: '/',
+			httpOnly: true,
+			sameSite: 'lax',
+			expires: expiresAt
+		});
+		cookies.delete(PENDING_COOKIE, { path: '/' });
+		throw redirect(303, '/');
+	},
+
+	resend: async ({ cookies }) => {
+		const pending = parsePending(cookies.get(PENDING_COOKIE));
+		if (!pending) throw redirect(302, '/auth/login');
+
+		const [user] = await db
+			.select({ email: users.email })
+			.from(users)
+			.where(eq(users.id, pending.userId));
+		if (!user) throw redirect(302, '/auth/login');
+
+		const code = generateOtp();
+		await db.insert(emailOtps).values({
+			userId: pending.userId,
+			codeHash: hashOtp(code),
+			purpose: pending.purpose,
+			expiresAt: otpExpiry()
+		});
+		await sendOtpEmail(user.email, code, pending.purpose);
+		return { resent: true };
+	}
+};

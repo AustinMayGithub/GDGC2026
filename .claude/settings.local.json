@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(npm install *)",
+      "PowerShell(Get-Content *)",
+      "PowerShell(npm run *)",
+      "PowerShell(Get-NetTCPConnection *)",
+      "PowerShell(Remove-Item *)"
+    ]
+  }
+}
