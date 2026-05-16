@@ -8,6 +8,7 @@
 	import TrendingDropdown from '$lib/components/TrendingDropdown.svelte';
 	import type { SessionUser, PostSummary } from '$lib/types';
 	import { NZ_BBOX, NZ_REGIONS, regionForPoint } from '$lib/data/nz-regions';
+	import logo from '$src/birdseye.png';
 
 	interface PageData {
 		user: SessionUser | null;
@@ -420,7 +421,7 @@
 			onkeydown={(e) => e.key === 'Enter' && goto('/')}
 		>
 			<span class="logo-dot"></span>
-			<img src="birdseye.png">
+			<img src={logo}>
 			
 		</div>
 
