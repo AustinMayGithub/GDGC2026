@@ -377,9 +377,11 @@
 
 	{#if showDeleteAccount}
 		<div class="modal-backdrop" role="presentation" onclick={closeDeleteAccount}>
-			<section
+			<!-- svelte-ignore a11y_click_events_have_key_events -->
+			<div
 				class="confirm-modal card"
 				role="dialog"
+				tabindex="-1"
 				aria-modal="true"
 				aria-labelledby="delete-account-title"
 				onclick={(e) => e.stopPropagation()}
@@ -415,7 +417,7 @@
 						{deletingAccount ? 'Deleting...' : 'Delete account'}
 					</button>
 				</div>
-			</section>
+			</div>
 		</div>
 	{/if}
 </div>

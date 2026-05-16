@@ -33,6 +33,21 @@ function hoursAgo(n: number): Date {
 	return d;
 }
 
+const EARTH_R = 6_371_000;
+
+/** Move a point `distM` metres along `bearing` (radians). */
+function offsetPoint(lng: number, lat: number, distM: number, bearing: number) {
+	const dLat = (distM * Math.cos(bearing)) / EARTH_R;
+	const dLng = (distM * Math.sin(bearing)) / (EARTH_R * Math.cos((lat * Math.PI) / 180));
+	return { lng: lng + (dLng * 180) / Math.PI, lat: lat + (dLat * 180) / Math.PI };
+}
+
+/** A uniformly random point within `spreadM` metres of a centre. */
+function randomPointNear(lng: number, lat: number, spreadM: number) {
+	const r = spreadM * Math.sqrt(Math.random());
+	return offsetPoint(lng, lat, r, Math.random() * 2 * Math.PI);
+}
+
 // ── Main ─────────────────────────────────────────────────────────────────────
 async function main() {
 	console.log('🌱 Seeding BirdsEye database…');
@@ -473,6 +488,24 @@ async function main() {
 		{ postId: pCycleway.id, userId: sarah.id, vote: 'verify', voterLng: 175.607, voterLat: -40.356 },
 		{ postId: pCycleway.id, userId: liam.id, vote: 'verify', voterLng: 174.779, voterLat: -36.877 }
 	];
+
+	// Scatter each vote's recorded location inside its post's impact zone, with
+	// verify and dispute votes clustered on opposite sides, so the article-view
+	// heatmap renders distinct green/red hotspots within the radius.
+	const postGeo = new Map(insertedPosts.map((p) => [p.id, p]));
+	const verifyBearings = new Map(
+		insertedPosts.map((p) => [p.id, Math.random() * 2 * Math.PI])
+	);
+	for (const v of voteData) {
+		const post = postGeo.get(v.postId);
+		const verifyBearing = verifyBearings.get(v.postId);
+		if (!post || verifyBearing === undefined) continue;
+		const bearing = v.vote === 'verify' ? verifyBearing : verifyBearing + Math.PI;
+		const hotspot = offsetPoint(post.lng, post.lat, post.impactRadiusM * 0.35, bearing);
+		const point = randomPointNear(hotspot.lng, hotspot.lat, post.impactRadiusM * 0.3);
+		v.voterLng = point.lng;
+		v.voterLat = point.lat;
+	}
 
 	await db.insert(schema.postVotes).values(voteData);
 

@@ -1067,20 +1067,6 @@
 		flex-shrink: 0;
 	}
 
-	.logo-dot {
-		width: 10px;
-		height: 10px;
-		border-radius: 50%;
-		background: var(--gradient);
-		flex-shrink: 0;
-	}
-
-	.logo-name {
-		font-size: 18px;
-		font-weight: 750;
-		letter-spacing: -0.02em;
-	}
-
 	.header-center {
 		flex: 1;
 		display: flex;

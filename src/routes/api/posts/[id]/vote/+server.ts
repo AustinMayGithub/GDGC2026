@@ -2,7 +2,15 @@ import { json, error } from '@sveltejs/kit';
 import { eq, sql } from 'drizzle-orm';
 import { db } from '$lib/server/db';
 import { posts, postVotes } from '$lib/server/db/schema';
+import { getVotePoints } from '$lib/server/posts';
+import { haversineMeters, isWithinRadius, formatDistance } from '$lib/geo';
 import type { RequestHandler } from './$types';
+
+/** Parse a coordinate from the request body; null if absent or not finite. */
+function coord(value: unknown): number | null {
+	const n = Number(value);
+	return Number.isFinite(n) ? n : null;
+}
 
 export const POST: RequestHandler = async ({ request, params, locals }) => {
 	// Voting is gated to email-verified accounts, server-side (project.md §4.4).
@@ -14,15 +22,34 @@ export const POST: RequestHandler = async ({ request, params, locals }) => {
 	if (vote !== 'verify' && vote !== 'dispute') throw error(400, 'Invalid vote.');
 
 	const [post] = await db
-		.select({ category: posts.category })
+		.select({
+			category: posts.category,
+			lng: posts.lng,
+			lat: posts.lat,
+			impactRadiusM: posts.impactRadiusM
+		})
 		.from(posts)
 		.where(eq(posts.id, params.id));
 	if (!post) throw error(404, 'Post not found.');
 	if (post.category !== 'factual')
 		throw error(400, 'Only factual posts can be voted on.');
 
-	const voterLng = Number.isFinite(Number(data?.voterLng)) ? Number(data.voterLng) : null;
-	const voterLat = Number.isFinite(Number(data?.voterLat)) ? Number(data.voterLat) : null;
+	// Location gate: a voter must be inside the post's impact zone to vote
+	// (the heatmap depends on this, and it raises the bar for brigading).
+	const voterLng = coord(data?.voterLng);
+	const voterLat = coord(data?.voterLat);
+	if (voterLng === null || voterLat === null)
+		throw error(400, 'Location required — share your location to vote on this post.');
+
+	const accuracyM = coord(data?.accuracyM) ?? 0;
+	if (!isWithinRadius(post.lng, post.lat, post.impactRadiusM, voterLng, voterLat, accuracyM)) {
+		const distance = haversineMeters(post.lng, post.lat, voterLng, voterLat);
+		throw error(
+			403,
+			`You're ${formatDistance(distance)} from this story — you must be inside its ` +
+				`${formatDistance(post.impactRadiusM)} impact zone to vote.`
+		);
+	}
 
 	await db
 		.insert(postVotes)
@@ -44,5 +71,8 @@ export const POST: RequestHandler = async ({ request, params, locals }) => {
 		if (r.vote === 'verify') verifyCount = r.c;
 		else disputeCount = r.c;
 	}
-	return json({ verifyCount, disputeCount, myVote: vote });
+
+	// Return refreshed heatmap points so the article view can update live.
+	const points = await getVotePoints(params.id);
+	return json({ verifyCount, disputeCount, myVote: vote, points });
 };

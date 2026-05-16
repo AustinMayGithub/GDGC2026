@@ -36,12 +36,6 @@
 		font-size: 20px;
 		font-weight: 750;
 	}
-	.logo-dot {
-		width: 14px;
-		height: 14px;
-		border-radius: 50%;
-		background: var(--gradient);
-	}
 	.error-card {
 		width: 100%;
 		max-width: 380px;

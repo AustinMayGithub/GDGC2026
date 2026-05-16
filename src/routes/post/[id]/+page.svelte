@@ -3,8 +3,11 @@
 		PostDetail,
 		CommentItem,
 		SessionUser,
+		VotePoint,
+		VoteValue,
 		CommunityNote as CommunityNoteData
 	} from '$lib/types';
+	import { MIN_VOTES_FOR_HEATMAP } from '$lib/geo';
 	import UserMenu from '$lib/components/UserMenu.svelte';
 	import ImpactMap from '$lib/components/ImpactMap.svelte';
 	import CredibilityMeter from '$lib/components/CredibilityMeter.svelte';
@@ -17,6 +20,7 @@
 	interface PageData {
 		post: PostDetail;
 		comments: CommentItem[];
+		votePoints: VotePoint[];
 		user: SessionUser | null;
 	}
 
@@ -28,6 +32,19 @@
 
 	let rightOpen = $state(true);
 	let communityNote = $state(post.communityNote);
+
+	// Vote heatmap data — refreshed live when the viewer casts a vote.
+	let votePoints = $state<VotePoint[]>(data.votePoints);
+	const heatmapReady = $derived(votePoints.length >= MIN_VOTES_FOR_HEATMAP);
+
+	function handleVoted(result: {
+		verifyCount: number;
+		disputeCount: number;
+		myVote: VoteValue | null;
+		points: VotePoint[];
+	}) {
+		votePoints = result.points;
+	}
 
 	function formatDate(isoString: string): string {
 		const date = new Date(isoString);
@@ -53,6 +70,7 @@
 
 	$effect(() => {
 		communityNote = post.communityNote;
+		votePoints = data.votePoints;
 	});
 </script>
 
@@ -130,16 +148,39 @@
 				<div class="panel-inner">
 					<!-- 1. Impact Map -->
 					<section class="panel-section map-section">
-						<h2 class="section-heading">Affected area</h2>
+						<h2 class="section-heading">
+							Affected area{post.category === 'factual' ? ' & vote map' : ''}
+						</h2>
 						<div class="map-wrapper">
-							<ImpactMap lng={post.lng} lat={post.lat} radiusM={post.impactRadiusM} />
+							<ImpactMap
+								lng={post.lng}
+								lat={post.lat}
+								radiusM={post.impactRadiusM}
+								votePoints={post.category === 'factual'
+									? heatmapReady
+										? votePoints
+										: []
+									: undefined}
+							/>
 						</div>
+						{#if post.category === 'factual'}
+							<p class="map-caption muted">
+								{#if heatmapReady}
+									🟢 Verify / 🔴 Dispute heatmap from {votePoints.length} located
+									{votePoints.length === 1 ? 'vote' : 'votes'}. Click the map to reveal
+									each voter's exact location.
+								{:else}
+									The vote heatmap appears once {MIN_VOTES_FOR_HEATMAP}+ voters inside the
+									impact zone have voted ({votePoints.length} so far).
+								{/if}
+							</p>
+						{/if}
 					</section>
 
 					{#if post.category === 'factual'}
 						<!-- 2. Credibility meter — sticky -->
 						<div class="sticky-meter">
-							<CredibilityMeter {post} {user} />
+							<CredibilityMeter {post} {user} onVoted={handleVoted} />
 						</div>
 
 						<!-- 3. Community note -->
@@ -350,6 +391,11 @@
 		height: 200px;
 		border-radius: var(--radius);
 		overflow: hidden;
+	}
+	.map-caption {
+		font-size: 11px;
+		line-height: 1.45;
+		margin: 8px 0 0;
 	}
 
 	/* Sticky meter */

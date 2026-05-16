@@ -71,6 +71,17 @@ export interface ReactionTally {
 	mine: boolean;
 }
 
+/**
+ * A single vote's recorded location, for the article-view vote heatmap.
+ * Deliberately carries no user identity — only where a verify/dispute vote
+ * was cast — so revealing exact points can't be tied back to a person.
+ */
+export interface VotePoint {
+	lng: number;
+	lat: number;
+	vote: VoteValue;
+}
+
 export interface CommentItem {
 	id: string;
 	authorName: string;

@@ -1,31 +1,91 @@
 <script lang="ts">
-	import type { PostDetail, SessionUser, VoteValue } from '$lib/types';
+	import type { PostDetail, SessionUser, VoteValue, VotePoint } from '$lib/types';
+	import { haversineMeters, formatDistance, MAX_ACCURACY_BUFFER_M } from '$lib/geo';
+
+	interface VoteResult {
+		verifyCount: number;
+		disputeCount: number;
+		myVote: VoteValue | null;
+		points: VotePoint[];
+	}
 
 	interface Props {
 		post: PostDetail;
 		user: SessionUser | null;
+		/** Called after a successful vote so the article view can refresh the heatmap. */
+		onVoted?: (result: VoteResult) => void;
 	}
 
-	let { post, user }: Props = $props();
+	let { post, user, onVoted }: Props = $props();
 
 	let currentPostId = $state<string | null>(null);
 	let verifyCount = $state(0);
 	let disputeCount = $state(0);
 	let myVote = $state<VoteValue | null>(null);
 	let loading = $state(false);
+	let locating = $state(false);
 	let error = $state('');
 
 	const total = $derived(verifyCount + disputeCount);
 	const verifyPct = $derived(total === 0 ? 50 : Math.round((verifyCount / total) * 100));
 	const disputePct = $derived(100 - verifyPct);
 
+	/** Resolve the browser's current position, or reject with a friendly message. */
+	function getPosition(): Promise<GeolocationPosition> {
+		return new Promise((resolve, reject) => {
+			if (!navigator.geolocation) {
+				reject(new Error('This device cannot share a location, so voting is unavailable.'));
+				return;
+			}
+			navigator.geolocation.getCurrentPosition(resolve, (err) => {
+				if (err.code === err.PERMISSION_DENIED) {
+					reject(
+						new Error(
+							'Location access was blocked. BirdsEye only counts votes from people inside the story’s impact zone — allow location to vote.'
+						)
+					);
+				} else {
+					reject(new Error('Could not get your location. Check your connection and try again.'));
+				}
+			}, {
+				enableHighAccuracy: true,
+				timeout: 10_000,
+				maximumAge: 60_000
+			});
+		});
+	}
+
 	async function vote(value: VoteValue) {
-		if (loading) return;
+		if (loading || locating) return;
 		error = '';
-		// Optimistic update
+
+		// 1. Establish where the voter is — required to vote (project.md §4.4).
+		locating = true;
+		let pos: GeolocationPosition;
+		try {
+			pos = await getPosition();
+		} catch (e) {
+			error = e instanceof Error ? e.message : 'Could not get your location.';
+			locating = false;
+			return;
+		}
+		locating = false;
+
+		const voterLng = pos.coords.longitude;
+		const voterLat = pos.coords.latitude;
+		const accuracyM = pos.coords.accuracy ?? 0;
+
+		// 2. Fail fast client-side with a clear distance message before the round trip.
+		const distance = haversineMeters(post.lng, post.lat, voterLng, voterLat);
+		const buffer = Math.min(accuracyM, MAX_ACCURACY_BUFFER_M);
+		if (distance > post.impactRadiusM + buffer) {
+			error = `You're ${formatDistance(distance)} from this story — you must be inside its ${formatDistance(post.impactRadiusM)} impact zone to vote.`;
+			return;
+		}
+
+		// 3. Optimistic update.
 		const prev = { verifyCount, disputeCount, myVote };
 		if (myVote === value) {
-			// toggle off
 			if (value === 'verify') verifyCount--;
 			else disputeCount--;
 			myVote = null;
@@ -42,20 +102,20 @@
 			const res = await fetch(`/api/posts/${post.id}/vote`, {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ vote: myVote ?? value })
+				body: JSON.stringify({ vote: myVote ?? value, voterLng, voterLat, accuracyM })
 			});
 			if (!res.ok) {
-				const data = await res.json();
+				const data = await res.json().catch(() => ({}));
 				error = data.message ?? 'Vote failed';
-				// Revert
 				verifyCount = prev.verifyCount;
 				disputeCount = prev.disputeCount;
 				myVote = prev.myVote;
 			} else {
-				const data = await res.json();
+				const data: VoteResult = await res.json();
 				verifyCount = data.verifyCount;
 				disputeCount = data.disputeCount;
 				myVote = data.myVote;
+				onVoted?.(data);
 			}
 		} catch {
 			error = 'Network error';
@@ -114,7 +174,7 @@
 				class="btn vote-btn verify-btn"
 				class:active={myVote === 'verify'}
 				onclick={() => vote('verify')}
-				disabled={loading}
+				disabled={loading || locating}
 			>
 				✓ Verify
 			</button>
@@ -122,11 +182,18 @@
 				class="btn vote-btn dispute-btn"
 				class:active={myVote === 'dispute'}
 				onclick={() => vote('dispute')}
-				disabled={loading}
+				disabled={loading || locating}
 			>
 				✗ Dispute
 			</button>
 		</div>
+		<p class="gate-hint muted">
+			{#if locating}
+				📍 Checking you're inside the impact zone…
+			{:else}
+				📍 Voting confirms your location is inside the story's impact zone.
+			{/if}
+		</p>
 	{/if}
 
 	{#if error}
@@ -210,6 +277,11 @@
 	.prompt {
 		font-size: 13px;
 		margin: 0;
+	}
+	.gate-hint {
+		font-size: 11px;
+		margin: 0;
+		line-height: 1.4;
 	}
 	.link { color: var(--accent); font-weight: 600; }
 </style>

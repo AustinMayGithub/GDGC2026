@@ -1,10 +1,14 @@
 import { error } from '@sveltejs/kit';
-import { getPostDetail, getComments } from '$lib/server/posts';
+import { getPostDetail, getComments, getVotePoints } from '$lib/server/posts';
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ params, locals }) => {
 	const post = await getPostDetail(params.id, locals.user?.id ?? null);
 	if (!post) throw error(404, 'Post not found.');
-	const comments = await getComments(post.id);
-	return { post, comments };
+	const [comments, votePoints] = await Promise.all([
+		getComments(post.id),
+		// Heatmap data is only meaningful for the factual-post vote flow.
+		post.category === 'factual' ? getVotePoints(post.id) : Promise.resolve([])
+	]);
+	return { post, comments, votePoints };
 };

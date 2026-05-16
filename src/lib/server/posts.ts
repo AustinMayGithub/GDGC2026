@@ -1,4 +1,4 @@
-import { and, desc, eq, sql } from 'drizzle-orm';
+import { and, desc, eq, isNotNull, sql } from 'drizzle-orm';
 import { db } from './db';
 import { posts, users, postVotes, comments, communityNotes, reactions } from './db/schema';
 import type {
@@ -6,7 +6,8 @@ import type {
 	PostDetail,
 	CommentItem,
 	VoteValue,
-	ReactionTally
+	ReactionTally,
+	VotePoint
 } from '$lib/types';
 
 const iso = (d: Date) => d.toISOString();
@@ -283,6 +284,32 @@ export async function getPostDetail(
 		myVote: (myVoteRows[0]?.vote as VoteValue) ?? null,
 		reactions: reactionTally
 	};
+}
+
+/**
+ * Located votes for a post, for the article-view heatmap. Only votes that
+ * recorded a voter location are returned, and no user identity is attached —
+ * the heatmap shows where votes came from, never who cast them.
+ */
+export async function getVotePoints(postId: string): Promise<VotePoint[]> {
+	const rows = await db
+		.select({
+			vote: postVotes.vote,
+			lng: postVotes.voterLng,
+			lat: postVotes.voterLat
+		})
+		.from(postVotes)
+		.where(
+			and(
+				eq(postVotes.postId, postId),
+				isNotNull(postVotes.voterLng),
+				isNotNull(postVotes.voterLat)
+			)
+		);
+
+	return rows
+		.filter((r) => r.lng !== null && r.lat !== null)
+		.map((r) => ({ vote: r.vote, lng: r.lng as number, lat: r.lat as number }));
 }
 
 export async function getComments(postId: string): Promise<CommentItem[]> {
