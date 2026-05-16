@@ -37,7 +37,7 @@ export interface CommunityNote {
 /** Full post for the article view. */
 export interface PostDetail extends PostSummary {
 	body: string;
-	photoUrls: string[];
+	headerImageDataUrl: string | null;
 	communityNote: CommunityNote | null;
 	/** The viewer's current vote, if signed in and voted. */
 	myVote: VoteValue | null;

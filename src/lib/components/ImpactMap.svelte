@@ -14,8 +14,6 @@
 
 	let container: HTMLDivElement;
 	let map: import('maplibre-gl').Map | null = null;
-	let pinCoordinates: [number, number] = [lng, lat];
-	let hasLoaded = false;
 
 	const OSM_STYLE = {
 		version: 8 as const,
@@ -77,46 +75,14 @@
 		}
 	}
 
-	function fitToImpactZone(duration = 0, centerLng = lng, centerLat = lat) {
-		if (!map) return;
-		const feature = buildCircle(centerLng, centerLat, radiusM);
-		const ring = feature.geometry.coordinates[0];
-
-		let minLng = Infinity;
-		let minLat = Infinity;
-		let maxLng = -Infinity;
-		let maxLat = -Infinity;
-
-		for (const [pointLng, pointLat] of ring) {
-			if (pointLng < minLng) minLng = pointLng;
-			if (pointLng > maxLng) maxLng = pointLng;
-			if (pointLat < minLat) minLat = pointLat;
-			if (pointLat > maxLat) maxLat = pointLat;
-		}
-
-		map.fitBounds(
-			[
-				[minLng, minLat],
-				[maxLng, maxLat]
-			],
-			{
-				padding: 24,
-				duration,
-				maxZoom: 15
-			}
-		);
-	}
-
 	$effect(() => {
 		// react to prop changes after mount
 		if (!map) return;
+		lng;
+		lat;
+		radiusM;
 		updateCircle();
 		updateMarker(lng, lat);
-		const nextCoordinates: [number, number] = [lng, lat];
-		const movedPin =
-			nextCoordinates[0] !== pinCoordinates[0] || nextCoordinates[1] !== pinCoordinates[1];
-		pinCoordinates = nextCoordinates;
-		fitToImpactZone(hasLoaded && movedPin ? 350 : 180, lng, lat);
 	});
 
 	onMount(async () => {
@@ -168,19 +134,14 @@
 			if (interactive && onpick) {
 				map.on('click', (e) => {
 					const { lng: clickLng, lat: clickLat } = e.lngLat;
-					pinCoordinates = [clickLng, clickLat];
 					updateMarker(clickLng, clickLat);
 					// Update circle too
 					const src = map!.getSource('circle') as import('maplibre-gl').GeoJSONSource;
 					if (src) src.setData(buildCircle(clickLng, clickLat, radiusM));
-					fitToImpactZone(350, clickLng, clickLat);
 					onpick!(clickLng, clickLat);
 				});
 				map.getCanvas().style.cursor = 'crosshair';
 			}
-
-			hasLoaded = true;
-			fitToImpactZone(0);
 		});
 	});
 

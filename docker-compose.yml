@@ -27,12 +27,8 @@ services:
       RESEND_API_KEY: ${RESEND_API_KEY:-}
       EMAIL_FROM: ${EMAIL_FROM:-BirdsEye <onboarding@resend.dev>}
       ORIGIN: ${ORIGIN:-http://localhost:3000}
-      UPLOAD_DIR: /app/data/uploads
     ports:
       - '3000:3000'
-    volumes:
-      - upload-data:/app/data/uploads
 
 volumes:
   db-data:
-  upload-data:

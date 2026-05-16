@@ -5,8 +5,8 @@ import { sessions, users } from './db/schema';
 import type { SessionUser } from '$lib/types';
 
 export const SESSION_COOKIE = 'birdseye_session';
+export const PENDING_COOKIE = 'birdseye_pending';
 export const DEV_OTP_COOKIE = 'birdseye_dev_otp';
-export const OTP_CHALLENGE_COOKIE = 'birdseye_otp_challenge';
 const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 const OTP_TTL_MS = 10 * 60 * 1000;
 
@@ -76,41 +76,40 @@ export async function deleteSession(token: string): Promise<void> {
 	await db.delete(sessions).where(eq(sessions.id, token));
 }
 
+// A small disposable-domain blocklist — the cheap half of anti-sock-puppet
+// defence (project.md §3). Not exhaustive; covers the common throwaways.
+const DISPOSABLE_DOMAINS = new Set([
+	'mailinator.com',
+	'guerrillamail.com',
+	'10minutemail.com',
+	'tempmail.com',
+	'temp-mail.org',
+	'trashmail.com',
+	'yopmail.com',
+	'sharklasers.com',
+	'throwawaymail.com',
+	'getnada.com',
+	'maildrop.cc',
+	'fakeinbox.com',
+	'dispostable.com'
+]);
+
+export function isDisposableEmail(email: string): boolean {
+	const domain = email.split('@')[1]?.toLowerCase();
+	return domain ? DISPOSABLE_DOMAINS.has(domain) : false;
+}
+
 export type PendingPurpose = 'signup' | 'login';
 
-export type OtpChallenge = {
-	userId: string;
-	purpose: PendingPurpose;
-	expiresAt: number;
-};
-
-export function createOtpChallenge(userId: string, purpose: PendingPurpose): OtpChallenge {
-	return {
-		userId,
-		purpose,
-		expiresAt: Date.now() + 15 * 60 * 1000
-	};
+export function encodePending(userId: string, purpose: PendingPurpose): string {
+	return `${userId}:${purpose}`;
 }
 
-export function encodeOtpChallenge(challenge: OtpChallenge): string {
-	return Buffer.from(JSON.stringify(challenge), 'utf8').toString('base64url');
-}
-
-export function parseOtpChallenge(raw: string | undefined): OtpChallenge | null {
+export function parsePending(
+	raw: string | undefined
+): { userId: string; purpose: PendingPurpose } | null {
 	if (!raw) return null;
-	try {
-		const parsed = JSON.parse(Buffer.from(raw, 'base64url').toString('utf8'));
-		if (
-			!parsed ||
-			typeof parsed.userId !== 'string' ||
-			(parsed.purpose !== 'signup' && parsed.purpose !== 'login') ||
-			typeof parsed.expiresAt !== 'number'
-		) {
-			return null;
-		}
-		if (parsed.expiresAt < Date.now()) return null;
-		return parsed satisfies OtpChallenge;
-	} catch {
-		return null;
-	}
+	const [userId, purpose] = raw.split(':');
+	if (!userId || (purpose !== 'signup' && purpose !== 'login')) return null;
+	return { userId, purpose };
 }

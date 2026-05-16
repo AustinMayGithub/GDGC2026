@@ -61,6 +61,7 @@ export const posts = pgTable(
 			.references(() => users.id, { onDelete: 'cascade' }),
 		title: text('title').notNull(),
 		body: text('body').notNull(),
+		headerImageDataUrl: text('header_image_data_url'),
 		category: postCategory('category').notNull(),
 		lng: doublePrecision('lng').notNull(),
 		lat: doublePrecision('lat').notNull(),

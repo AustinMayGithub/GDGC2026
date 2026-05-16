@@ -20,19 +20,6 @@
 	const user = $derived(data.user);
 
 	let rightOpen = $state(true);
-	let photoIndex = $state(0);
-
-	const activePhoto = $derived(post.photoUrls[photoIndex] ?? null);
-
-	function previousPhoto() {
-		if (post.photoUrls.length <= 1) return;
-		photoIndex = (photoIndex - 1 + post.photoUrls.length) % post.photoUrls.length;
-	}
-
-	function nextPhoto() {
-		if (post.photoUrls.length <= 1) return;
-		photoIndex = (photoIndex + 1) % post.photoUrls.length;
-	}
 
 	function formatDate(isoString: string): string {
 		const date = new Date(isoString);
@@ -75,37 +62,8 @@
 		<!-- LEFT: article -->
 		<main class="article-col">
 			<article class="article card">
-				{#if activePhoto}
-					<div class="photo-carousel" aria-label="Post photos">
-						<img class="carousel-photo" src={activePhoto} alt="" />
-
-						{#if post.photoUrls.length > 1}
-							<button
-								type="button"
-								class="carousel-btn prev-btn"
-								onclick={previousPhoto}
-								aria-label="Previous photo"
-							>
-								‹
-							</button>
-							<button
-								type="button"
-								class="carousel-btn next-btn"
-								onclick={nextPhoto}
-								aria-label="Next photo"
-							>
-								›
-							</button>
-
-							<div class="photo-counter">{photoIndex + 1} / {post.photoUrls.length}</div>
-
-							<div class="photo-dots" aria-hidden="true">
-								{#each post.photoUrls as _, index}
-									<span class="photo-dot" class:active={index === photoIndex}></span>
-								{/each}
-							</div>
-						{/if}
-					</div>
+				{#if post.headerImageDataUrl}
+					<img class="header-image" src={post.headerImageDataUrl} alt="" />
 				{/if}
 
 				<!-- Category + meta row -->
@@ -243,79 +201,15 @@
 		overflow: hidden;
 	}
 
-	.photo-carousel {
-		position: relative;
+	.header-image {
+		display: block;
 		width: calc(100% + 64px);
-		aspect-ratio: 1;
+		aspect-ratio: 20 / 9;
+		height: auto;
+		object-fit: cover;
 		margin: -32px -32px 28px;
 		background: var(--surface-2);
 		border-bottom: 1px solid var(--border);
-		overflow: hidden;
-	}
-
-	.carousel-photo {
-		display: block;
-		width: 100%;
-		height: 100%;
-		object-fit: cover;
-	}
-
-	.carousel-btn {
-		position: absolute;
-		top: 50%;
-		transform: translateY(-50%);
-		width: 34px;
-		height: 34px;
-		border: none;
-		border-radius: 999px;
-		background: rgba(20, 20, 26, 0.62);
-		color: #fff;
-		font-size: 26px;
-		line-height: 1;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-	}
-
-	.prev-btn {
-		left: 12px;
-	}
-
-	.next-btn {
-		right: 12px;
-	}
-
-	.photo-counter {
-		position: absolute;
-		top: 12px;
-		right: 12px;
-		padding: 4px 9px;
-		border-radius: 999px;
-		background: rgba(20, 20, 26, 0.72);
-		color: #fff;
-		font-size: 12px;
-		font-weight: 700;
-	}
-
-	.photo-dots {
-		position: absolute;
-		left: 0;
-		right: 0;
-		bottom: 12px;
-		display: flex;
-		justify-content: center;
-		gap: 6px;
-	}
-
-	.photo-dot {
-		width: 7px;
-		height: 7px;
-		border-radius: 999px;
-		background: rgba(255, 255, 255, 0.58);
-	}
-
-	.photo-dot.active {
-		background: #fff;
 	}
 
 	.article-meta {

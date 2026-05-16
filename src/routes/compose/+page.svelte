@@ -4,7 +4,7 @@
 	import UserMenu from '$lib/components/UserMenu.svelte';
 	import ImpactMap from '$lib/components/ImpactMap.svelte';
 	import CategoryPicker from '$lib/components/CategoryPicker.svelte';
-	import PostPhotoUploader from '$lib/components/PostPhotoUploader.svelte';
+	import HeaderImageCropper from '$lib/components/HeaderImageCropper.svelte';
 
 	interface PageData {
 		user: SessionUser | null;
@@ -17,7 +17,7 @@
 	// Form state
 	let title = $state('');
 	let body = $state('');
-	let photoBlobs = $state<Blob[]>([]);
+	let headerImageDataUrl = $state<string | null>(null);
 	let category = $state<PostCategory | null>(null);
 	let lng = $state(174.76); // Default: Auckland
 	let lat = $state(-36.85);
@@ -42,32 +42,16 @@
 		lat = newLat;
 	}
 
+	function handleRadiusInput(e: Event) {
+		radiusM = Number((e.currentTarget as HTMLInputElement).value);
+	}
+
 	function handleCategory(cat: PostCategory) {
 		category = cat;
 	}
 
-	function handlePhotos(photos: Blob[]) {
-		photoBlobs = photos;
-	}
-
-	async function uploadPostPhotos(postId: string): Promise<void> {
-		if (photoBlobs.length === 0) return;
-
-		const form = new FormData();
-		form.append('postId', postId);
-		for (const [index, photo] of photoBlobs.entries()) {
-			form.append('photos', photo, `post-photo-${index + 1}.jpg`);
-		}
-
-		const res = await fetch('/api/uploads/post-photos', {
-			method: 'POST',
-			body: form
-		});
-		const data = await res.json().catch(() => ({}));
-
-		if (!res.ok) {
-			throw new Error(data.message ?? 'Photo upload failed.');
-		}
+	function handleHeaderImage(dataUrl: string | null) {
+		headerImageDataUrl = dataUrl;
 	}
 
 	async function handleSubmit(e: SubmitEvent) {
@@ -84,6 +68,7 @@
 				body: JSON.stringify({
 					title: title.trim(),
 					body: body.trim(),
+					headerImageDataUrl,
 					category,
 					lng,
 					lat,
@@ -93,17 +78,13 @@
 
 			if (res.ok) {
 				const data = await res.json();
-				await uploadPostPhotos(data.id);
 				await goto(`/post/${data.id}`);
 			} else {
 				const data = await res.json();
 				error = data.message ?? 'Failed to create post. Please try again.';
 			}
-		} catch (err) {
-			error =
-				err instanceof Error
-					? err.message
-					: 'Network error. Please check your connection and try again.';
+		} catch {
+			error = 'Network error. Please check your connection and try again.';
 		} finally {
 			submitting = false;
 		}
@@ -142,11 +123,11 @@
 						<p class="muted form-sub">Share something happening in your area.</p>
 					</div>
 
-					<!-- Photos -->
+					<!-- Header image -->
 					<div class="field">
-						<span class="field-label">Photos</span>
-						<PostPhotoUploader disabled={submitting} onphotoschange={handlePhotos} />
-						<span class="field-hint muted">Optional. Up to 10 square carousel photos.</span>
+						<span class="field-label">Header image</span>
+						<HeaderImageCropper disabled={submitting} onimagechange={handleHeaderImage} />
+						<span class="field-hint muted">Optional. Cropped wide for the post header.</span>
 					</div>
 
 					<!-- Title -->
@@ -239,6 +220,7 @@
 								max={50000}
 								step={100}
 								bind:value={radiusM}
+								oninput={handleRadiusInput}
 							/>
 							<div class="radius-hints muted">
 								<span>100 m</span>

@@ -1,5 +1,4 @@
 import { env } from '$env/dynamic/private';
-import { dev } from '$app/environment';
 import type { PendingPurpose } from './auth';
 
 export type OtpDeliveryResult = { channel: 'email' } | { channel: 'console'; code: string };
@@ -21,9 +20,6 @@ export async function sendOtpEmail(
 			: 'Use this code to finish signing in:';
 
 	if (!env.RESEND_API_KEY) {
-		if (!dev) {
-			throw new Error('Email delivery is not configured.');
-		}
 		console.log(`\n  [BirdsEye OTP ${purpose}]`);
 		console.log(`  to:   ${to}`);
 		console.log(`  code: ${code}\n`);
@@ -42,11 +38,8 @@ export async function sendOtpEmail(
 		if (result.error) throw new Error(result.error.message);
 		return { channel: 'email' };
 	} catch (err) {
-		if (dev) {
-			console.error('[email] failed to send OTP, falling back to console:', err);
-			console.log(`[BirdsEye OTP] ${purpose} code for ${to}: ${code}`);
-			return { channel: 'console', code };
-		}
-		throw err;
+		console.error('[email] failed to send OTP, falling back to console:', err);
+		console.log(`[BirdsEye OTP] ${purpose} code for ${to}: ${code}`);
+		return { channel: 'console', code };
 	}
 }
