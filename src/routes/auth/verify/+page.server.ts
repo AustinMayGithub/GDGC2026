@@ -36,6 +36,7 @@ export const actions: Actions = {
 		const form = await request.formData();
 		const code = String(form.get('code') ?? '').trim();
 		if (!/^\d{6}$/.test(code)) return fail(400, { error: 'Enter the 6-digit code.' });
+		const codeHash = hashOtp(code);
 
 		const [otp] = await db
 			.select()
@@ -44,16 +45,27 @@ export const actions: Actions = {
 				and(
 					eq(emailOtps.userId, pending.userId),
 					eq(emailOtps.purpose, pending.purpose),
-					eq(emailOtps.used, false)
+					eq(emailOtps.used, false),
+					eq(emailOtps.codeHash, codeHash)
 				)
 			)
 			.orderBy(desc(emailOtps.createdAt))
 			.limit(1);
 
-		if (!otp || otp.expiresAt.getTime() < Date.now() || otp.codeHash !== hashOtp(code))
+		if (!otp || otp.expiresAt.getTime() < Date.now())
 			return fail(400, { error: 'That code is invalid or has expired.' });
 
-		await db.update(emailOtps).set({ used: true }).where(eq(emailOtps.id, otp.id));
+		// Burn every still-open OTP for this flow after a successful verification.
+		await db
+			.update(emailOtps)
+			.set({ used: true })
+			.where(
+				and(
+					eq(emailOtps.userId, pending.userId),
+					eq(emailOtps.purpose, pending.purpose),
+					eq(emailOtps.used, false)
+				)
+			);
 		if (pending.purpose === 'signup')
 			await db
 				.update(users)
@@ -80,6 +92,18 @@ export const actions: Actions = {
 			.from(users)
 			.where(eq(users.id, pending.userId));
 		if (!user) throw redirect(302, '/auth/login');
+
+		// Keep resend deterministic: only the most recent code remains usable.
+		await db
+			.update(emailOtps)
+			.set({ used: true })
+			.where(
+				and(
+					eq(emailOtps.userId, pending.userId),
+					eq(emailOtps.purpose, pending.purpose),
+					eq(emailOtps.used, false)
+				)
+			);
 
 		const code = generateOtp();
 		await db.insert(emailOtps).values({
