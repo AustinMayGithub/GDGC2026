@@ -8,9 +8,17 @@
 		getMarkerScreenPos: (id: string) => { x: number; y: number } | null;
 		listItemEls: Map<string, HTMLElement>;
 		redrawTrigger: number;
+		arrowheads?: boolean;
 	}
 
-	let { posts, hoveredPostId, getMarkerScreenPos, listItemEls, redrawTrigger }: Props = $props();
+	let {
+		posts,
+		hoveredPostId,
+		getMarkerScreenPos,
+		listItemEls,
+		redrawTrigger,
+		arrowheads = false
+	}: Props = $props();
 
 	interface Line {
 		id: string;
@@ -109,6 +117,7 @@
 			stroke-dasharray={line.hovered ? 'none' : '5 8'}
 			stroke-linecap="round"
 			opacity={line.hovered ? 1 : 0.92}
+			marker-end={arrowheads ? 'url(#connector-arrow)' : undefined}
 		/>
 		<circle
 			cx={line.x1}
@@ -131,6 +140,17 @@
 			<stop offset="0%" stop-color="var(--brand-1)" />
 			<stop offset="100%" stop-color="var(--brand-2)" />
 		</linearGradient>
+		<marker
+			id="connector-arrow"
+			viewBox="0 0 10 10"
+			refX="8"
+			refY="5"
+			markerWidth="6"
+			markerHeight="6"
+			orient="auto-start-reverse"
+		>
+			<path d="M 0 0 L 10 5 L 0 10 z" fill="rgba(17, 24, 39, 0.78)" />
+		</marker>
 	</defs>
 </svg>
 

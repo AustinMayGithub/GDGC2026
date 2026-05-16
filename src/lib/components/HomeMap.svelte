@@ -9,6 +9,7 @@
 		posts: PostSummary[];
 		hoveredPostId: string | null;
 		selectedPostId: string | null;
+		disableSelection?: boolean;
 		onMapReady: (map: unknown) => void;
 		onMarkerPositionsChange: () => void;
 		onSelectPost: (id: string | null) => void;
@@ -31,6 +32,7 @@
 		posts,
 		hoveredPostId,
 		selectedPostId,
+		disableSelection = false,
 		onMapReady,
 		onMarkerPositionsChange,
 		onSelectPost
@@ -281,6 +283,52 @@
 		);
 	}
 
+	export function fitToPosts(postsToFit: PostSummary[]) {
+		if (!map || !maplibre || postsToFit.length === 0) return;
+		const ml = maplibre as typeof import('maplibre-gl');
+		const m = map as InstanceType<typeof ml.Map>;
+		const compact = container.clientWidth < 820;
+
+		if (postsToFit.length === 1) {
+			const post = postsToFit[0];
+			m.easeTo({
+				center: [post.lng, post.lat],
+				zoom: 10,
+				duration: 500
+			});
+			return;
+		}
+
+		let minLng = Infinity;
+		let minLat = Infinity;
+		let maxLng = -Infinity;
+		let maxLat = -Infinity;
+
+		for (const post of postsToFit) {
+			if (post.lng < minLng) minLng = post.lng;
+			if (post.lng > maxLng) maxLng = post.lng;
+			if (post.lat < minLat) minLat = post.lat;
+			if (post.lat > maxLat) maxLat = post.lat;
+		}
+
+		m.fitBounds(
+			[
+				[minLng, minLat],
+				[maxLng, maxLat]
+			],
+			{
+				padding: {
+					top: compact ? 150 : 120,
+					right: compact ? 28 : 72,
+					bottom: compact ? 118 : 48,
+					left: compact ? 28 : 360
+				},
+				duration: 650,
+				maxZoom: 10.5
+			}
+		);
+	}
+
 	export function getMarkerScreenPos(postId: string): { x: number; y: number } | null {
 		if (!map || !maplibre) return null;
 		const ml = maplibre as typeof import('maplibre-gl');
@@ -426,6 +474,7 @@
 			onMapReady(m);
 
 			m.on('click', 'post-point', (e) => {
+				if (disableSelection) return;
 				const id = e.features?.[0]?.properties?.id as string | undefined;
 				const post = posts.find((item) => item.id === id);
 				if (!post) return;
@@ -434,6 +483,7 @@
 			});
 
 			m.on('click', (e) => {
+				if (disableSelection) return;
 				const features = m.queryRenderedFeatures(e.point, { layers: ['post-point'] });
 				if (features.length === 0) onSelectPost(null);
 			});
@@ -463,6 +513,7 @@
 		posts;
 		hoveredPostId;
 		selectedPostId;
+		disableSelection;
 		syncPostLayers();
 	});
 </script>

@@ -67,10 +67,13 @@
 	let viewportWidth = $state(1440);
 	let viewportHeight = $state(900);
 	let listItemEls = new Map<string, HTMLElement>();
+	let trendingItemEls = new Map<string, HTMLElement>();
 	let activeFetchController: AbortController | null = null;
 	let fetchRequestId = 0;
 	let geoRequestId = 0;
 	let stablePostIds = $state<Set<string>>(new Set());
+	let trendingOpen = $state(false);
+	let trendingPosts = $state<PostSummary[]>([]);
 	let viewportRerankTimer: ReturnType<typeof setTimeout> | null = null;
 
 	function clamp(min: number, value: number, max: number) {
@@ -241,8 +244,13 @@
 	const feedCapacity = $derived(Math.min(rankedPosts.length, maxHomepagePosts));
 	const visiblePosts = $derived(rankedPosts.slice(0, Math.min(visibleCount, feedCapacity)));
 	const selectedPosts = $derived(
-		selectedPostId ? visiblePosts.filter((post) => post.id === selectedPostId) : []
+		!trendingOpen && selectedPostId
+			? visiblePosts.filter((post) => post.id === selectedPostId)
+			: []
 	);
+	const mapPosts = $derived(trendingOpen ? trendingPosts : visiblePosts);
+	const connectorPosts = $derived(trendingOpen ? trendingPosts : selectedPosts);
+	const connectorEls = $derived(trendingOpen ? trendingItemEls : listItemEls);
 	const hiddenPostCount = $derived(Math.max(feedCapacity - visiblePosts.length, 0));
 	const scrollSpacerHeight = $derived(
 		hiddenPostCount === 0 ? 0 : Math.ceil(hiddenPostCount / POSTS_PER_SCROLL_STEP) * SCROLL_STEP_PX
@@ -388,7 +396,7 @@
 
 	function handleMarkerPositionsChange() {
 		mapViewport = mapComponent?.getViewportState() ?? mapViewport;
-		scheduleViewportRerank();
+		if (!trendingOpen) scheduleViewportRerank();
 		redrawTrigger++;
 	}
 
@@ -397,9 +405,33 @@
 	}
 
 	function handleSelectPost(id: string | null) {
+		if (trendingOpen) {
+			clearSelectedPost();
+			return;
+		}
 		selectedPostId = id;
 		hoveredPostId = id;
 		redrawTrigger++;
+	}
+
+	function handleTrendingOpenChange(open: boolean) {
+		trendingOpen = open;
+		if (open) {
+			clearSelectedPost();
+			if (trendingPosts.length > 0) mapComponent?.fitToPosts(trendingPosts);
+		} else {
+			hoveredPostId = null;
+			redrawTrigger++;
+		}
+	}
+
+	function handleTrendingPostsChange(nextPosts: PostSummary[]) {
+		trendingPosts = nextPosts;
+		if (trendingOpen && nextPosts.length > 0) {
+			clearSelectedPost();
+			mapComponent?.fitToPosts(nextPosts);
+			redrawTrigger++;
+		}
 	}
 
 	onMount(() => {
@@ -513,16 +545,23 @@
 
 			<HomeMap
 				bind:this={mapComponent}
-				posts={visiblePosts}
+				posts={mapPosts}
 				{hoveredPostId}
 				{selectedPostId}
+				disableSelection={trendingOpen}
 				onMapReady={handleMapReady}
 				onMarkerPositionsChange={handleMarkerPositionsChange}
 				onSelectPost={handleSelectPost}
 			/>
 
 			<div class="trending-overlay">
-				<TrendingDropdown posts={visiblePosts} {scope} />
+				<TrendingDropdown
+					posts={visiblePosts}
+					{scope}
+					onOpenChange={handleTrendingOpenChange}
+					onTrendingPostsChange={handleTrendingPostsChange}
+					itemEls={trendingItemEls}
+				/>
 			</div>
 
 			<HeadlineList
@@ -558,11 +597,12 @@
 
 	{#if mapReady}
 		<ConnectorLines
-			posts={selectedPosts}
+			posts={connectorPosts}
 			{hoveredPostId}
 			{getMarkerScreenPos}
-			{listItemEls}
+			listItemEls={connectorEls}
 			{redrawTrigger}
+			arrowheads={trendingOpen}
 		/>
 	{/if}
 </div>

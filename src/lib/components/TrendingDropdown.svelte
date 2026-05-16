@@ -6,6 +6,9 @@
 	interface Props {
 		posts: PostSummary[];
 		scope: 'national' | 'local';
+		onOpenChange?: (open: boolean) => void;
+		onTrendingPostsChange?: (posts: PostSummary[]) => void;
+		itemEls?: Map<string, HTMLElement>;
 	}
 
 	type RankedPost = {
@@ -14,7 +17,7 @@
 		engagement: number;
 	};
 
-	let { posts, scope }: Props = $props();
+	let { posts, scope, onOpenChange, onTrendingPostsChange, itemEls }: Props = $props();
 
 	let open = $state(false);
 
@@ -64,6 +67,24 @@
 	const scopeCopy = $derived(
 		scope === 'local' ? 'Trending in your area' : 'Trending across New Zealand'
 	);
+
+	function setOpen(nextOpen: boolean) {
+		open = nextOpen;
+		onOpenChange?.(nextOpen);
+	}
+
+	function registerEl(el: HTMLElement, postId: string) {
+		itemEls?.set(postId, el);
+		return {
+			destroy() {
+				itemEls?.delete(postId);
+			}
+		};
+	}
+
+	$effect(() => {
+		onTrendingPostsChange?.(trendingPosts.map((item) => item.post));
+	});
 </script>
 
 <section class="trending card">
@@ -71,7 +92,7 @@
 		type="button"
 		class="trending-toggle"
 		class:open={open}
-		onclick={() => (open = !open)}
+		onclick={() => setOpen(!open)}
 		aria-expanded={open}
 	>
 		<div class="toggle-copy">
@@ -96,7 +117,12 @@
 				<ul class="trending-list">
 					{#each trendingPosts as item (item.post.id)}
 						<li>
-							<button type="button" class="trend-item" onclick={() => goto(`/post/${item.post.id}`)}>
+							<button
+								type="button"
+								class="trend-item"
+								use:registerEl={item.post.id}
+								onclick={() => goto(`/post/${item.post.id}`)}
+							>
 								<div class="trend-top">
 									<span class={item.post.category === 'factual' ? 'badge badge-factual' : 'badge'}>
 										{item.post.category === 'factual' ? 'Factual' : 'Community'}
