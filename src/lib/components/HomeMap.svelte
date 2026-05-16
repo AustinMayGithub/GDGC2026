@@ -4,6 +4,7 @@
 	import { goto } from '$app/navigation';
 	import type { PostSummary } from '$lib/types';
 	import { NZ_BBOX } from '$lib/data/nz-regions';
+	import { NZ_OUTLINE_BASE } from '$lib/data/nz-outline';
 
 	interface Props {
 		posts: PostSummary[];
@@ -12,18 +13,31 @@
 		onMarkerPositionsChange: () => void;
 	}
 
+	type FeatureGeometry =
+		| {
+				type: 'Polygon';
+				coordinates: number[][][];
+		  }
+		| {
+				type: 'MultiPolygon';
+				coordinates: number[][][][];
+		  };
+
+	type Feature = {
+		type: 'Feature';
+		properties: Record<string, unknown>;
+		geometry: FeatureGeometry;
+	};
+
+	type FeatureCollection = {
+		type: 'FeatureCollection';
+		features: Feature[];
+	};
+
 	type CameraOptions = {
 		center?: [number, number];
 		zoom?: number;
 		duration?: number;
-	};
-
-	type StyleLayer = {
-		id?: string;
-		type?: string;
-		layout?: Record<string, unknown>;
-		paint?: Record<string, unknown>;
-		['source-layer']?: string;
 	};
 
 	let { posts, hoveredPostId, onMapReady, onMarkerPositionsChange }: Props = $props();
@@ -33,13 +47,73 @@
 	let maplibre: typeof import('maplibre-gl') | null = null;
 	let markersMap = new Map<string, { marker: unknown; el: HTMLElement }>();
 
-	const MAP_STYLE_URL = 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json';
 	const WATER_COLOR = '#cfe9ff';
 	const LAND_COLOR = '#c7ffab';
-	const PARK_COLOR = '#d9ffc6';
-	const ROAD_COLOR = 'rgba(255, 255, 255, 0.42)';
-	const BORDER_COLOR = 'rgba(92, 126, 111, 0.16)';
+	const OUTLINE_COLOR = 'rgba(92, 126, 111, 0.18)';
 	const NZ_VISUAL_CENTER: [number, number] = [174.25, -41.15];
+	const NZ_BASE_FEATURES = NZ_OUTLINE_BASE.features as unknown as Feature[];
+
+	const RASTER_STYLE = {
+		version: 8 as const,
+		sources: {
+			carto: {
+				type: 'raster' as const,
+				tiles: ['https://a.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}.png'],
+				tileSize: 256,
+				attribution: 'OpenStreetMap contributors'
+			}
+		},
+		layers: [
+			{
+				id: 'carto-base',
+				type: 'raster' as const,
+				source: 'carto',
+				paint: {
+					'raster-opacity': 0.42,
+					'raster-saturation': -0.35,
+					'raster-brightness-min': 0.92,
+					'raster-brightness-max': 1.08,
+					'raster-contrast': -0.08
+				}
+			}
+		]
+	};
+
+	function wrapFeature(feature: Feature, offset: number): Feature {
+		if (feature.geometry.type === 'Polygon') {
+			return {
+				...feature,
+				geometry: {
+					type: 'Polygon',
+					coordinates: feature.geometry.coordinates.map((ring) =>
+						ring.map(([lng, lat]) => [lng + offset, lat])
+					)
+				}
+			};
+		}
+
+		return {
+			...feature,
+			geometry: {
+				type: 'MultiPolygon',
+				coordinates: feature.geometry.coordinates.map((polygon) =>
+					polygon.map((ring) => ring.map(([lng, lat]) => [lng + offset, lat]))
+				)
+			}
+		};
+	}
+
+	function buildWrappedFeatureCollection(): FeatureCollection {
+		const offsets = [-360, 0, 360];
+		return {
+			type: 'FeatureCollection',
+			features: offsets.flatMap((offset) =>
+				NZ_BASE_FEATURES.map((feature) => wrapFeature(feature, offset))
+			)
+		};
+	}
+
+	const NZ_OUTLINE = buildWrappedFeatureCollection();
 
 	function isNationalView(bbox: [number, number, number, number]) {
 		return bbox[2] - bbox[0] > 8;
@@ -63,159 +137,40 @@
 		};
 	}
 
-	function setLayerVisibility(
-		m: InstanceType<NonNullable<typeof maplibre>['Map']>,
-		layerId: string,
-		visibility: 'visible' | 'none'
-	) {
-		try {
-			m.setLayoutProperty(layerId, 'visibility', visibility);
-		} catch {}
-	}
-
-	function setLayerPaint(
-		m: InstanceType<NonNullable<typeof maplibre>['Map']>,
-		layerId: string,
-		property: string,
-		value: unknown
-	) {
-		try {
-			m.setPaintProperty(layerId, property, value);
-		} catch {}
-	}
-
-	function applyMinimalTheme() {
+	function addLandOverlay() {
 		if (!map || !maplibre) return;
 		const ml = maplibre as typeof import('maplibre-gl');
 		const m = map as InstanceType<typeof ml.Map>;
-		const style = m.getStyle();
-		const layers = (style.layers ?? []) as StyleLayer[];
 
-		for (const layer of layers) {
-			const id = String(layer.id ?? '').toLowerCase();
-			const sourceLayer = String(layer['source-layer'] ?? '').toLowerCase();
-			const type = String(layer.type ?? '');
-			const layerId = String(layer.id ?? '');
+		if (!m.getSource('nz-land')) {
+			m.addSource('nz-land', {
+				type: 'geojson',
+				data: NZ_OUTLINE
+			});
+		}
 
-			const isLabelLayer =
-				type === 'symbol' ||
-				id.includes('label') ||
-				id.includes('name') ||
-				id.includes('place') ||
-				id.includes('poi') ||
-				sourceLayer.includes('label') ||
-				sourceLayer.includes('place');
-			if (isLabelLayer) {
-				setLayerVisibility(m, layerId, 'none');
-				continue;
-			}
+		if (!m.getLayer('nz-land-fill')) {
+			m.addLayer({
+				id: 'nz-land-fill',
+				type: 'fill',
+				source: 'nz-land',
+				paint: {
+					'fill-color': LAND_COLOR,
+					'fill-opacity': 0.68
+				}
+			});
+		}
 
-			const isBuilding =
-				id.includes('building') ||
-				id.includes('structure') ||
-				sourceLayer.includes('building');
-			if (isBuilding) {
-				setLayerVisibility(m, layerId, 'none');
-				continue;
-			}
-
-			const isTransit =
-				id.includes('transit') ||
-				id.includes('rail') ||
-				id.includes('aeroway') ||
-				id.includes('runway') ||
-				id.includes('ferry');
-			if (isTransit) {
-				setLayerVisibility(m, layerId, 'none');
-				continue;
-			}
-
-			const isBoundary =
-				id.includes('boundary') ||
-				id.includes('admin') ||
-				id.includes('border') ||
-				sourceLayer.includes('boundary');
-			if (isBoundary) {
-				if (type === 'line') {
-					setLayerPaint(m, layerId, 'line-color', BORDER_COLOR);
-					setLayerPaint(m, layerId, 'line-opacity', 0.14);
-					setLayerPaint(m, layerId, 'line-width', 0.7);
-				} else {
-					setLayerVisibility(m, layerId, 'none');
+		if (!m.getLayer('nz-land-outline')) {
+			m.addLayer({
+				id: 'nz-land-outline',
+				type: 'line',
+				source: 'nz-land',
+				paint: {
+					'line-color': OUTLINE_COLOR,
+					'line-width': 1.15
 				}
-				continue;
-			}
-
-			const isWater =
-				id.includes('water') ||
-				id.includes('ocean') ||
-				id.includes('river') ||
-				id.includes('lake') ||
-				sourceLayer.includes('water');
-			if (isWater) {
-				if (type === 'background') {
-					setLayerPaint(m, layerId, 'background-color', WATER_COLOR);
-				}
-				if (type === 'fill') {
-					setLayerPaint(m, layerId, 'fill-color', WATER_COLOR);
-					setLayerPaint(m, layerId, 'fill-outline-color', WATER_COLOR);
-				}
-				if (type === 'line') {
-					setLayerVisibility(m, layerId, 'none');
-				}
-				continue;
-			}
-
-			const isRoad =
-				id.includes('road') ||
-				id.includes('street') ||
-				id.includes('highway') ||
-				id.includes('bridge') ||
-				id.includes('tunnel') ||
-				id.includes('path') ||
-				sourceLayer.includes('road') ||
-				sourceLayer.includes('transport');
-			if (isRoad) {
-				const keepMajor =
-					id.includes('motorway') ||
-					id.includes('trunk') ||
-					id.includes('major') ||
-					id.includes('primary');
-				if (!keepMajor) {
-					setLayerVisibility(m, layerId, 'none');
-				} else if (type === 'line') {
-					setLayerPaint(m, layerId, 'line-color', ROAD_COLOR);
-					setLayerPaint(m, layerId, 'line-opacity', 0.18);
-				}
-				continue;
-			}
-
-			const isLand =
-				type === 'background' ||
-				id.includes('land') ||
-				id.includes('park') ||
-				id.includes('grass') ||
-				id.includes('wood') ||
-				id.includes('forest') ||
-				id.includes('natural') ||
-				id.includes('landcover') ||
-				id.includes('landuse') ||
-				sourceLayer.includes('landcover') ||
-				sourceLayer.includes('landuse') ||
-				sourceLayer.includes('park');
-			if (isLand) {
-				if (type === 'background') {
-					setLayerPaint(m, layerId, 'background-color', WATER_COLOR);
-				}
-				if (type === 'fill') {
-					const fill = id.includes('park') || id.includes('forest') ? PARK_COLOR : LAND_COLOR;
-					setLayerPaint(m, layerId, 'fill-color', fill);
-					setLayerPaint(m, layerId, 'fill-outline-color', fill);
-				}
-				if (type === 'line') {
-					setLayerVisibility(m, layerId, 'none');
-				}
-			}
+			});
 		}
 	}
 
@@ -327,7 +282,7 @@
 
 		const m = new ml.Map({
 			container,
-			style: MAP_STYLE_URL,
+			style: RASTER_STYLE,
 			center: [173.3, -41.2],
 			zoom: 4.75,
 			renderWorldCopies: true,
@@ -344,14 +299,13 @@
 		map = m;
 
 		m.on('load', () => {
-			applyMinimalTheme();
+			addLandOverlay();
 			fitToBbox(NZ_BBOX);
 			syncMarkers();
 			onMarkerPositionsChange();
 			onMapReady(m);
 		});
 
-		m.on('styledata', applyMinimalTheme);
 		m.on('move', onMarkerPositionsChange);
 		m.on('zoom', onMarkerPositionsChange);
 		m.on('resize', onMarkerPositionsChange);
@@ -388,6 +342,10 @@
 	.map-container {
 		width: 100%;
 		height: 100%;
+	}
+
+	:global(.map-container .maplibregl-canvas) {
+		filter: saturate(0.94);
 	}
 
 	:global(.map-container .maplibregl-ctrl-bottom-right) {
