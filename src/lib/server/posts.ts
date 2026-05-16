@@ -11,27 +11,83 @@ import type {
 
 const iso = (d: Date) => d.toISOString();
 
+type PostListRow = {
+	id: string;
+	title: string;
+	category: PostSummary['category'];
+	lng: number;
+	lat: number;
+	impactRadiusM: number;
+	regionId: string;
+	createdAt: Date;
+	authorId: string;
+	authorName: string;
+	anonymous: boolean;
+	hasImage: boolean;
+};
+
+function isMissingOptionalPostColumn(err: unknown) {
+	const message = err instanceof Error ? err.message : String(err);
+	return (
+		(message.includes('anonymous') || message.includes('header_image_data_url')) &&
+		message.includes('does not exist')
+	);
+}
+
+async function selectPostListRows(opts: { regionId?: string }): Promise<PostListRow[]> {
+	try {
+		return await db
+			.select({
+				id: posts.id,
+				title: posts.title,
+				category: posts.category,
+				lng: posts.lng,
+				lat: posts.lat,
+				impactRadiusM: posts.impactRadiusM,
+				regionId: posts.regionId,
+				createdAt: posts.createdAt,
+				authorId: posts.authorId,
+				authorName: users.displayName,
+				anonymous: posts.anonymous,
+				hasImage: sql<boolean>`(${posts.headerImageDataUrl} IS NOT NULL)`
+			})
+			.from(posts)
+			.innerJoin(users, eq(posts.authorId, users.id))
+			.where(opts.regionId ? eq(posts.regionId, opts.regionId) : undefined)
+			.orderBy(desc(posts.createdAt))
+			.limit(300);
+	} catch (err) {
+		if (!isMissingOptionalPostColumn(err)) throw err;
+
+		const rows = await db
+			.select({
+				id: posts.id,
+				title: posts.title,
+				category: posts.category,
+				lng: posts.lng,
+				lat: posts.lat,
+				impactRadiusM: posts.impactRadiusM,
+				regionId: posts.regionId,
+				createdAt: posts.createdAt,
+				authorId: posts.authorId,
+				authorName: users.displayName
+			})
+			.from(posts)
+			.innerJoin(users, eq(posts.authorId, users.id))
+			.where(opts.regionId ? eq(posts.regionId, opts.regionId) : undefined)
+			.orderBy(desc(posts.createdAt))
+			.limit(300);
+
+		return rows.map((row) => ({
+			...row,
+			anonymous: false,
+			hasImage: false
+		}));
+	}
+}
+
 export async function listPosts(opts: { regionId?: string } = {}): Promise<PostSummary[]> {
-	const rows = await db
-		.select({
-			id: posts.id,
-			title: posts.title,
-			category: posts.category,
-			lng: posts.lng,
-			lat: posts.lat,
-			impactRadiusM: posts.impactRadiusM,
-			regionId: posts.regionId,
-			createdAt: posts.createdAt,
-			authorId: posts.authorId,
-			authorName: users.displayName,
-			anonymous: posts.anonymous,
-			hasImage: sql<boolean>`(${posts.headerImageDataUrl} IS NOT NULL)`
-		})
-		.from(posts)
-		.innerJoin(users, eq(posts.authorId, users.id))
-		.where(opts.regionId ? eq(posts.regionId, opts.regionId) : undefined)
-		.orderBy(desc(posts.createdAt))
-		.limit(300);
+	const rows = await selectPostListRows(opts);
 
 	const [voteRows, commentRows, reactionRows] = await Promise.all([
 		db
