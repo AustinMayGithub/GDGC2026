@@ -21,6 +21,10 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 
 	const title = String(data.title ?? '').trim();
 	const body = String(data.body ?? '').trim();
+	const headerImageDataUrl =
+		typeof data.headerImageDataUrl === 'string' && data.headerImageDataUrl.trim()
+			? data.headerImageDataUrl.trim()
+			: null;
 	const category =
 		data.category === 'personal' || data.category === 'factual' ? data.category : null;
 	const lng = Number(data.lng);
@@ -31,6 +35,12 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 		throw error(400, 'Title must be 4–140 characters.');
 	if (body.length < 10 || body.length > 5000)
 		throw error(400, 'Body must be 10–5000 characters.');
+	if (
+		headerImageDataUrl &&
+		(!headerImageDataUrl.startsWith('data:image/jpeg;base64,') ||
+			headerImageDataUrl.length > 1_500_000)
+	)
+		throw error(400, 'Header image must be a cropped JPEG under 1.5 MB.');
 	if (!category) throw error(400, 'Choose a post category.');
 	if (!Number.isFinite(lng) || !Number.isFinite(lat))
 		throw error(400, 'Pick a location on the map.');
@@ -47,6 +57,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 			authorId: locals.user.id,
 			title,
 			body,
+			headerImageDataUrl,
 			category,
 			lng,
 			lat,

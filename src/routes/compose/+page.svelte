@@ -4,6 +4,7 @@
 	import UserMenu from '$lib/components/UserMenu.svelte';
 	import ImpactMap from '$lib/components/ImpactMap.svelte';
 	import CategoryPicker from '$lib/components/CategoryPicker.svelte';
+	import HeaderImageCropper from '$lib/components/HeaderImageCropper.svelte';
 
 	interface PageData {
 		user: SessionUser | null;
@@ -16,6 +17,7 @@
 	// Form state
 	let title = $state('');
 	let body = $state('');
+	let headerImageDataUrl = $state<string | null>(null);
 	let category = $state<PostCategory | null>(null);
 	let lng = $state(174.76); // Default: Auckland
 	let lat = $state(-36.85);
@@ -44,6 +46,10 @@
 		category = cat;
 	}
 
+	function handleHeaderImage(dataUrl: string | null) {
+		headerImageDataUrl = dataUrl;
+	}
+
 	async function handleSubmit(e: SubmitEvent) {
 		e.preventDefault();
 		if (!canSubmit || category === null) return;
@@ -58,6 +64,7 @@
 				body: JSON.stringify({
 					title: title.trim(),
 					body: body.trim(),
+					headerImageDataUrl,
 					category,
 					lng,
 					lat,
@@ -110,6 +117,13 @@
 					<div class="form-header">
 						<h1 class="form-title">New post</h1>
 						<p class="muted form-sub">Share something happening in your area.</p>
+					</div>
+
+					<!-- Header image -->
+					<div class="field">
+						<span class="field-label">Header image</span>
+						<HeaderImageCropper disabled={submitting} onimagechange={handleHeaderImage} />
+						<span class="field-hint muted">Optional. Cropped wide for the post header.</span>
 					</div>
 
 					<!-- Title -->
