@@ -25,6 +25,9 @@
 	const REGION_CACHE_KEY = 'birdseye:local-region';
 	const GEO_MAX_AGE_MS = 10 * 60 * 1000;
 	const LOCAL_FOCUS_RADIUS_KM = 5;
+	const INITIAL_VISIBLE_POSTS = 18;
+	const POSTS_PER_SCROLL_STEP = 10;
+	const SCROLL_STEP_PX = 220;
 	const orderedRegions = [
 		...NZ_REGIONS.filter((region) => region.id === DEFAULT_REGION_ID),
 		...NZ_REGIONS.filter((region) => region.id !== DEFAULT_REGION_ID)
@@ -35,11 +38,13 @@
 	let loading = $state(false);
 	let error = $state<string | null>(null);
 	let hoveredPostId = $state<string | null>(null);
+	let visibleCount = $state(INITIAL_VISIBLE_POSTS);
 
 	let selectedRegionId = $state<string>(DEFAULT_REGION_ID);
 	let geoError = $state<string | null>(null);
 	let geoLoading = $state(false);
 
+	let scrollHost: HTMLElement | null = null;
 	let mapComponent: HomeMap | null = null;
 	let mapReady = $state(false);
 	let redrawTrigger = $state(0);
@@ -70,6 +75,48 @@
 		}
 	}
 
+	function popularityScore(post: PostSummary): number {
+		const ageHours = Math.max((Date.now() - new Date(post.createdAt).getTime()) / 36e5, 0);
+		const voteTotal = post.verifyCount + post.disputeCount;
+		const approval = voteTotal === 0 ? 0.5 : post.verifyCount / voteTotal;
+		const engagement =
+			post.commentCount * 5 +
+			post.reactionCount * 3 +
+			post.verifyCount * 2 +
+			post.disputeCount;
+		const freshnessBoost = 18 / (ageHours + 6);
+		return engagement * (0.7 + approval * 0.6) + freshnessBoost;
+	}
+
+	const rankedPosts = $derived.by(() =>
+		[...posts].sort((a, b) => {
+			const diff = popularityScore(b) - popularityScore(a);
+			if (Math.abs(diff) > 0.001) return diff;
+			return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+		})
+	);
+
+	const visiblePosts = $derived(rankedPosts.slice(0, visibleCount));
+	const hiddenPostCount = $derived(Math.max(rankedPosts.length - visiblePosts.length, 0));
+	const scrollSpacerHeight = $derived(
+		hiddenPostCount === 0 ? 0 : Math.ceil(hiddenPostCount / POSTS_PER_SCROLL_STEP) * SCROLL_STEP_PX
+	);
+
+	function resetFeedVisibility() {
+		visibleCount = INITIAL_VISIBLE_POSTS;
+		scrollHost?.scrollTo({ top: 0, behavior: 'auto' });
+	}
+
+	function handleFeedScroll() {
+		if (!scrollHost) return;
+		const extraSteps = Math.floor(scrollHost.scrollTop / SCROLL_STEP_PX);
+		const nextVisible = Math.min(
+			rankedPosts.length,
+			INITIAL_VISIBLE_POSTS + extraSteps * POSTS_PER_SCROLL_STEP
+		);
+		if (nextVisible !== visibleCount) visibleCount = nextVisible;
+	}
+
 	async function fetchPosts(scopeToFetch: Scope = scope, regionId = selectedRegionId) {
 		const requestId = ++fetchRequestId;
 		activeFetchController?.abort();
@@ -87,11 +134,13 @@
 			const json = await res.json();
 			if (requestId !== fetchRequestId) return;
 			posts = json.posts as PostSummary[];
+			resetFeedVisibility();
 		} catch (err) {
 			if (err instanceof DOMException && err.name === 'AbortError') return;
 			if (requestId !== fetchRequestId) return;
 			error = 'Failed to load posts. Please try again.';
 			posts = [];
+			resetFeedVisibility();
 		} finally {
 			if (requestId === fetchRequestId) {
 				loading = false;
@@ -270,7 +319,7 @@
 		</div>
 	</header>
 
-	<main class="main">
+	<main class="main" bind:this={scrollHost} onscroll={handleFeedScroll}>
 		<div class="map-area">
 			{#if loading}
 				<div class="map-loading" aria-live="polite">
@@ -280,18 +329,18 @@
 
 			<HomeMap
 				bind:this={mapComponent}
-				{posts}
+				posts={visiblePosts}
 				{hoveredPostId}
 				onMapReady={handleMapReady}
 				onMarkerPositionsChange={handleMarkerPositionsChange}
 			/>
 
 			<div class="trending-overlay">
-				<TrendingDropdown {posts} {scope} />
+				<TrendingDropdown posts={visiblePosts} {scope} />
 			</div>
 
 			<HeadlineList
-				{posts}
+				posts={visiblePosts}
 				{hoveredPostId}
 				onHover={(id) => {
 					hoveredPostId = id;
@@ -300,7 +349,7 @@
 				{listItemEls}
 			/>
 
-			{#if posts.length === 0 && !loading}
+			{#if rankedPosts.length === 0 && !loading}
 				<div class="empty-state card">
 					<div class="empty-icon">📍</div>
 					<h2 class="empty-title">No posts here yet</h2>
@@ -318,11 +367,12 @@
 				</div>
 			{/if}
 		</div>
+		<div class="feed-scroll-space" aria-hidden="true" style={`height: ${scrollSpacerHeight}px;`}></div>
 	</main>
 
 	{#if mapReady}
 		<ConnectorLines
-			{posts}
+			posts={visiblePosts}
 			{hoveredPostId}
 			{getMarkerScreenPos}
 			{listItemEls}
@@ -482,14 +532,20 @@
 
 	.main {
 		height: 100%;
-		overflow: hidden;
+		overflow-y: auto;
+		overflow-x: hidden;
 		position: relative;
 	}
 
 	.map-area {
-		position: relative;
+		position: sticky;
+		top: 0;
 		overflow: hidden;
-		height: 100%;
+		height: 100vh;
+	}
+
+	.feed-scroll-space {
+		width: 100%;
 	}
 
 	.map-loading {
