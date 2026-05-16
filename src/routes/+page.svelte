@@ -14,6 +14,7 @@
 	import ReactionBar from '$lib/components/ReactionBar.svelte';
 	import CommentThread from '$lib/components/CommentThread.svelte';
 	import { fallbackAreaLabel } from '$lib/data/geo-labels';
+	import { timeAgo } from '$lib/time';
 	import type {
 		SessionUser,
 		PostSummary,
@@ -537,6 +538,11 @@
 	async function switchToLocal() {
 		clearSelectedPost();
 		closeProfile();
+		if (composing) {
+			composing = false;
+			composeError = '';
+			await resizeMapAfterLayout();
+		}
 		scope = 'local';
 		geoError = null;
 
@@ -739,16 +745,6 @@
 
 	function formatJoined(isoString: string): string {
 		return new Date(isoString).toLocaleDateString('en-NZ', { month: 'long', year: 'numeric' });
-	}
-
-	function timeAgo(isoString: string): string {
-		const diff = Date.now() - new Date(isoString).getTime();
-		const minutes = Math.floor(diff / 60000);
-		if (minutes < 1) return 'just now';
-		if (minutes < 60) return `${minutes}m ago`;
-		const hours = Math.floor(minutes / 60);
-		if (hours < 24) return `${hours}h ago`;
-		return `${Math.floor(hours / 24)}d ago`;
 	}
 
 	function regionName(regionId: string): string {

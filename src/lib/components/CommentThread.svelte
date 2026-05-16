@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { timeAgo } from '$lib/time';
 	import type { CommentItem, CommunityNote, SessionUser } from '$lib/types';
 
 	interface Props {
@@ -23,17 +24,6 @@
 	let reportReason = $state('');
 	let reportError = $state('');
 	let reportSubmitting = $state(false);
-
-	function relativeTime(isoString: string): string {
-		const diff = Date.now() - new Date(isoString).getTime();
-		const minutes = Math.floor(diff / 60000);
-		if (minutes < 1) return 'just now';
-		if (minutes < 60) return `${minutes}m ago`;
-		const hours = Math.floor(minutes / 60);
-		if (hours < 24) return `${hours}h ago`;
-		const days = Math.floor(hours / 24);
-		return `${days}d ago`;
-	}
 
 	async function submitComment() {
 		if (!body.trim() || submitting) return;
@@ -127,7 +117,7 @@
 					<div class="comment-meta">
 						<span class="avatar-circle">{comment.authorName[0]?.toUpperCase() ?? '?'}</span>
 						<span class="author-name">{comment.authorName}</span>
-						<span class="time muted">{relativeTime(comment.createdAt)}</span>
+						<span class="time muted">{timeAgo(comment.createdAt)}</span>
 						{#if user}
 							<button
 								class="report-trigger muted"
