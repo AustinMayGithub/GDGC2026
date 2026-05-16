@@ -127,6 +127,10 @@
 		selectedRegionId = regionId;
 		writeCachedRegion(regionId);
 		setLocalFocus(lng, lat);
+		if (composing) {
+			composeLng = lng;
+			composeLat = lat;
+		}
 
 		if (focusMap && scope === 'local') {
 			pauseLocalAutoNational();
@@ -398,14 +402,21 @@
 	}
 
 	function openCompose() {
-		const viewport = mapComponent?.getViewportState();
-		if (viewport) {
-			composeLng = viewport.centerLng;
-			composeLat = viewport.centerLat;
+		const target = userLocation ?? { lng: localFocusLng, lat: localFocusLat };
+		composeLng = target.lng;
+		composeLat = target.lat;
+
+		if (!userLocation) {
+			requestUserLocation(true);
 		}
+		scope = 'local';
 		clearSelectedPost();
+		trendingOpen = false;
+		lastTrendingFitKey = '';
+		pauseLocalAutoNational();
 		scrollHost?.scrollTo({ top: 0, behavior: 'auto' });
 		composing = true;
+		mapComponent?.focusOnLocation(target.lng, target.lat, LOCAL_FOCUS_RADIUS_KM);
 		void resizeMapAfterLayout();
 	}
 
@@ -938,7 +949,9 @@
 
 	.page.composing .main {
 		display: flex;
+		gap: 18px;
 		overflow: hidden;
+		padding: 96px 20px 20px;
 	}
 
 	.map-area {
@@ -952,7 +965,9 @@
 		position: relative;
 		flex: 0 0 42%;
 		min-width: 360px;
-		height: 100vh;
+		height: calc(100vh - 116px);
+		border-radius: var(--radius-lg);
+		box-shadow: 0 18px 42px rgba(15, 23, 42, 0.08);
 	}
 
 	.feed-scroll-space {
@@ -1049,13 +1064,14 @@
 		z-index: 18;
 		flex: 1 1 58%;
 		min-width: 0;
-		height: calc(100vh - 112px);
-		margin: 94px 20px 18px 0;
+		height: calc(100vh - 116px);
+		margin: 0;
 		padding: 24px;
 		overflow-y: auto;
 		background: rgba(255, 255, 255, 0.94);
 		backdrop-filter: blur(18px);
-		box-shadow: -18px 0 44px rgba(15, 23, 42, 0.1);
+		border-radius: var(--radius-lg);
+		box-shadow: 0 18px 44px rgba(15, 23, 42, 0.12);
 	}
 
 	.compose-form,
@@ -1245,18 +1261,20 @@
 		.page.composing .main {
 			display: block;
 			overflow-y: auto;
+			padding: 154px 12px 16px;
 		}
 
 		.page.composing .map-area {
 			min-width: 0;
 			width: 100%;
 			height: 42vh;
+			margin-bottom: 14px;
 		}
 
 		.compose-panel {
-			margin: 0 12px 16px;
+			margin: 0;
 			height: auto;
-			min-height: calc(58vh - 16px);
+			min-height: calc(58vh - 30px);
 		}
 	}
 
