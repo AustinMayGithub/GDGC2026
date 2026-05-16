@@ -1,19 +1,13 @@
 import { fail, redirect } from '@sveltejs/kit';
-import { dev } from '$app/environment';
 import { and, eq, gte } from 'drizzle-orm';
 import { db } from '$lib/server/db';
-import { users, emailOtps, signupAttempts } from '$lib/server/db/schema';
+import { users, signupAttempts } from '$lib/server/db/schema';
 import {
 	hashPassword,
-	generateOtp,
-	hashOtp,
-	otpExpiry,
 	isDisposableEmail,
-	encodePending,
-	PENDING_COOKIE,
-	DEV_OTP_COOKIE
+	createSession,
+	SESSION_COOKIE
 } from '$lib/server/auth';
-import { sendOtpEmail } from '$lib/server/email';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ locals }) => {
@@ -66,45 +60,16 @@ export const actions: Actions = {
 
 		const [user] = await db
 			.insert(users)
-			.values({ email, displayName, passwordHash: hashPassword(password) })
+			.values({ email, displayName, passwordHash: hashPassword(password), emailVerified: true })
 			.returning({ id: users.id });
 
-		await db
-			.update(emailOtps)
-			.set({ used: true })
-			.where(
-				and(
-					eq(emailOtps.userId, user.id),
-					eq(emailOtps.purpose, 'signup'),
-					eq(emailOtps.used, false)
-				)
-			);
-
-		const code = generateOtp();
-		await db.insert(emailOtps).values({
-			userId: user.id,
-			codeHash: hashOtp(code),
-			purpose: 'signup',
-			expiresAt: otpExpiry()
-		});
-		const delivery = await sendOtpEmail(email, code, 'signup');
-
-		cookies.set(PENDING_COOKIE, encodePending(user.id, 'signup'), {
+		const { token, expiresAt } = await createSession(user.id);
+		cookies.set(SESSION_COOKIE, token, {
 			path: '/',
 			httpOnly: true,
 			sameSite: 'lax',
-			maxAge: 60 * 15
+			expires: expiresAt
 		});
-		if (dev && delivery.channel === 'console') {
-			cookies.set(DEV_OTP_COOKIE, delivery.code, {
-				path: '/auth/verify',
-				httpOnly: true,
-				sameSite: 'lax',
-				maxAge: 60 * 15
-			});
-		} else {
-			cookies.delete(DEV_OTP_COOKIE, { path: '/auth/verify' });
-		}
-		throw redirect(303, '/auth/verify');
+		throw redirect(303, '/');
 	}
 };
