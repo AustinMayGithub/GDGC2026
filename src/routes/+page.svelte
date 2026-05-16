@@ -381,7 +381,8 @@
 			onkeydown={(e) => e.key === 'Enter' && goto('/')}
 		>
 			<span class="logo-dot"></span>
-			<span class="logo-name gradient-text">BirdsEye</span>
+			<img src="/src/birdseye.png">
+			
 		</div>
 
 		<div class="header-center">
