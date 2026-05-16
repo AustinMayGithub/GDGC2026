@@ -27,6 +27,7 @@
 	let geoError = $state<string | null>(null);
 	let geoLoading = $state(false);
 	const scopeSwitching = $derived(loading || geoLoading);
+	const scopeLabel = $derived(scope === 'national' ? 'National view' : 'Local view');
 
 	// Map & connector state
 	let mapComponent: HomeMap | null = null;
@@ -142,26 +143,33 @@
 		</div>
 
 		<div class="header-center">
-			<div class="scope-toggle" class:local={scope === 'local'} class:switching={scopeSwitching} aria-busy={scopeSwitching}>
-				<span class="toggle-indicator" aria-hidden="true"></span>
+			<div class="scope-group">
+				<div class="scope-status" aria-live="polite">
+					<span class="scope-status-label">{scopeLabel}</span>
+					{#if scopeSwitching}
+						<span class="scope-status-meta">Updating...</span>
+					{/if}
+				</div>
+				<div class="scope-toggle" aria-busy={scopeSwitching}>
 				<button
 					type="button"
-					class={scope === 'national' ? 'toggle-btn active' : 'toggle-btn'}
+					class="toggle-btn"
+					class:active={scope === 'national'}
 					onclick={switchToNational}
 					aria-pressed={scope === 'national'}
-					disabled={scopeSwitching}
 				>
 					National
 				</button>
 				<button
 					type="button"
-					class={scope === 'local' ? 'toggle-btn active' : 'toggle-btn'}
+					class="toggle-btn"
+					class:active={scope === 'local'}
 					onclick={switchToLocal}
 					aria-pressed={scope === 'local'}
-					disabled={scopeSwitching}
 				>
 					Local
 				</button>
+				</div>
 			</div>
 
 			{#if scope === 'local'}
@@ -308,68 +316,74 @@
 		flex-wrap: wrap;
 	}
 
+	.scope-group {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 6px;
+	}
+
+	.scope-status {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		min-height: 18px;
+	}
+
+	.scope-status-label {
+		font-size: 12px;
+		font-weight: 700;
+		letter-spacing: 0.05em;
+		text-transform: uppercase;
+		color: var(--text-3);
+	}
+
+	.scope-status-meta {
+		font-size: 12px;
+		color: var(--text-2);
+	}
+
 	.scope-toggle {
-		display: grid;
-		grid-template-columns: 1fr 1fr;
-		position: relative;
+		display: inline-flex;
+		align-items: center;
 		background: var(--surface-2);
 		border: 1px solid var(--border);
 		border-radius: var(--radius-sm);
 		padding: 3px;
-		gap: 2px;
-		min-width: 194px;
-		overflow: hidden;
-	}
-
-	.toggle-indicator {
-		position: absolute;
-		top: 3px;
-		left: 3px;
-		width: calc(50% - 4px);
-		height: calc(100% - 6px);
-		border-radius: calc(var(--radius-sm) - 2px);
-		background: var(--surface);
-		box-shadow: var(--shadow-sm);
-		transition: transform 0.2s ease;
-		pointer-events: none;
-	}
-
-	.scope-toggle.local .toggle-indicator {
-		transform: translateX(calc(100% + 2px));
-	}
-
-	.scope-toggle.switching {
-		opacity: 0.86;
+		gap: 4px;
 	}
 
 	.toggle-btn {
-		padding: 5px 16px;
+		padding: 7px 18px;
 		border-radius: calc(var(--radius-sm) - 2px);
-		border: none;
+		border: 1px solid transparent;
 		background: transparent;
 		color: var(--text-2);
 		font-size: 13px;
-		font-weight: 550;
-		transition: color 0.15s ease, transform 0.15s ease;
-		position: relative;
-		z-index: 1;
+		font-weight: 650;
+		transition:
+			background 0.16s ease,
+			color 0.16s ease,
+			border-color 0.16s ease,
+			box-shadow 0.16s ease,
+			transform 0.12s ease;
 	}
 
 	.toggle-btn.active {
+		background: var(--surface);
 		color: var(--text);
+		border-color: var(--border);
 		font-weight: 700;
+		box-shadow: var(--shadow-sm);
 	}
 
-	.toggle-btn:not(.active):hover:enabled {
+	.toggle-btn:hover {
 		color: var(--text);
+		background: rgba(255, 255, 255, 0.48);
 	}
 
-	.toggle-btn:enabled:active {
+	.toggle-btn:active {
 		transform: translateY(1px);
-	}
-
-	.toggle-btn:disabled {
-		cursor: wait;
 	}
 
 	.region-controls {
