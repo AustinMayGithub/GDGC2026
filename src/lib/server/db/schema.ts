@@ -101,6 +101,22 @@ export const postVotes = pgTable(
 	})
 );
 
+export const postImages = pgTable(
+	'post_images',
+	{
+		id: uuid('id').primaryKey().defaultRandom(),
+		postId: uuid('post_id')
+			.notNull()
+			.references(() => posts.id, { onDelete: 'cascade' }),
+		dataUrl: text('data_url').notNull(),
+		position: integer('position').notNull().default(0),
+		createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow()
+	},
+	(t) => ({
+		byPost: index('post_images_post').on(t.postId, t.position)
+	})
+);
+
 export const comments = pgTable(
 	'comments',
 	{

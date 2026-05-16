@@ -32,6 +32,12 @@ export interface PostSummary {
 	areaLabel: string;
 }
 
+export interface PostImage {
+	id: string;
+	dataUrl: string;
+	position: number;
+}
+
 export interface UserProfile {
 	id: string;
 	displayName: string;
@@ -70,6 +76,7 @@ export interface CommunityNote {
 export interface PostDetail extends PostSummary {
 	body: string;
 	headerImageDataUrl: string | null;
+	images: PostImage[];
 	communityNote: CommunityNote | null;
 	/** The viewer's current vote, if signed in and voted. */
 	myVote: VoteValue | null;

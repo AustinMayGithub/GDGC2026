@@ -9,6 +9,7 @@
 	import TrendingDropdown from '$lib/components/TrendingDropdown.svelte';
 	import CategoryPicker from '$lib/components/CategoryPicker.svelte';
 	import HeaderImageCropper from '$lib/components/HeaderImageCropper.svelte';
+	import PostImageGallery from '$lib/components/PostImageGallery.svelte';
 	import CredibilityMeter from '$lib/components/CredibilityMeter.svelte';
 	import CommunityNote from '$lib/components/CommunityNote.svelte';
 	import ReactionBar from '$lib/components/ReactionBar.svelte';
@@ -129,6 +130,7 @@
 	let composeTitle = $state('');
 	let composeBody = $state('');
 	let composeHeaderImageDataUrl = $state<string | null>(null);
+	let composeImageDataUrls = $state<string[]>([]);
 	let composeCategory = $state<PostCategory | null>(null);
 	let composeLng = $state(174.76);
 	let composeLat = $state(-36.85);
@@ -1117,6 +1119,11 @@
 		composeHeaderImageDataUrl = dataUrl;
 	}
 
+	function handleHeaderImages(dataUrls: string[]) {
+		composeImageDataUrls = dataUrls;
+		composeHeaderImageDataUrl = dataUrls[0] ?? null;
+	}
+
 	async function handleComposeSubmit(e: SubmitEvent) {
 		e.preventDefault();
 		if (!canSubmitPost || composeCategory === null) return;
@@ -1137,6 +1144,7 @@
 					title: composeTitle.trim(),
 					body: composeBody.trim(),
 					headerImageDataUrl: composeHeaderImageDataUrl,
+					imageDataUrls: composeImageDataUrls,
 					category: composeCategory,
 					anonymous: composeAnonymous,
 					lng: composeLng,
@@ -1154,6 +1162,7 @@
 			composeTitle = '';
 			composeBody = '';
 			composeHeaderImageDataUrl = null;
+			composeImageDataUrls = [];
 			composeCategory = null;
 			composeAnonymous = false;
 			composing = false;
@@ -1473,8 +1482,14 @@
 				{:else if selectedPostDetail}
 					{@const post = selectedPostDetail}
 					<div class="post-panel-body">
-						{#if post.headerImageDataUrl}
-							<img class="post-header-image" src={post.headerImageDataUrl} alt="" />
+						{#if post.images.length > 0}
+							<PostImageGallery images={post.images} flush flushMode="panel" />
+						{:else if post.headerImageDataUrl}
+							<PostImageGallery
+								images={[{ id: `${post.id}-header`, dataUrl: post.headerImageDataUrl, position: 0 }]}
+								flush
+								flushMode="panel"
+							/>
 						{/if}
 
 						<div class="article-meta">
@@ -2057,8 +2072,12 @@
 
 						<div class="field">
 							<span class="field-label">Header image</span>
-							<HeaderImageCropper disabled={composeSubmitting} onimagechange={handleHeaderImage} />
-							<span class="field-hint muted">Optional. Cropped wide for the post header.</span>
+							<HeaderImageCropper
+								disabled={composeSubmitting}
+								onimagechange={handleHeaderImage}
+								onimageschange={handleHeaderImages}
+							/>
+							<span class="field-hint muted">Optional. Add up to 6 wide gallery images.</span>
 						</div>
 
 						<div class="field">
@@ -2946,17 +2965,6 @@
 		gap: 12px;
 	}
 
-	.post-header-image {
-		display: block;
-		width: calc(100% + 48px);
-		aspect-ratio: 20 / 9;
-		height: auto;
-		object-fit: cover;
-		margin: -24px -24px 0;
-		background: var(--surface-2);
-		border-bottom: 1px solid var(--border);
-	}
-
 	.article-meta {
 		display: flex;
 		align-items: center;
@@ -3450,11 +3458,6 @@
 		.login-card {
 			justify-content: flex-start;
 			min-height: 0;
-		}
-
-		.post-header-image {
-			width: calc(100% + 36px);
-			margin: -18px -18px 0;
 		}
 
 		.submit-row {

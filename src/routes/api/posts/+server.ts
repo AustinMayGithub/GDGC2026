@@ -1,7 +1,7 @@
 import { json, error, isHttpError } from '@sveltejs/kit';
 import { dev } from '$app/environment';
 import { db } from '$lib/server/db';
-import { posts } from '$lib/server/db/schema';
+import { postImages, posts } from '$lib/server/db/schema';
 import {
 	NZ_REGIONS,
 	OUTSIDE_NZ_POST_MESSAGE,
@@ -16,6 +16,8 @@ const DEFAULT_LOCATION_EPSILON = 0.000001;
 const DEFAULT_JITTER_MIN_M = 250;
 const DEFAULT_JITTER_MAX_M = 500;
 const METERS_PER_DEGREE_LAT = 111320;
+const MAX_POST_IMAGES = 6;
+const MAX_IMAGE_BYTES = 1_500_000;
 
 function isMissingOptionalPostColumn(err: unknown) {
 	const message = err instanceof Error ? err.message : String(err);
@@ -23,6 +25,11 @@ function isMissingOptionalPostColumn(err: unknown) {
 		(message.includes('anonymous') || message.includes('header_image_data_url')) &&
 		message.includes('does not exist')
 	);
+}
+
+function isMissingPostImagesTable(err: unknown) {
+	const message = err instanceof Error ? err.message : String(err);
+	return message.includes('post_images') && message.includes('does not exist');
 }
 
 function errorMessages(err: unknown, seen = new Set<unknown>()): string[] {
@@ -117,10 +124,20 @@ async function createPost({ request, locals }: Parameters<RequestHandler>[0]) {
 
 	const title = String(data.title ?? '').trim();
 	const body = String(data.body ?? '').trim();
-	const headerImageDataUrl =
+	const rawImages = Array.isArray(data.imageDataUrls)
+		? data.imageDataUrls
+		: Array.isArray(data.images)
+			? data.images
+			: [];
+	const imageDataUrls = rawImages
+		.map((value: unknown) => (typeof value === 'string' ? value.trim() : ''))
+		.filter(Boolean)
+		.slice(0, MAX_POST_IMAGES);
+	const legacyHeaderImageDataUrl =
 		typeof data.headerImageDataUrl === 'string' && data.headerImageDataUrl.trim()
 			? data.headerImageDataUrl.trim()
 			: null;
+	const headerImageDataUrl = imageDataUrls[0] ?? legacyHeaderImageDataUrl;
 	const category =
 		data.category === 'personal' || data.category === 'factual' ? data.category : null;
 	const lng = Number(data.lng);
@@ -133,11 +150,14 @@ async function createPost({ request, locals }: Parameters<RequestHandler>[0]) {
 	if (body.length < 10 || body.length > 5000)
 		throw error(400, 'Body must be 10–5000 characters.');
 	if (
-		headerImageDataUrl &&
-		(!headerImageDataUrl.startsWith('data:image/jpeg;base64,') ||
-			headerImageDataUrl.length > 1_500_000)
+		imageDataUrls.some(
+			(image) => !image.startsWith('data:image/jpeg;base64,') || image.length > MAX_IMAGE_BYTES
+		) ||
+		(headerImageDataUrl &&
+			(!headerImageDataUrl.startsWith('data:image/jpeg;base64,') ||
+				headerImageDataUrl.length > MAX_IMAGE_BYTES))
 	)
-		throw error(400, 'Header image must be a cropped JPEG under 1.5 MB.');
+		throw error(400, 'Images must be cropped JPEGs under 1.5 MB each.');
 	if (!category) throw error(400, 'Choose a post category.');
 	if (!Number.isFinite(lng) || !Number.isFinite(lat))
 		throw error(400, 'Pick a location on the map.');
@@ -178,6 +198,21 @@ async function createPost({ request, locals }: Parameters<RequestHandler>[0]) {
 	}
 
 	if (!post) throw error(500, 'Post could not be created.');
+
+	if (imageDataUrls.length > 0) {
+		try {
+			await db.insert(postImages).values(
+				imageDataUrls.map((dataUrl, position) => ({
+					postId: post!.id,
+					dataUrl,
+					position
+				}))
+			);
+		} catch (err) {
+			if (!isMissingPostImagesTable(err)) throw err;
+		}
+	}
+
 	return json({ id: post.id }, { status: 201 });
 };
 
