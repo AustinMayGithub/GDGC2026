@@ -1,7 +1,6 @@
 <script lang="ts">
 	import 'maplibre-gl/dist/maplibre-gl.css';
 	import { onMount, onDestroy } from 'svelte';
-	import { goto } from '$app/navigation';
 	import type { PostSummary } from '$lib/types';
 	import { NZ_BBOX } from '$lib/data/nz-regions';
 
@@ -23,7 +22,6 @@
 	let container: HTMLDivElement;
 	let map: unknown = null;
 	let maplibre: typeof import('maplibre-gl') | null = null;
-	let markersMap = new Map<string, { marker: unknown; el: HTMLElement }>();
 
 	const NZ_VISUAL_CENTER: [number, number] = [174.25, -41.15];
 
@@ -153,73 +151,14 @@
 		};
 	}
 
-	function createMarkerEl(post: PostSummary, hovered: boolean): HTMLElement {
-		const el = document.createElement('div');
-		el.className = post.category === 'factual' ? 'marker-factual' : 'marker-personal';
-		el.setAttribute('data-post-id', post.id);
-		el.style.cssText = `
-			width: 14px;
-			height: 14px;
-			border-radius: 50%;
-			cursor: pointer;
-			transition: transform 0.15s ease, box-shadow 0.15s ease;
-			${
-				post.category === 'factual'
-					? `background: linear-gradient(120deg, #6366f1, #ec4899);
-					   border: none;
-					   box-shadow: 0 0 0 2px #fff, 0 2px 8px rgba(99,102,241,0.45);`
-					: `background: #fff;
-					   border: 2px solid #6366f1;
-					   box-shadow: 0 0 0 1px rgba(99,102,241,0.2), 0 2px 6px rgba(99,102,241,0.2);`
-			}
-			${hovered ? 'transform: scale(1.6); z-index: 2;' : ''}
-		`;
-		return el;
-	}
-
-	function syncMarkers() {
-		if (!map || !maplibre) return;
-		const ml = maplibre as typeof import('maplibre-gl');
-		const m = map as InstanceType<typeof ml.Map>;
-
-		const currentIds = new Set(posts.map((p) => p.id));
-		for (const [id, { marker }] of markersMap) {
-			if (!currentIds.has(id)) {
-				(marker as InstanceType<typeof ml.Marker>).remove();
-				markersMap.delete(id);
-			}
-		}
-
-		for (const post of posts) {
-			if (markersMap.has(post.id)) {
-				const { el } = markersMap.get(post.id)!;
-				const hovered = hoveredPostId === post.id;
-				el.style.transform = hovered ? 'scale(1.6)' : '';
-				el.style.boxShadow = hovered
-					? post.category === 'factual'
-						? '0 0 0 3px #fff, 0 4px 16px rgba(99,102,241,0.7)'
-						: '0 0 0 2px #6366f1, 0 4px 12px rgba(99,102,241,0.5)'
-					: post.category === 'factual'
-						? '0 0 0 2px #fff, 0 2px 8px rgba(99,102,241,0.45)'
-						: '0 0 0 1px rgba(99,102,241,0.2), 0 2px 6px rgba(99,102,241,0.2)';
-			} else {
-				const el = createMarkerEl(post, hoveredPostId === post.id);
-				el.addEventListener('click', () => goto(`/post/${post.id}`));
-				const marker = new ml.Marker({ element: el }).setLngLat([post.lng, post.lat]).addTo(m);
-				markersMap.set(post.id, { marker, el });
-			}
-		}
-	}
-
 	export function getMarkerScreenPos(postId: string): { x: number; y: number } | null {
 		if (!map || !maplibre) return null;
 		const ml = maplibre as typeof import('maplibre-gl');
 		const m = map as InstanceType<typeof ml.Map>;
-		const entry = markersMap.get(postId);
-		if (!entry) return null;
+		const post = posts.find((item) => item.id === postId);
+		if (!post) return null;
 
-		const marker = entry.marker as InstanceType<typeof ml.Marker>;
-		const lngLat = marker.getLngLat();
+		const lngLat = new ml.LngLat(post.lng, post.lat);
 		const point = m.project(lngLat);
 		const rect = container.getBoundingClientRect();
 		return {
@@ -280,7 +219,6 @@
 
 		m.on('load', () => {
 			fitToBbox(NZ_BBOX);
-			syncMarkers();
 			onMarkerPositionsChange();
 			onMapReady(m);
 		});
@@ -300,7 +238,6 @@
 	$effect(() => {
 		posts;
 		hoveredPostId;
-		syncMarkers();
 	});
 </script>
 
