@@ -816,12 +816,45 @@
 					'circle-radius': [
 						'*',
 						[
-							'case',
-							['==', ['get', 'selected'], true],
-							9,
-							['==', ['get', 'hovered'], true],
-							8,
-							6
+							'interpolate',
+							['linear'],
+							['zoom'],
+							4.5,
+							[
+								'case',
+								['==', ['get', 'selected'], true],
+								3.8,
+								['==', ['get', 'hovered'], true],
+								3.3,
+								2.7
+							],
+							7,
+							[
+								'case',
+								['==', ['get', 'selected'], true],
+								5.8,
+								['==', ['get', 'hovered'], true],
+								5.1,
+								4.2
+							],
+							10,
+							[
+								'case',
+								['==', ['get', 'selected'], true],
+								7.6,
+								['==', ['get', 'hovered'], true],
+								6.8,
+								5.4
+							],
+							14,
+							[
+								'case',
+								['==', ['get', 'selected'], true],
+								9,
+								['==', ['get', 'hovered'], true],
+								8,
+								6
+							]
 						],
 						['coalesce', ['get', 'scale'], 1]
 					],
@@ -846,10 +879,23 @@
 						'#ffffff'
 					],
 					'circle-stroke-width': [
-						'case',
-						['==', ['get', 'selected'], true],
-						3,
-						2
+						'interpolate',
+						['linear'],
+						['zoom'],
+						4.5,
+						[
+							'case',
+							['==', ['get', 'selected'], true],
+							2.1,
+							1.4
+						],
+						14,
+						[
+							'case',
+							['==', ['get', 'selected'], true],
+							3,
+							2
+						]
 					]
 				}
 			});
