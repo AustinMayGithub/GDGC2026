@@ -42,17 +42,17 @@
 		const width = typeof window === 'undefined' ? 1440 : window.innerWidth;
 		const compact = width < 820;
 		const isNational = isNationalView(bbox);
-		const sidePadding = compact ? 18 : isNational ? 44 : 32;
+		const sidePadding = compact ? 18 : isNational ? 44 : 18;
 
 		return {
 			padding: {
-				top: compact ? 96 : 108,
+				top: compact ? 96 : isNational ? 108 : 78,
 				right: sidePadding,
-				bottom: compact ? 28 : 36,
+				bottom: compact ? 28 : isNational ? 36 : 18,
 				left: sidePadding
 			},
 			duration: 800,
-			maxZoom: isNational ? 5.15 : 8.6
+			maxZoom: isNational ? 5.15 : 10
 		};
 	}
 
@@ -167,7 +167,7 @@
 			style: OSM_STYLE,
 			center: [173.3, -41.2],
 			zoom: 4.7,
-			renderWorldCopies: false,
+			renderWorldCopies: true,
 			dragRotate: false,
 			touchPitch: false,
 			attributionControl: false
