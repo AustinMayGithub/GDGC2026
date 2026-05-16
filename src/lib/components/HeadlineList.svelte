@@ -1,7 +1,9 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
+	import { flip } from 'svelte/animate';
 	import type { PostSummary } from '$lib/types';
 	import { getRegion } from '$lib/data/nz-regions';
+	import { fly } from 'svelte/transition';
 
 	interface Props {
 		posts: PostSummary[];
@@ -43,50 +45,61 @@
 			<div class={`bubble-rail rail-${side}`}>
 				{#each bubblePosts(side) as post (post.id)}
 					{@const region = getRegion(post.regionId)}
-					<button
-						type="button"
-						use:registerEl={post.id}
-						class="headline-item"
-						class:hovered={hoveredPostId === post.id}
-						onmouseenter={() => onHover(post.id)}
-						onmouseleave={() => onHover(null)}
-						onclick={() => goto(`/post/${post.id}`)}
-						aria-label={post.title}
+					<div
+						class="headline-slot"
+						animate:flip={{ duration: 280 }}
+						out:fly={{
+							x: side === 'left' ? -72 : 72,
+							y: 0,
+							duration: 240,
+							opacity: 0
+						}}
 					>
-						<div class="item-top">
-							<span class={post.category === 'factual' ? 'badge badge-factual' : 'badge'}>
-								{post.category === 'factual' ? 'Factual' : 'Community'}
-							</span>
-							<span class="item-time muted">{timeAgo(post.createdAt)}</span>
-						</div>
-
-						<p class="item-title">{post.title}</p>
-
-						<div class="item-spacer"></div>
-
-						<div class="item-meta">
-							{#if region}
-								<span class="item-region muted">{region.name}</span>
-							{/if}
-							<span class="item-comments muted">
-								<svg width="12" height="12" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-									<path
-										d="M14 1H2a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h3l2 3 2-3h5a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1z"
-										stroke="currentColor"
-										stroke-width="1.4"
-										stroke-linejoin="round"
-									/>
-								</svg>
-								{post.commentCount}
-							</span>
-							{#if post.category === 'factual' && post.verifyCount + post.disputeCount > 0}
-								<span class="item-votes">
-									{Math.round((post.verifyCount / (post.verifyCount + post.disputeCount)) * 100)}%
-									verified
+						<button
+							type="button"
+							use:registerEl={post.id}
+							class="headline-item"
+							class:hovered={hoveredPostId === post.id}
+							onmouseenter={() => onHover(post.id)}
+							onmouseleave={() => onHover(null)}
+							onclick={() => goto(`/post/${post.id}`)}
+							aria-label={post.title}
+						>
+							<div class="item-top">
+								<span class={post.category === 'factual' ? 'badge badge-factual' : 'badge'}>
+									{post.category === 'factual' ? 'Factual' : 'Community'}
 								</span>
-							{/if}
-						</div>
-					</button>
+								<span class="item-time muted">{timeAgo(post.createdAt)}</span>
+							</div>
+
+							<p class="item-title">{post.title}</p>
+
+							<div class="item-spacer"></div>
+
+							<div class="item-meta">
+								{#if region}
+									<span class="item-region muted">{region.name}</span>
+								{/if}
+								<span class="item-comments muted">
+									<svg width="12" height="12" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+										<path
+											d="M14 1H2a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h3l2 3 2-3h5a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1z"
+											stroke="currentColor"
+											stroke-width="1.4"
+											stroke-linejoin="round"
+										/>
+									</svg>
+									{post.commentCount}
+								</span>
+								{#if post.category === 'factual' && post.verifyCount + post.disputeCount > 0}
+									<span class="item-votes">
+										{Math.round((post.verifyCount / (post.verifyCount + post.disputeCount)) * 100)}%
+										verified
+									</span>
+								{/if}
+							</div>
+						</button>
+					</div>
 				{/each}
 			</div>
 		{/each}
@@ -143,6 +156,11 @@
 		display: flex;
 		flex-direction: column;
 		gap: 10px;
+	}
+
+	.headline-slot {
+		width: 100%;
+		pointer-events: auto;
 	}
 
 	.headline-item:hover,
