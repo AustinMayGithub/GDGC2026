@@ -103,7 +103,7 @@
 	{#each lines as line (line.id)}
 		<path
 			d="M {line.x1} {line.y1} Q {line.cx} {line.cy} {line.x2} {line.y2}"
-			stroke={line.hovered ? 'url(#connector-gradient)' : 'rgba(30, 41, 59, 0.24)'}
+			stroke={line.hovered ? 'url(#connector-gradient)' : 'rgba(71, 85, 105, 0.26)'}
 			stroke-width={line.hovered ? 2.35 : 1.2}
 			fill="none"
 			stroke-dasharray={line.hovered ? 'none' : '5 8'}
@@ -114,15 +114,15 @@
 			cx={line.x1}
 			cy={line.y1}
 			r={line.hovered ? 3.2 : 2.2}
-			fill={line.hovered ? 'var(--brand-1)' : 'rgba(30, 41, 59, 0.36)'}
+			fill={line.hovered ? 'var(--brand-1)' : 'rgba(71, 85, 105, 0.4)'}
 		/>
 		<circle
 			cx={line.x2}
 			cy={line.y2}
-			r={line.hovered ? 6.2 : 4.8}
-			fill={line.hovered ? 'url(#connector-gradient)' : 'rgba(255, 255, 255, 0.96)'}
-			stroke={line.hovered ? 'rgba(255, 255, 255, 0.92)' : 'rgba(17, 24, 39, 0.92)'}
-			stroke-width={line.hovered ? 1.9 : 1.8}
+			r={line.hovered ? 6.5 : 5}
+			fill="rgba(255, 255, 255, 0.96)"
+			stroke="rgba(17, 24, 39, 0.92)"
+			stroke-width={line.hovered ? 2.4 : 1.8}
 		/>
 	{/each}
 
