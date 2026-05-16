@@ -1512,7 +1512,7 @@
 			/>
 
 			{#if composing && data.user}
-				<div class="compose-radius-overlay location-panel">
+				<div class="compose-radius-overlay">
 					<div class="radius-label-row">
 						<label class="field-label" for="compose-radius-slider">Affected location</label>
 						<span class="radius-value">{formatRadius(composeRadiusM)}</span>
@@ -1530,9 +1530,6 @@
 					<div class="radius-hints muted">
 						<span>100 m</span>
 						<span>50 km</span>
-					</div>
-					<div class="area-label-row muted">
-						<span>{composeAreaLabel}</span>
 					</div>
 				</div>
 			{/if}
@@ -3516,13 +3513,25 @@
 
 	.compose-radius-overlay {
 		position: absolute;
-		left: 20px;
-		bottom: 20px;
+		left: 16px;
+		bottom: 10px;
 		z-index: 21;
-		width: min(360px, calc(100vw - 40px));
-		background: rgba(255, 255, 255, 0.94);
-		backdrop-filter: blur(16px);
-		box-shadow: 0 14px 34px rgba(15, 23, 42, 0.14);
+		width: min(320px, calc(100vw - 32px));
+		display: flex;
+		flex-direction: column;
+		gap: 4px;
+		padding: 0;
+		text-shadow: 0 1px 2px rgba(255, 255, 255, 0.9);
+	}
+
+	.compose-radius-overlay .field-label,
+	.compose-radius-overlay .radius-value,
+	.compose-radius-overlay .radius-hints {
+		color: var(--text);
+	}
+
+	.compose-radius-overlay .radius-slider {
+		height: 18px;
 	}
 
 	.radius-label-row,
@@ -3655,8 +3664,8 @@
 
 		.compose-radius-overlay {
 			left: 12px;
-			bottom: 16px;
-			width: min(340px, calc(100vw - 24px));
+			bottom: 8px;
+			width: min(320px, calc(100vw - 24px));
 		}
 
 		.post-panel {
