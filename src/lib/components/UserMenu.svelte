@@ -25,9 +25,6 @@
 					<strong>{user.displayName}</strong>
 					<span class="email">{user.email}</span>
 				</div>
-				<a class="menu-link" href="/profile/{user.id}" onclick={() => (open = false)}>
-					My profile
-				</a>
 				<a class="menu-link" href="/profile/{user.id}#posts" onclick={() => (open = false)}>
 					My posts
 				</a>

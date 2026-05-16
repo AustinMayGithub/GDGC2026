@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { UserProfile, SessionUser } from '$lib/types';
-	import { invalidateAll } from '$app/navigation';
+	import { goto, invalidateAll } from '$app/navigation';
 	import UserMenu from '$lib/components/UserMenu.svelte';
 	import { getRegion } from '$lib/data/nz-regions';
 
@@ -24,6 +24,13 @@
 	let editAge = $state('');
 	let editLocation = $state('');
 	let editAvatarDataUrl = $state<string | null>(null);
+	let postToDelete = $state<{ id: string; title: string } | null>(null);
+	let deletingPostId = $state<string | null>(null);
+	let deletePostError = $state('');
+	let showDeleteAccount = $state(false);
+	let accountPassword = $state('');
+	let deletingAccount = $state(false);
+	let deleteAccountError = $state('');
 
 	function startEdit() {
 		editName = profile.displayName;
@@ -67,6 +74,73 @@
 			await invalidateAll();
 		} finally {
 			saving = false;
+		}
+	}
+
+	function askDeletePost(post: { id: string; title: string }) {
+		postToDelete = post;
+		deletePostError = '';
+	}
+
+	function cancelDeletePost() {
+		if (deletingPostId) return;
+		postToDelete = null;
+		deletePostError = '';
+	}
+
+	async function confirmDeletePost() {
+		if (!postToDelete) return;
+
+		deletingPostId = postToDelete.id;
+		deletePostError = '';
+		try {
+			const res = await fetch(`/api/posts/${postToDelete.id}`, { method: 'DELETE' });
+			if (!res.ok) {
+				deletePostError = (await res.text()) || 'Could not delete this post.';
+				return;
+			}
+			postToDelete = null;
+			await invalidateAll();
+		} catch {
+			deletePostError = 'Network error. Try again.';
+		} finally {
+			deletingPostId = null;
+		}
+	}
+
+	function openDeleteAccount() {
+		showDeleteAccount = true;
+		accountPassword = '';
+		deleteAccountError = '';
+	}
+
+	function closeDeleteAccount() {
+		if (deletingAccount) return;
+		showDeleteAccount = false;
+		accountPassword = '';
+		deleteAccountError = '';
+	}
+
+	async function confirmDeleteAccount() {
+		if (!accountPassword || deletingAccount) return;
+
+		deletingAccount = true;
+		deleteAccountError = '';
+		try {
+			const res = await fetch('/api/users/me', {
+				method: 'DELETE',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ password: accountPassword })
+			});
+			if (!res.ok) {
+				deleteAccountError = (await res.text()) || 'Could not delete your account.';
+				return;
+			}
+			await goto('/');
+		} catch {
+			deleteAccountError = 'Network error. Try again.';
+		} finally {
+			deletingAccount = false;
 		}
 	}
 
@@ -288,7 +362,7 @@
 					{#each profile.posts as post}
 						{@const region = getRegion(post.regionId)}
 						{@const totalVotes = post.verifyCount + post.disputeCount}
-						<a class="post-item card" href="/post/{post.id}">
+						<article class="post-item card">
 							<div class="post-top">
 								<span class={post.category === 'factual' ? 'badge badge-factual' : 'badge'}>
 									{post.category === 'factual' ? 'Factual' : 'Community'}
@@ -313,12 +387,113 @@
 								{/if}
 								<span>💬 {post.commentCount}</span>
 							</div>
-						</a>
+							<div class="post-actions">
+								<a class="btn post-open-btn" href="/post/{post.id}">Open</a>
+								{#if isOwn}
+									<button
+										type="button"
+										class="btn danger-btn"
+										onclick={() => askDeletePost({ id: post.id, title: post.title })}
+									>
+										Delete
+									</button>
+								{/if}
+							</div>
+						</article>
 					{/each}
 				</div>
 			{/if}
 		</section>
+
+		{#if isOwn}
+			<section class="danger-section card">
+				<h2 class="section-label">Account</h2>
+				<p class="muted danger-copy">
+					Delete your account and all posts, comments, votes, and reactions linked to it.
+				</p>
+				<button type="button" class="btn danger-btn" onclick={openDeleteAccount}>
+					Delete account
+				</button>
+			</section>
+		{/if}
 	</div>
+
+	{#if postToDelete}
+		<div class="modal-backdrop" role="presentation" onclick={cancelDeletePost}>
+			<section
+				class="confirm-modal card"
+				role="dialog"
+				aria-modal="true"
+				aria-labelledby="delete-post-title"
+				onclick={(e) => e.stopPropagation()}
+			>
+				<h2 id="delete-post-title">Delete post?</h2>
+				<p class="muted">
+					Are you sure you want to delete "{postToDelete.title}"? This cannot be undone.
+				</p>
+				{#if deletePostError}
+					<p class="error-text modal-error">{deletePostError}</p>
+				{/if}
+				<div class="modal-actions">
+					<button type="button" class="btn" onclick={cancelDeletePost} disabled={!!deletingPostId}>
+						Cancel
+					</button>
+					<button
+						type="button"
+						class="btn danger-btn"
+						onclick={confirmDeletePost}
+						disabled={!!deletingPostId}
+					>
+						{deletingPostId ? 'Deleting...' : 'Delete'}
+					</button>
+				</div>
+			</section>
+		</div>
+	{/if}
+
+	{#if showDeleteAccount}
+		<div class="modal-backdrop" role="presentation" onclick={closeDeleteAccount}>
+			<section
+				class="confirm-modal card"
+				role="dialog"
+				aria-modal="true"
+				aria-labelledby="delete-account-title"
+				onclick={(e) => e.stopPropagation()}
+			>
+				<h2 id="delete-account-title">Delete account?</h2>
+				<p class="muted">
+					This will permanently delete your profile and everything connected to it.
+				</p>
+				<label class="password-field" for="delete-password">
+					<span class="field-label">Password</span>
+					<input
+						id="delete-password"
+						class="input"
+						type="password"
+						bind:value={accountPassword}
+						autocomplete="current-password"
+						disabled={deletingAccount}
+					/>
+				</label>
+				{#if deleteAccountError}
+					<p class="error-text modal-error">{deleteAccountError}</p>
+				{/if}
+				<div class="modal-actions">
+					<button type="button" class="btn" onclick={closeDeleteAccount} disabled={deletingAccount}>
+						Cancel
+					</button>
+					<button
+						type="button"
+						class="btn danger-btn"
+						onclick={confirmDeleteAccount}
+						disabled={deletingAccount || !accountPassword}
+					>
+						{deletingAccount ? 'Deleting...' : 'Delete account'}
+					</button>
+				</div>
+			</section>
+		</div>
+	{/if}
 </div>
 
 <style>
@@ -639,6 +814,19 @@
 		font-size: 12px;
 	}
 
+	.post-actions {
+		display: flex;
+		justify-content: flex-end;
+		gap: 8px;
+		margin-top: 12px;
+	}
+
+	.post-open-btn,
+	.danger-btn {
+		font-size: 13px;
+		padding: 7px 12px;
+	}
+
 	.vote-pct {
 		font-weight: 700;
 	}
@@ -650,6 +838,73 @@
 		border: 1px solid var(--border);
 		border-radius: var(--radius-sm);
 		padding: 1px 6px;
+	}
+
+	.danger-section {
+		padding: 20px 24px;
+		border-color: rgba(220, 38, 38, 0.22);
+	}
+
+	.danger-copy {
+		margin: 0 0 12px;
+		font-size: 14px;
+	}
+
+	.danger-btn {
+		border-color: rgba(220, 38, 38, 0.34);
+		color: var(--dispute);
+		background: #fff;
+	}
+
+	.danger-btn:hover {
+		background: var(--dispute-soft);
+		box-shadow: var(--shadow-sm);
+	}
+
+	.modal-backdrop {
+		position: fixed;
+		inset: 0;
+		z-index: 80;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		padding: 18px;
+		background: rgba(20, 20, 26, 0.42);
+	}
+
+	.confirm-modal {
+		width: min(420px, 100%);
+		padding: 22px;
+		background: var(--surface);
+		box-shadow: var(--shadow-lg);
+	}
+
+	.confirm-modal h2 {
+		font-size: 18px;
+		margin-bottom: 8px;
+	}
+
+	.confirm-modal p {
+		margin: 0;
+		font-size: 14px;
+	}
+
+	.password-field {
+		display: flex;
+		flex-direction: column;
+		gap: 6px;
+		margin-top: 16px;
+	}
+
+	.modal-error {
+		margin-top: 12px !important;
+	}
+
+	.modal-actions {
+		display: flex;
+		justify-content: flex-end;
+		gap: 8px;
+		margin-top: 18px;
 	}
 
 	@media (max-width: 600px) {
@@ -670,6 +925,10 @@
 		}
 		.edit-fields {
 			width: 100%;
+		}
+		.post-actions,
+		.modal-actions {
+			flex-direction: column;
 		}
 	}
 </style>
