@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { timeAgo } from '$lib/time';
 	import type { CommunityNote } from '$lib/types';
 
 	interface Props {
@@ -6,37 +7,25 @@
 	}
 
 	let { note }: Props = $props();
-
-	function relativeTime(isoString: string): string {
-		const diff = Date.now() - new Date(isoString).getTime();
-		const minutes = Math.floor(diff / 60000);
-		if (minutes < 1) return 'just now';
-		if (minutes < 60) return `${minutes}m ago`;
-		const hours = Math.floor(minutes / 60);
-		if (hours < 24) return `${hours}h ago`;
-		const days = Math.floor(hours / 24);
-		return `${days}d ago`;
-	}
 </script>
 
 <div class="note-card card">
 	<div class="note-header">
-		<span class="note-icon">🤖</span>
 		<div class="note-titles">
 			<span class="note-title">Community Note</span>
-			<span class="note-subtitle muted">AI summary of the discussion — not a fact check</span>
+			<span class="note-subtitle muted">Reader context about this post - not independently verified</span>
 		</div>
 	</div>
 
 	{#if note}
 		<p class="note-body">{note.body}</p>
 		<p class="note-meta muted">
-			Updated {relativeTime(note.generatedAt)}, based on {note.basedOnCommentCount}
+			Updated {timeAgo(note.generatedAt)}, based on {note.basedOnCommentCount}
 			{note.basedOnCommentCount === 1 ? 'comment' : 'comments'}
 		</p>
 	{:else}
 		<p class="note-empty muted">
-			No discussion yet — be the first to comment below.
+			No discussion yet - be the first to comment below.
 		</p>
 	{/if}
 </div>
@@ -54,11 +43,6 @@
 		display: flex;
 		align-items: flex-start;
 		gap: 10px;
-	}
-	.note-icon {
-		font-size: 18px;
-		line-height: 1.2;
-		flex-shrink: 0;
 	}
 	.note-titles {
 		display: flex;

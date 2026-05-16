@@ -14,6 +14,8 @@
 	import CommunityNote from '$lib/components/CommunityNote.svelte';
 	import ReactionBar from '$lib/components/ReactionBar.svelte';
 	import CommentThread from '$lib/components/CommentThread.svelte';
+	import PostImageGallery from '$lib/components/PostImageGallery.svelte';
+	import LinkifiedText from '$lib/components/LinkifiedText.svelte';
 	import logo from '$lib/data/birdseye.png';
 
 
@@ -94,8 +96,13 @@
 		<!-- LEFT: article -->
 		<main class="article-col">
 			<article class="article card">
-				{#if post.headerImageDataUrl}
-					<img class="header-image" src={post.headerImageDataUrl} alt="" />
+				{#if post.images.length > 0}
+					<PostImageGallery images={post.images} flush />
+				{:else if post.headerImageDataUrl}
+					<PostImageGallery
+						images={[{ id: `${post.id}-header`, dataUrl: post.headerImageDataUrl, position: 0 }]}
+						flush
+					/>
 				{/if}
 
 				<!-- Category + meta row -->
@@ -120,7 +127,7 @@
 				<div class="article-body">
 					{#each post.body.split('\n') as paragraph}
 						{#if paragraph.trim()}
-							<p>{paragraph}</p>
+							<p><LinkifiedText text={paragraph} /></p>
 						{/if}
 					{/each}
 				</div>
@@ -266,17 +273,6 @@
 		margin: 0 auto;
 		padding: 32px;
 		overflow: hidden;
-	}
-
-	.header-image {
-		display: block;
-		width: calc(100% + 64px);
-		aspect-ratio: 20 / 9;
-		height: auto;
-		object-fit: cover;
-		margin: -32px -32px 28px;
-		background: var(--surface-2);
-		border-bottom: 1px solid var(--border);
 	}
 
 	.article-meta {

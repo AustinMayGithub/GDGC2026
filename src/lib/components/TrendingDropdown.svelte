@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { getRegion } from '$lib/data/nz-regions';
+	import { timeAgo } from '$lib/time';
 	import type { PostSummary } from '$lib/types';
 
 	interface Props {
@@ -40,24 +41,12 @@
 		onItemsChange
 	}: Props = $props();
 
-	function timeAgo(iso: string): string {
-		const diff = Date.now() - new Date(iso).getTime();
-		const m = Math.floor(diff / 60000);
-		if (m < 1) return 'just now';
-		if (m < 60) return `${m}m ago`;
-		const h = Math.floor(m / 60);
-		if (h < 24) return `${h}h ago`;
-		return `${Math.floor(h / 24)}d ago`;
-	}
-
 	function engagementLabel(engagement: number): string {
 		return `${engagement} engagement${engagement === 1 ? '' : 's'}`;
 	}
 
 	const scopeCopy = $derived(
-		scope === 'local'
-			? `${modeLabels[mode]} in your area`
-			: `${modeLabels[mode]} across New Zealand`
+		scope === 'local' ? 'In your area' : 'Across New Zealand'
 	);
 
 	function setOpen(nextOpen: boolean) {
@@ -227,6 +216,15 @@
 	.trending-menu {
 		border-top: 1px solid var(--border);
 		background: var(--surface);
+		max-height: calc(100vh - 180px);
+		overflow-y: auto;
+		overscroll-behavior: contain;
+		scrollbar-width: none;
+		-ms-overflow-style: none;
+	}
+
+	.trending-menu::-webkit-scrollbar {
+		display: none;
 	}
 
 	.trend-tabs {
@@ -320,5 +318,11 @@
 		font-size: 11px;
 		font-weight: 700;
 		color: var(--text-2);
+	}
+
+	@media (max-width: 820px) {
+		.trending-menu {
+			max-height: min(58vh, 460px);
+		}
 	}
 </style>

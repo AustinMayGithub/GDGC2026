@@ -21,6 +21,7 @@
 	let title = $state('');
 	let body = $state('');
 	let headerImageDataUrl = $state<string | null>(null);
+	let imageDataUrls = $state<string[]>([]);
 	let category = $state<PostCategory | null>(null);
 	let lng = $state(174.76); // Default: Auckland
 	let lat = $state(-36.85);
@@ -97,6 +98,11 @@
 		headerImageDataUrl = dataUrl;
 	}
 
+	function handleHeaderImages(dataUrls: string[]) {
+		imageDataUrls = dataUrls;
+		headerImageDataUrl = dataUrls[0] ?? null;
+	}
+
 	async function handleSubmit(e: SubmitEvent) {
 		e.preventDefault();
 		if (!canSubmit || category === null) return;
@@ -112,6 +118,7 @@
 					title: title.trim(),
 					body: body.trim(),
 					headerImageDataUrl,
+					imageDataUrls,
 					category,
 					anonymous,
 					lng,
@@ -170,8 +177,12 @@
 					<!-- Header image -->
 					<div class="field">
 						<span class="field-label">Header image</span>
-						<HeaderImageCropper disabled={submitting} onimagechange={handleHeaderImage} />
-						<span class="field-hint muted">Optional. Cropped wide for the post header.</span>
+						<HeaderImageCropper
+							disabled={submitting}
+							onimagechange={handleHeaderImage}
+							onimageschange={handleHeaderImages}
+						/>
+						<span class="field-hint muted">Optional. Add up to 6 wide gallery images.</span>
 					</div>
 
 					<!-- Title -->

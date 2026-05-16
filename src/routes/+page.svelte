@@ -9,11 +9,14 @@
 	import TrendingDropdown from '$lib/components/TrendingDropdown.svelte';
 	import CategoryPicker from '$lib/components/CategoryPicker.svelte';
 	import HeaderImageCropper from '$lib/components/HeaderImageCropper.svelte';
+	import PostImageGallery from '$lib/components/PostImageGallery.svelte';
+	import LinkifiedText from '$lib/components/LinkifiedText.svelte';
 	import CredibilityMeter from '$lib/components/CredibilityMeter.svelte';
 	import CommunityNote from '$lib/components/CommunityNote.svelte';
 	import ReactionBar from '$lib/components/ReactionBar.svelte';
 	import CommentThread from '$lib/components/CommentThread.svelte';
 	import { fallbackAreaLabel } from '$lib/data/geo-labels';
+	import { timeAgo } from '$lib/time';
 	import type {
 		SessionUser,
 		PostSummary,
@@ -25,7 +28,13 @@
 		VotePoint,
 		VoteUser
 	} from '$lib/types';
-	import { NZ_BBOX, NZ_REGIONS, regionForPoint } from '$lib/data/nz-regions';
+	import {
+		NZ_BBOX,
+		NZ_REGIONS,
+		OUTSIDE_NZ_POST_MESSAGE,
+		isWithinNzBounds,
+		regionForPoint
+	} from '$lib/data/nz-regions';
 	import { getLocation, prewarm, seedCoarse, GeoError } from '$lib/location';
 	import logo from '$lib/data/birdseye.png';
 
@@ -96,6 +105,8 @@
 	let selectedPostLoading = $state(false);
 	let selectedPostError = $state('');
 	let selectedPostRequestId = 0;
+	let postDeleteError = $state('');
+	let postDeleting = $state(false);
 
 	let selectedRegionId = $state<string>(DEFAULT_REGION_ID);
 	let localFocusLng = $state(174.76);
@@ -121,6 +132,7 @@
 	let composeTitle = $state('');
 	let composeBody = $state('');
 	let composeHeaderImageDataUrl = $state<string | null>(null);
+	let composeImageDataUrls = $state<string[]>([]);
 	let composeCategory = $state<PostCategory | null>(null);
 	let composeLng = $state(174.76);
 	let composeLat = $state(-36.85);
@@ -270,7 +282,7 @@
 	}
 
 	function popularityScore(post: PostSummary): number {
-		const ageHours = Math.max((Date.now() - new Date(post.createdAt).getTime()) / 36e5, 0);
+		const ageHours = ageHoursFor(post);
 		const voteTotal = post.verifyCount + post.disputeCount;
 		const approval = voteTotal === 0 ? 0.5 : post.verifyCount / voteTotal;
 		const engagement =
@@ -287,17 +299,30 @@
 		return post.commentCount * 4 + post.reactionCount * 3 + votes * 2;
 	}
 
+	function ageHoursFor(post: PostSummary): number {
+		const timestamp = new Date(post.createdAt).getTime();
+		if (!Number.isFinite(timestamp)) return 0;
+		return Math.max((Date.now() - timestamp) / 36e5, 0);
+	}
+
 	function trendScore(post: PostSummary): number {
 		const engagement = engagementFor(post);
-		const ageHours = Math.max((Date.now() - new Date(post.createdAt).getTime()) / 36e5, 0);
-		return Math.round((engagement * 100) / Math.max(ageHours + 2, 2));
+		const voteTotal = post.verifyCount + post.disputeCount;
+		const conversation = post.commentCount * 5 + post.reactionCount * 2 + voteTotal * 2;
+		const credibilitySignal = post.category === 'factual' ? Math.min(voteTotal, 12) * 1.5 : 0;
+		const ageHours = ageHoursFor(post);
+		const ageDecay = 1 / Math.pow(ageHours + 12, 0.35);
+		return Math.round((engagement * 8 + conversation + credibilitySignal) * ageDecay * 100);
 	}
 
 	function risingScore(post: PostSummary): number {
 		const engagement = engagementFor(post);
-		const ageHours = Math.max((Date.now() - new Date(post.createdAt).getTime()) / 36e5, 0);
-		const freshness = 36 / (ageHours + 3);
-		return Math.round((engagement * 85) / Math.max(ageHours + 1.5, 1.5) + freshness);
+		const ageHours = ageHoursFor(post);
+		if (ageHours > 72) return 0;
+		const velocity = engagement / Math.max(ageHours + 0.75, 0.75);
+		const freshness = Math.max(0, 72 - ageHours) / 72;
+		const earlyBoost = post.commentCount > 0 || post.reactionCount > 0 ? 8 : 0;
+		return Math.round((velocity * 120 + freshness * 35 + earlyBoost) * 100);
 	}
 
 	const rankedPosts = $derived.by(() => {
@@ -340,8 +365,15 @@
 				score: trendMode === 'rising' ? risingScore(post) : trendScore(post),
 				engagement: engagementFor(post)
 			}))
-			.filter((entry) => entry.engagement > 0)
-			.sort((a, b) => b.score - a.score || b.engagement - a.engagement);
+			.filter((entry) => entry.engagement > 0 && entry.score > 0)
+			.sort((a, b) => {
+				const scoreDiff = b.score - a.score;
+				if (scoreDiff !== 0) return scoreDiff;
+				if (trendMode === 'rising') {
+					return new Date(b.post.createdAt).getTime() - new Date(a.post.createdAt).getTime();
+				}
+				return b.engagement - a.engagement;
+			});
 
 		return entries.slice(0, 6);
 	});
@@ -382,6 +414,8 @@
 		selectedCommunityNote = null;
 		selectedPostError = '';
 		selectedPostRequestId++;
+		postDeleteError = '';
+		postDeleting = false;
 		redrawTrigger++;
 		refreshPostsIfStale();
 	}
@@ -522,6 +556,11 @@
 	async function switchToLocal() {
 		clearSelectedPost();
 		closeProfile();
+		if (composing) {
+			composing = false;
+			composeError = '';
+			await resizeMapAfterLayout();
+		}
 		scope = 'local';
 		geoError = null;
 
@@ -619,6 +658,7 @@
 			selectedVoteUsers = json.voteUsers ?? [];
 			selectedPostTab = 'discussion';
 			selectedCommunityNote = json.post.communityNote;
+			postDeleteError = '';
 			focusSelectedPost(json.post);
 		} catch {
 			if (requestId !== selectedPostRequestId) return;
@@ -647,6 +687,7 @@
 		selectedVotePoints = [];
 		selectedVoteUsers = [];
 		selectedPostTab = 'discussion';
+		postDeleteError = '';
 		composing = false;
 		const summary = visiblePosts.find((post) => post.id === id);
 		if (summary) focusSelectedPost(summary);
@@ -722,16 +763,6 @@
 
 	function formatJoined(isoString: string): string {
 		return new Date(isoString).toLocaleDateString('en-NZ', { month: 'long', year: 'numeric' });
-	}
-
-	function timeAgo(isoString: string): string {
-		const diff = Date.now() - new Date(isoString).getTime();
-		const minutes = Math.floor(diff / 60000);
-		if (minutes < 1) return 'just now';
-		if (minutes < 60) return `${minutes}m ago`;
-		const hours = Math.floor(minutes / 60);
-		if (hours < 24) return `${hours}h ago`;
-		return `${Math.floor(hours / 24)}d ago`;
 	}
 
 	function regionName(regionId: string): string {
@@ -1033,6 +1064,12 @@
 
 	function handleComposePick(newLng: number, newLat: number) {
 		if (!data.user) return;
+		if (!isWithinNzBounds(newLng, newLat)) {
+			composeError = OUTSIDE_NZ_POST_MESSAGE;
+			window.alert(OUTSIDE_NZ_POST_MESSAGE);
+			focusComposeLocation(composeLng, composeLat);
+			return;
+		}
 		composeLng = newLng;
 		composeLat = newLat;
 		void refreshComposeAreaLabel();
@@ -1053,9 +1090,19 @@
 		composeHeaderImageDataUrl = dataUrl;
 	}
 
+	function handleHeaderImages(dataUrls: string[]) {
+		composeImageDataUrls = dataUrls;
+		composeHeaderImageDataUrl = dataUrls[0] ?? null;
+	}
+
 	async function handleComposeSubmit(e: SubmitEvent) {
 		e.preventDefault();
 		if (!canSubmitPost || composeCategory === null) return;
+		if (!isWithinNzBounds(composeLng, composeLat)) {
+			composeError = OUTSIDE_NZ_POST_MESSAGE;
+			window.alert(OUTSIDE_NZ_POST_MESSAGE);
+			return;
+		}
 
 		composeSubmitting = true;
 		composeError = '';
@@ -1068,6 +1115,7 @@
 					title: composeTitle.trim(),
 					body: composeBody.trim(),
 					headerImageDataUrl: composeHeaderImageDataUrl,
+					imageDataUrls: composeImageDataUrls,
 					category: composeCategory,
 					anonymous: composeAnonymous,
 					lng: composeLng,
@@ -1085,6 +1133,7 @@
 			composeTitle = '';
 			composeBody = '';
 			composeHeaderImageDataUrl = null;
+			composeImageDataUrls = [];
 			composeCategory = null;
 			composeAnonymous = false;
 			composing = false;
@@ -1105,6 +1154,30 @@
 			hoveredPostId = null;
 			lastTrendingFitKey = '';
 			redrawTrigger++;
+		}
+	}
+
+	async function deleteSelectedPost() {
+		if (!selectedPostDetail || postDeleting) return;
+		const ok = window.confirm('Delete this post? This cannot be undone.');
+		if (!ok) return;
+		postDeleting = true;
+		postDeleteError = '';
+
+		try {
+			const res = await fetch(`/api/posts/${selectedPostDetail.id}`, { method: 'DELETE' });
+			const json = await res.json().catch(() => ({}));
+			if (!res.ok) {
+				postDeleteError = json.message ?? 'Could not delete this post.';
+				return;
+			}
+			posts = posts.filter((post) => post.id !== selectedPostDetail?.id);
+			clearSelectedPost();
+			redrawTrigger++;
+		} catch {
+			postDeleteError = 'Network error. Please try again.';
+		} finally {
+			postDeleting = false;
 		}
 	}
 
@@ -1242,11 +1315,25 @@
 					{#if geoError}
 						<span class="error-text helper-text">{geoError}</span>
 					{/if}
-					<select class="input region-select" value={selectedRegionId} onchange={onRegionChange}>
-						{#each orderedRegions as region (region.id)}
-							<option value={region.id}>{region.name}</option>
-						{/each}
-					</select>
+					<label class="region-picker">
+						<span class="region-picker-icon" aria-hidden="true">
+							<svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+								<path
+									d="M8 14s4-3.8 4-7.2A4 4 0 0 0 4 6.8C4 10.2 8 14 8 14Z"
+									stroke="currentColor"
+									stroke-width="1.5"
+									stroke-linejoin="round"
+								/>
+								<circle cx="8" cy="6.8" r="1.35" fill="currentColor" />
+							</svg>
+						</span>
+						<select class="region-select" aria-label="Local area" value={selectedRegionId} onchange={onRegionChange}>
+							{#each orderedRegions as region (region.id)}
+								<option value={region.id}>{region.name}</option>
+							{/each}
+						</select>
+						<span class="region-picker-chevron" aria-hidden="true"></span>
+					</label>
 				</div>
 			{/if}
 		</div>
@@ -1348,7 +1435,6 @@
 			<aside class="post-panel card" transition:fly={{ x: -80, duration: 260 }}>
 				<div class="post-panel-top">
 					<div>
-						<span class="field-label">Post</span>
 						<h1 class="compose-title">
 							{selectedPostDetail?.title ?? visiblePosts.find((post) => post.id === selectedPostId)?.title ?? 'Loading post'}
 						</h1>
@@ -1380,8 +1466,14 @@
 				{:else if selectedPostDetail}
 					{@const post = selectedPostDetail}
 					<div class="post-panel-body">
-						{#if post.headerImageDataUrl}
-							<img class="post-header-image" src={post.headerImageDataUrl} alt="" />
+						{#if post.images.length > 0}
+							<PostImageGallery images={post.images} flush flushMode="panel" />
+						{:else if post.headerImageDataUrl}
+							<PostImageGallery
+								images={[{ id: `${post.id}-header`, dataUrl: post.headerImageDataUrl, position: 0 }]}
+								flush
+								flushMode="panel"
+							/>
 						{/if}
 
 						<div class="article-meta">
@@ -1412,7 +1504,7 @@
 						<div class="article-body">
 							{#each post.body.split('\n') as paragraph}
 								{#if paragraph.trim()}
-									<p>{paragraph}</p>
+									<p><LinkifiedText text={paragraph} /></p>
 								{/if}
 							{/each}
 						</div>
@@ -1510,6 +1602,14 @@
 
 						<div class="post-actions">
 							<a class="btn" href="/post/{post.id}">Open full page</a>
+							{#if post.isOwn}
+								<button type="button" class="btn danger-btn" onclick={deleteSelectedPost} disabled={postDeleting}>
+									{postDeleting ? 'Deleting...' : 'Delete post'}
+								</button>
+							{/if}
+							{#if postDeleteError}
+								<p class="error-text error-msg">{postDeleteError}</p>
+							{/if}
 							{#if data.user}
 								<button type="button" class="report-post-btn muted" onclick={reportSelectedPost}>
 									Report this post
@@ -1923,8 +2023,12 @@
 
 						<div class="field">
 							<span class="field-label">Header image</span>
-							<HeaderImageCropper disabled={composeSubmitting} onimagechange={handleHeaderImage} />
-							<span class="field-hint muted">Optional. Cropped wide for the post header.</span>
+							<HeaderImageCropper
+								disabled={composeSubmitting}
+								onimagechange={handleHeaderImage}
+								onimageschange={handleHeaderImages}
+							/>
+							<span class="field-hint muted">Optional. Add up to 6 wide gallery images.</span>
 						</div>
 
 						<div class="field">
@@ -2201,10 +2305,70 @@
 		gap: 8px;
 	}
 
+	.region-picker {
+		position: relative;
+		display: inline-flex;
+		align-items: center;
+		height: 36px;
+		min-width: 174px;
+		border: 1px solid rgba(15, 23, 42, 0.12);
+		border-radius: var(--radius-sm);
+		background: rgba(255, 255, 255, 0.92);
+		box-shadow: 0 8px 22px rgba(15, 23, 42, 0.07);
+		color: var(--text);
+		transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+	}
+
+	.region-picker:hover {
+		border-color: rgba(15, 23, 42, 0.22);
+		background: #ffffff;
+		box-shadow: 0 10px 28px rgba(15, 23, 42, 0.1);
+	}
+
+	.region-picker:focus-within {
+		border-color: var(--accent);
+		box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.16);
+	}
+
+	.region-picker-icon {
+		position: absolute;
+		left: 11px;
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: 18px;
+		height: 18px;
+		color: var(--accent);
+		pointer-events: none;
+	}
+
 	.region-select {
-		width: auto;
-		padding: 5px 10px;
+		width: 100%;
+		height: 100%;
+		padding: 0 34px 0 36px;
+		border: 0;
+		border-radius: inherit;
+		appearance: none;
+		background: transparent;
+		color: var(--text);
 		font-size: 13px;
+		font-weight: 750;
+		cursor: pointer;
+	}
+
+	.region-select:focus {
+		outline: none;
+	}
+
+	.region-picker-chevron {
+		position: absolute;
+		right: 13px;
+		width: 8px;
+		height: 8px;
+		border-right: 2px solid var(--text-3);
+		border-bottom: 2px solid var(--text-3);
+		transform: translateY(-2px) rotate(45deg);
+		pointer-events: none;
 	}
 
 	.helper-text {
@@ -2437,6 +2601,7 @@
 		justify-content: space-between;
 		gap: 16px;
 		margin-bottom: 18px;
+		min-height: 44px;
 	}
 
 	.post-panel-body {
@@ -2451,21 +2616,24 @@
 		display: grid;
 		grid-template-columns: minmax(280px, 0.9fr) minmax(280px, 1fr);
 		gap: 18px;
-		min-height: calc(100% - 62px);
+		min-height: 0;
+		height: calc(100% - 62px);
 	}
 
 	.login-panel-body {
 		display: grid;
 		grid-template-columns: minmax(280px, 0.9fr) minmax(280px, 1fr);
 		gap: 18px;
-		min-height: calc(100% - 62px);
+		min-height: 0;
+		height: calc(100% - 62px);
 	}
 
 	.account-welcome {
 		display: grid;
 		grid-template-columns: minmax(320px, 1.05fr) minmax(280px, 0.85fr);
 		gap: 18px;
-		min-height: calc(100% - 62px);
+		min-height: 0;
+		height: calc(100% - 62px);
 	}
 
 	.login-panel-body.auth-form-mode {
@@ -2641,7 +2809,8 @@
 	}
 
 	.profile-edit-form {
-		min-height: calc(100% - 62px);
+		min-height: 0;
+		height: calc(100% - 62px);
 	}
 
 	.profile-edit-card {
@@ -2650,7 +2819,7 @@
 		gap: 24px;
 		align-items: start;
 		max-width: 860px;
-		min-height: 100%;
+		min-height: 0;
 		margin: 0 auto;
 		padding: 18px;
 		border: 1px solid var(--border);
@@ -2804,17 +2973,6 @@
 		align-items: center;
 		justify-content: center;
 		gap: 12px;
-	}
-
-	.post-header-image {
-		display: block;
-		width: calc(100% + 48px);
-		aspect-ratio: 20 / 9;
-		height: auto;
-		object-fit: cover;
-		margin: -24px -24px 0;
-		background: var(--surface-2);
-		border-bottom: 1px solid var(--border);
 	}
 
 	.article-meta {
@@ -2973,6 +3131,16 @@
 		gap: 12px;
 		flex-wrap: wrap;
 		padding-bottom: 4px;
+	}
+
+	.danger-btn {
+		color: var(--dispute);
+		border-color: rgba(220, 38, 38, 0.28);
+	}
+
+	.danger-btn:hover {
+		background: var(--dispute-soft);
+		box-shadow: none;
 	}
 
 	.report-post-btn {
@@ -3300,11 +3468,6 @@
 		.login-card {
 			justify-content: flex-start;
 			min-height: 0;
-		}
-
-		.post-header-image {
-			width: calc(100% + 36px);
-			margin: -18px -18px 0;
 		}
 
 		.submit-row {
