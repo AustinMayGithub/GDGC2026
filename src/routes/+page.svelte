@@ -47,7 +47,7 @@
 	let { data }: { data: PageData } = $props();
 	let hasUnreadNotifications = $state(false);
 
-	type Scope = 'national' | 'local';
+	type Scope = 'national' | 'region' | 'local';
 	type TrendMode = 'new' | 'trending' | 'rising';
 	type CachedRegion = {
 		regionId: string;
@@ -70,9 +70,8 @@
 	const REGION_CACHE_KEY = 'birdseye:local-region';
 	const GEO_MAX_AGE_MS = 15 * 60 * 1000;
 	const GEO_TIMEOUT_MS = 10_000;
-	const LOCAL_FOCUS_RADIUS_KM = 1.8;
-	const LOCAL_REGION_FOCUS_RADIUS_KM = 12;
-	const LOCAL_TRENDING_RADIUS_KM = 10;
+	const LOCAL_FOCUS_RADIUS_KM = 0.9;
+	const LOCAL_TRENDING_RADIUS_KM = 4;
 	const LOCAL_AUTO_NATIONAL_ZOOM = 6.4;
 	const LOCAL_AUTO_NATIONAL_GRACE_MS = 1400;
 	const LOCAL_ZOOM_OUT_EPSILON = 0.05;
@@ -158,6 +157,12 @@
 	let profileEditing = $state(false);
 	let profileSaving = $state(false);
 	let profileSaveError = $state('');
+	let profilePostDeletingId = $state<string | null>(null);
+	let profilePostDeleteError = $state('');
+	let profileDeleteAccountOpen = $state(false);
+	let profileDeleteAccountPassword = $state('');
+	let profileDeletingAccount = $state(false);
+	let profileDeleteAccountError = $state('');
 	let profileEditName = $state('');
 	let profileEditBio = $state('');
 	let profileEditAge = $state('');
@@ -343,7 +348,9 @@
 						distanceKm(localFocusLat, localFocusLng, post.lat, post.lng) <=
 						LOCAL_TRENDING_RADIUS_KM
 				)
-			: visiblePosts
+			: scope === 'region'
+				? visiblePosts.filter((post) => post.regionId === selectedRegionId)
+				: visiblePosts
 	);
 	const trendingEntries = $derived.by(() => {
 		if (trendMode === 'new') {
@@ -432,6 +439,12 @@
 		profileEditing = false;
 		profileSaving = false;
 		profileSaveError = '';
+		profilePostDeletingId = null;
+		profilePostDeleteError = '';
+		profileDeleteAccountOpen = false;
+		profileDeleteAccountPassword = '';
+		profileDeletingAccount = false;
+		profileDeleteAccountError = '';
 		profileEditAvatarDataUrl = null;
 		authSubmitting = false;
 		authError = '';
@@ -470,6 +483,12 @@
 		accountPanelOpen = false;
 		profileEditing = false;
 		profileSaveError = '';
+		profilePostDeletingId = null;
+		profilePostDeleteError = '';
+		profileDeleteAccountOpen = false;
+		profileDeleteAccountPassword = '';
+		profileDeletingAccount = false;
+		profileDeleteAccountError = '';
 		profileEditAvatarDataUrl = null;
 		profileUserId = id;
 		composing = false;
@@ -487,6 +506,10 @@
 		profileEditing = false;
 		profileSaveError = '';
 		profileEditAvatarDataUrl = null;
+		profileDeleteAccountOpen = false;
+		profileDeleteAccountPassword = '';
+		profileDeletingAccount = false;
+		profileDeleteAccountError = '';
 		authPanelMode = 'welcome';
 		authPassword = '';
 		authCode = '';
@@ -558,6 +581,20 @@
 		mapComponent?.fitToBbox(NZ_BBOX);
 	}
 
+	async function switchToRegion() {
+		clearSelectedPost();
+		closeProfile();
+		if (composing) {
+			composing = false;
+			composeError = '';
+			await resizeMapAfterLayout();
+		}
+		scope = 'region';
+		geoLoading = false;
+		geoError = null;
+		zoomToRegion(selectedRegionId);
+	}
+
 	async function switchToLocal() {
 		clearSelectedPost();
 		closeProfile();
@@ -583,11 +620,7 @@
 		if (region && mapComponent) {
 			setLocalFocus(region.center[0], region.center[1]);
 			pauseLocalAutoNational();
-			mapComponent.focusOnLocation(
-				region.center[0],
-				region.center[1],
-				LOCAL_REGION_FOCUS_RADIUS_KM
-			);
+			mapComponent.fitToBbox(region.bbox);
 		}
 	}
 
@@ -596,7 +629,7 @@
 		closeProfile();
 		selectedRegionId = (e.target as HTMLSelectElement).value;
 		writeCachedRegion(selectedRegionId);
-		scope = 'local';
+		scope = 'region';
 		zoomToRegion(selectedRegionId);
 	}
 
@@ -615,7 +648,7 @@
 				mapViewport.zoom < LOCAL_AUTO_NATIONAL_ZOOM ||
 				mapViewport.zoom < localPeakZoom - LOCAL_ZOOM_OUT_EPSILON
 			) {
-				scope = 'national';
+				scope = 'region';
 				geoLoading = false;
 				geoError = null;
 				localPeakZoom = null;
@@ -801,6 +834,20 @@
 		profileEditAvatarDataUrl = null;
 	}
 
+	function openDeleteAccount() {
+		if (!profileIsOwn || profileDeletingAccount) return;
+		profileDeleteAccountOpen = true;
+		profileDeleteAccountPassword = '';
+		profileDeleteAccountError = '';
+	}
+
+	function cancelDeleteAccount() {
+		if (profileDeletingAccount) return;
+		profileDeleteAccountOpen = false;
+		profileDeleteAccountPassword = '';
+		profileDeleteAccountError = '';
+	}
+
 	async function readResponseMessage(res: Response, fallback: string) {
 		const text = await res.text().catch(() => '');
 		if (!text) return fallback;
@@ -975,9 +1022,79 @@
 		}
 	}
 
+	async function deleteAccount() {
+		if (!profileDetail || !profileIsOwn || profileDeletingAccount) return;
+		if (!profileDeleteAccountPassword) {
+			profileDeleteAccountError = 'Enter your password to delete your account.';
+			return;
+		}
+
+		profileDeletingAccount = true;
+		profileDeleteAccountError = '';
+		try {
+			const res = await fetch('/api/users/me', {
+				method: 'DELETE',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ password: profileDeleteAccountPassword })
+			});
+
+			if (!res.ok) {
+				profileDeleteAccountError = await readResponseMessage(
+					res,
+					'Could not delete your account.'
+				);
+				return;
+			}
+
+			posts = posts.filter((post) => post.authorId !== profileDetail?.id);
+			if (selectedPostDetail?.authorId === profileDetail.id) clearSelectedPost();
+			closeProfile();
+			await invalidateAll();
+			await fetchPosts({ silent: true, resetFeed: false });
+		} catch {
+			profileDeleteAccountError = 'Network error. Please try again.';
+		} finally {
+			profileDeletingAccount = false;
+		}
+	}
+
 	function openProfilePost(id: string) {
 		closeProfile();
 		handleSelectPost(id);
+	}
+
+	async function deleteProfilePost(id: string) {
+		if (!profileDetail || profilePostDeletingId) return;
+		const ok = window.confirm('Delete this post? This cannot be undone.');
+		if (!ok) return;
+
+		profilePostDeletingId = id;
+		profilePostDeleteError = '';
+
+		try {
+			const res = await fetch(`/api/posts/${id}`, { method: 'DELETE' });
+			if (!res.ok) {
+				profilePostDeleteError = await readResponseMessage(res, 'Could not delete this post.');
+				return;
+			}
+
+			posts = posts.filter((post) => post.id !== id);
+			if (selectedPostId === id) clearSelectedPost();
+			profileDetail = {
+				...profileDetail,
+				posts: profileDetail.posts.filter((post) => post.id !== id),
+				newComments: profileDetail.newComments.filter((comment) => comment.postId !== id),
+				reputation: {
+					...profileDetail.reputation,
+					postCount: Math.max(0, profileDetail.reputation.postCount - 1)
+				}
+			};
+			redrawTrigger++;
+		} catch {
+			profilePostDeleteError = 'Network error. Please try again.';
+		} finally {
+			profilePostDeletingId = null;
+		}
 	}
 
 	function sliderToRadius(value: number): number {
@@ -1093,8 +1210,8 @@
 			return;
 		}
 
-		pauseLocalAutoNational();
-		if (userLocation) {
+		if (scope === 'local' && userLocation) {
+			pauseLocalAutoNational();
 			mapComponent?.focusOnLocation(userLocation.lng, userLocation.lat, LOCAL_FOCUS_RADIUS_KM);
 			return;
 		}
@@ -1320,6 +1437,7 @@
 		<div class="header-center">
 			<div
 				class="scope-toggle"
+				class:region={scope === 'region'}
 				class:local={scope === 'local'}
 				class:switching={loading}
 				aria-busy={loading}
@@ -1333,6 +1451,15 @@
 					disabled={loading}
 				>
 					National
+				</button>
+				<button
+					type="button"
+					class={scope === 'region' ? 'toggle-btn active' : 'toggle-btn'}
+					onclick={switchToRegion}
+					aria-pressed={scope === 'region'}
+					disabled={loading}
+				>
+					Region
 				</button>
 				<button
 					type="button"
@@ -1353,7 +1480,7 @@
 				<span class="mode-label">3D</span>
 			</label>
 
-			{#if scope === 'local'}
+			{#if scope === 'region'}
 				<div class="region-controls">
 					{#if geoLoading}
 						<span class="muted helper-text">Detecting location...</span>
@@ -2033,6 +2160,64 @@
 							{/if}
 						</section>
 
+						{#if profileIsOwn}
+							<section class="profile-danger">
+								<div class="radius-label-row">
+									<span class="field-label">Account</span>
+									<span class="radius-value">Permanent</span>
+								</div>
+								<p class="muted profile-danger-copy">
+									Delete your account and everything connected to it, including your posts, comments,
+									votes, reactions, and sessions.
+								</p>
+								{#if profileDeleteAccountOpen}
+									<form
+										class="profile-danger-confirm"
+										onsubmit={(e) => {
+											e.preventDefault();
+											void deleteAccount();
+										}}
+									>
+										<label class="field" for="profile-delete-password">
+											<span class="field-label">Password</span>
+											<input
+												id="profile-delete-password"
+												class="input"
+												type="password"
+												bind:value={profileDeleteAccountPassword}
+												autocomplete="current-password"
+												disabled={profileDeletingAccount}
+											/>
+										</label>
+										{#if profileDeleteAccountError}
+											<p class="error-text profile-save-error">{profileDeleteAccountError}</p>
+										{/if}
+										<div class="profile-danger-actions">
+											<button
+												type="submit"
+												class="btn danger-btn"
+												disabled={profileDeletingAccount || !profileDeleteAccountPassword}
+											>
+												{profileDeletingAccount ? 'Deleting...' : 'Delete account'}
+											</button>
+											<button
+												type="button"
+												class="btn"
+												onclick={cancelDeleteAccount}
+												disabled={profileDeletingAccount}
+											>
+												Back
+											</button>
+										</div>
+									</form>
+								{:else}
+									<button type="button" class="btn danger-btn profile-delete-account" onclick={openDeleteAccount}>
+										Delete account
+									</button>
+								{/if}
+							</section>
+						{/if}
+
 						<section class="profile-posts">
 							<div class="radius-label-row">
 								<span class="field-label">{profileIsOwn ? 'Your posts' : `Posts by ${profile.displayName}`}</span>
@@ -2041,6 +2226,9 @@
 							{#if profile.posts.length === 0}
 								<p class="muted profile-empty">No posts yet.</p>
 							{:else}
+								{#if profilePostDeleteError}
+									<p class="error-text profile-save-error">{profilePostDeleteError}</p>
+								{/if}
 								<div class="profile-post-grid">
 									{#each profile.posts as profilePost}
 										{@const totalVotes = profilePost.verifyCount + profilePost.disputeCount}
@@ -2061,9 +2249,21 @@
 												{/if}
 												<span>{profilePost.commentCount} comments</span>
 											</div>
-											<button type="button" class="btn profile-post-open" onclick={() => openProfilePost(profilePost.id)}>
-												View post
-											</button>
+											<div class="profile-post-actions">
+												<button type="button" class="btn profile-post-open" onclick={() => openProfilePost(profilePost.id)}>
+													View post
+												</button>
+												{#if profileIsOwn}
+													<button
+														type="button"
+														class="btn danger-btn profile-post-delete"
+														onclick={() => deleteProfilePost(profilePost.id)}
+														disabled={profilePostDeletingId !== null}
+													>
+														{profilePostDeletingId === profilePost.id ? 'Deleting...' : 'Delete'}
+													</button>
+												{/if}
+											</div>
 										</article>
 									{/each}
 								</div>
@@ -2253,14 +2453,14 @@
 
 	.scope-toggle {
 		display: grid;
-		grid-template-columns: 1fr 1fr;
+		grid-template-columns: repeat(3, 1fr);
 		position: relative;
 		background: rgba(247, 247, 249, 0.8);
 		border: 1px solid var(--border);
 		border-radius: var(--radius-sm);
 		padding: 3px;
 		gap: 2px;
-		min-width: 194px;
+		min-width: 282px;
 		overflow: hidden;
 	}
 
@@ -2268,7 +2468,7 @@
 		position: absolute;
 		top: 3px;
 		left: 3px;
-		width: calc(50% - 4px);
+		width: calc(33.333% - 4px);
 		height: calc(100% - 6px);
 		border-radius: calc(var(--radius-sm) - 2px);
 		background: rgba(255, 255, 255, 0.92);
@@ -2277,8 +2477,12 @@
 		pointer-events: none;
 	}
 
-	.scope-toggle.local .toggle-indicator {
+	.scope-toggle.region .toggle-indicator {
 		transform: translateX(calc(100% + 2px));
+	}
+
+	.scope-toggle.local .toggle-indicator {
+		transform: translateX(calc(200% + 4px));
 	}
 
 	.scope-toggle.switching {
@@ -2724,6 +2928,7 @@
 	.profile-summary,
 	.profile-notifications,
 	.profile-reputation,
+	.profile-danger,
 	.profile-posts,
 	.login-card {
 		border: 1px solid var(--border);
@@ -2825,9 +3030,18 @@
 		grid-column: 1;
 	}
 
+	.profile-danger {
+		grid-column: 1;
+		display: flex;
+		flex-direction: column;
+		gap: 12px;
+		border-color: rgba(220, 38, 38, 0.22);
+		background: #fffafa;
+	}
+
 	.profile-posts {
 		grid-column: 2;
-		grid-row: 1 / span 2;
+		grid-row: 1 / span 3;
 	}
 
 	.profile-avatar-wrap {
@@ -2988,9 +3202,26 @@
 	}
 
 	.profile-rep-copy,
-	.profile-empty {
+	.profile-empty,
+	.profile-danger-copy {
 		margin: 0;
 		font-size: 13px;
+	}
+
+	.profile-danger-confirm {
+		display: flex;
+		flex-direction: column;
+		gap: 12px;
+	}
+
+	.profile-danger-actions {
+		display: flex;
+		gap: 10px;
+		flex-wrap: wrap;
+	}
+
+	.profile-delete-account {
+		align-self: flex-start;
 	}
 
 	.profile-notification-list {
@@ -3050,6 +3281,23 @@
 	.profile-post-open {
 		align-self: flex-start;
 		margin-top: auto;
+	}
+
+	.profile-post-actions {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		flex-wrap: wrap;
+		margin-top: auto;
+	}
+
+	.profile-post-actions .profile-post-open {
+		margin-top: 0;
+	}
+
+	.profile-post-delete {
+		font-size: 12px;
+		padding: 7px 10px;
 	}
 
 	.panel-loading {
@@ -3503,6 +3751,7 @@
 		}
 
 		.profile-reputation,
+		.profile-danger,
 		.profile-posts {
 			grid-column: auto;
 			grid-row: auto;

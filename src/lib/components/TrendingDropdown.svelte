@@ -5,7 +5,7 @@
 
 	interface Props {
 		entries: RankedPost[];
-		scope: 'national' | 'local';
+		scope: 'national' | 'region' | 'local';
 		mode: TrendMode;
 		open: boolean;
 		onOpenChange: (open: boolean) => void;
@@ -46,7 +46,11 @@
 	}
 
 	const scopeCopy = $derived(
-		scope === 'local' ? 'In your area' : 'Across New Zealand'
+		scope === 'local'
+			? 'In your area'
+			: scope === 'region'
+				? 'In this region'
+				: 'Across New Zealand'
 	);
 
 	function setOpen(nextOpen: boolean) {
