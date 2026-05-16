@@ -1,7 +1,7 @@
 <script lang="ts">
 	import 'maplibre-gl/dist/maplibre-gl.css';
-	import { onMount, onDestroy } from 'svelte';
 	import { goto } from '$app/navigation';
+	import { onMount, onDestroy } from 'svelte';
 	import type { PostSummary } from '$lib/types';
 	import { NZ_BBOX } from '$lib/data/nz-regions';
 
@@ -207,6 +207,7 @@
 				const { el } = markersMap.get(post.id)!;
 				const hovered = hoveredPostId === post.id;
 				el.style.transform = hovered ? 'scale(1.6)' : '';
+				el.style.zIndex = hovered ? '2' : '1';
 				el.style.boxShadow = hovered
 					? post.category === 'factual'
 						? '0 0 0 3px #fffef8, 0 5px 18px rgba(15, 23, 42, 0.42)'
@@ -227,17 +228,22 @@
 		if (!map || !maplibre) return null;
 		const ml = maplibre as typeof import('maplibre-gl');
 		const m = map as InstanceType<typeof ml.Map>;
-		const entry = markersMap.get(postId);
-		if (!entry) return null;
+		const post = posts.find((item) => item.id === postId);
+		if (!post) return null;
 
-		const marker = entry.marker as InstanceType<typeof ml.Marker>;
-		const lngLat = marker.getLngLat();
+		const lngLat = new ml.LngLat(post.lng, post.lat);
 		const point = m.project(lngLat);
 		const rect = container.getBoundingClientRect();
 		return {
 			x: rect.left + point.x,
 			y: rect.top + point.y
 		};
+	}
+
+	export function focusOnLocation(lng: number, lat: number, radiusKm = 5) {
+		const latDelta = radiusKm / 111;
+		const lngDelta = radiusKm / (111 * Math.max(Math.cos((lat * Math.PI) / 180), 0.2));
+		fitToBbox([lng - lngDelta, lat - latDelta, lng + lngDelta, lat + latDelta]);
 	}
 
 	export function fitToBbox(bbox: [number, number, number, number]) {
@@ -291,8 +297,8 @@
 		map = m;
 
 		m.on('load', () => {
-			fitToBbox(NZ_BBOX);
 			syncMarkers();
+			fitToBbox(NZ_BBOX);
 			onMarkerPositionsChange();
 			onMapReady(m);
 		});
@@ -307,12 +313,14 @@
 			const ml = maplibre as typeof import('maplibre-gl');
 			(map as InstanceType<typeof ml.Map>).remove();
 		}
+		markersMap.clear();
 	});
 
 	$effect(() => {
 		posts;
 		hoveredPostId;
 		syncMarkers();
+		onMarkerPositionsChange();
 	});
 </script>
 

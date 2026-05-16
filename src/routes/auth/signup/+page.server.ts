@@ -8,9 +8,10 @@ import {
 	generateOtp,
 	hashOtp,
 	otpExpiry,
-	encodePending,
-	PENDING_COOKIE,
-	DEV_OTP_COOKIE
+	DEV_OTP_COOKIE,
+	OTP_CHALLENGE_COOKIE,
+	createOtpChallenge,
+	encodeOtpChallenge
 } from '$lib/server/auth';
 import { sendOtpEmail, type OtpDeliveryResult } from '$lib/server/email';
 import type { Actions, PageServerLoad } from './$types';
@@ -141,12 +142,16 @@ export const actions: Actions = {
 			});
 		}
 
-		cookies.set(PENDING_COOKIE, encodePending(userId, 'signup'), {
-			path: '/',
-			httpOnly: true,
-			sameSite: 'lax',
-			maxAge: 60 * 15
-		});
+		cookies.set(
+			OTP_CHALLENGE_COOKIE,
+			encodeOtpChallenge(createOtpChallenge(userId, 'signup')),
+			{
+				path: '/auth/verify',
+				httpOnly: true,
+				sameSite: 'lax',
+				maxAge: 60 * 15
+			}
+		);
 		if (dev && delivery.channel === 'console') {
 			cookies.set(DEV_OTP_COOKIE, delivery.code, {
 				path: '/auth/verify',

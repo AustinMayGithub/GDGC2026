@@ -4,7 +4,7 @@
 	import UserMenu from '$lib/components/UserMenu.svelte';
 	import ImpactMap from '$lib/components/ImpactMap.svelte';
 	import CategoryPicker from '$lib/components/CategoryPicker.svelte';
-	import HeaderImageCropper from '$lib/components/HeaderImageCropper.svelte';
+	import PostPhotoUploader from '$lib/components/PostPhotoUploader.svelte';
 
 	interface PageData {
 		user: SessionUser | null;
@@ -17,7 +17,7 @@
 	// Form state
 	let title = $state('');
 	let body = $state('');
-	let headerImageBlob = $state<Blob | null>(null);
+	let photoBlobs = $state<Blob[]>([]);
 	let category = $state<PostCategory | null>(null);
 	let lng = $state(174.76); // Default: Auckland
 	let lat = $state(-36.85);
@@ -46,25 +46,27 @@
 		category = cat;
 	}
 
-	function handleHeaderImage(image: Blob | null) {
-		headerImageBlob = image;
+	function handlePhotos(photos: Blob[]) {
+		photoBlobs = photos;
 	}
 
-	async function uploadHeaderImage(postId: string): Promise<void> {
-		if (!headerImageBlob) return;
+	async function uploadPostPhotos(postId: string): Promise<void> {
+		if (photoBlobs.length === 0) return;
 
 		const form = new FormData();
-		form.append('image', headerImageBlob, 'post-header.jpg');
 		form.append('postId', postId);
+		for (const [index, photo] of photoBlobs.entries()) {
+			form.append('photos', photo, `post-photo-${index + 1}.jpg`);
+		}
 
-		const res = await fetch('/api/uploads/post-header', {
+		const res = await fetch('/api/uploads/post-photos', {
 			method: 'POST',
 			body: form
 		});
 		const data = await res.json().catch(() => ({}));
 
 		if (!res.ok) {
-			throw new Error(data.message ?? 'Header image upload failed.');
+			throw new Error(data.message ?? 'Photo upload failed.');
 		}
 	}
 
@@ -91,7 +93,7 @@
 
 			if (res.ok) {
 				const data = await res.json();
-				await uploadHeaderImage(data.id);
+				await uploadPostPhotos(data.id);
 				await goto(`/post/${data.id}`);
 			} else {
 				const data = await res.json();
@@ -140,11 +142,11 @@
 						<p class="muted form-sub">Share something happening in your area.</p>
 					</div>
 
-					<!-- Header image -->
+					<!-- Photos -->
 					<div class="field">
-						<span class="field-label">Header image</span>
-						<HeaderImageCropper disabled={submitting} onimagechange={handleHeaderImage} />
-						<span class="field-hint muted">Optional. Cropped wide for the post header.</span>
+						<span class="field-label">Photos</span>
+						<PostPhotoUploader disabled={submitting} onphotoschange={handlePhotos} />
+						<span class="field-hint muted">Optional. Up to 10 square carousel photos.</span>
 					</div>
 
 					<!-- Title -->

@@ -5,8 +5,8 @@ import { sessions, users } from './db/schema';
 import type { SessionUser } from '$lib/types';
 
 export const SESSION_COOKIE = 'birdseye_session';
-export const PENDING_COOKIE = 'birdseye_pending';
 export const DEV_OTP_COOKIE = 'birdseye_dev_otp';
+export const OTP_CHALLENGE_COOKIE = 'birdseye_otp_challenge';
 const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 const OTP_TTL_MS = 10 * 60 * 1000;
 
@@ -78,15 +78,39 @@ export async function deleteSession(token: string): Promise<void> {
 
 export type PendingPurpose = 'signup' | 'login';
 
-export function encodePending(userId: string, purpose: PendingPurpose): string {
-	return `${userId}:${purpose}`;
+export type OtpChallenge = {
+	userId: string;
+	purpose: PendingPurpose;
+	expiresAt: number;
+};
+
+export function createOtpChallenge(userId: string, purpose: PendingPurpose): OtpChallenge {
+	return {
+		userId,
+		purpose,
+		expiresAt: Date.now() + 15 * 60 * 1000
+	};
 }
 
-export function parsePending(
-	raw: string | undefined
-): { userId: string; purpose: PendingPurpose } | null {
+export function encodeOtpChallenge(challenge: OtpChallenge): string {
+	return Buffer.from(JSON.stringify(challenge), 'utf8').toString('base64url');
+}
+
+export function parseOtpChallenge(raw: string | undefined): OtpChallenge | null {
 	if (!raw) return null;
-	const [userId, purpose] = raw.split(':');
-	if (!userId || (purpose !== 'signup' && purpose !== 'login')) return null;
-	return { userId, purpose };
+	try {
+		const parsed = JSON.parse(Buffer.from(raw, 'base64url').toString('utf8'));
+		if (
+			!parsed ||
+			typeof parsed.userId !== 'string' ||
+			(parsed.purpose !== 'signup' && parsed.purpose !== 'login') ||
+			typeof parsed.expiresAt !== 'number'
+		) {
+			return null;
+		}
+		if (parsed.expiresAt < Date.now()) return null;
+		return parsed satisfies OtpChallenge;
+	} catch {
+		return null;
+	}
 }

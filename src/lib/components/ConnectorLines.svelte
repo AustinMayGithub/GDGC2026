@@ -119,8 +119,10 @@
 		<circle
 			cx={line.x2}
 			cy={line.y2}
-			r={line.hovered ? 4.2 : 2.6}
-			fill={line.hovered ? 'url(#connector-gradient)' : 'rgba(17, 24, 39, 0.3)'}
+			r={line.hovered ? 6.2 : 4.8}
+			fill={line.hovered ? 'url(#connector-gradient)' : 'rgba(255, 255, 255, 0.96)'}
+			stroke={line.hovered ? 'rgba(255, 255, 255, 0.92)' : 'rgba(17, 24, 39, 0.92)'}
+			stroke-width={line.hovered ? 1.9 : 1.8}
 		/>
 	{/each}
 

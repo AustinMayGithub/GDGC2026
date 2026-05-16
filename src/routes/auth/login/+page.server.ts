@@ -9,10 +9,11 @@ import {
 	hashOtp,
 	otpExpiry,
 	createSession,
-	encodePending,
 	SESSION_COOKIE,
-	PENDING_COOKIE,
-	DEV_OTP_COOKIE
+	DEV_OTP_COOKIE,
+	OTP_CHALLENGE_COOKIE,
+	createOtpChallenge,
+	encodeOtpChallenge
 } from '$lib/server/auth';
 import { sendOtpEmail, type OtpDeliveryResult } from '$lib/server/email';
 import type { Actions, PageServerLoad } from './$types';
@@ -70,8 +71,8 @@ export const actions: Actions = {
 					error: 'We could not send a verification code right now. Please try again.'
 				});
 			}
-			cookies.set(PENDING_COOKIE, encodePending(user.id, purpose), {
-				path: '/',
+			cookies.set(OTP_CHALLENGE_COOKIE, encodeOtpChallenge(createOtpChallenge(user.id, purpose)), {
+				path: '/auth/verify',
 				httpOnly: true,
 				sameSite: 'lax',
 				maxAge: 60 * 15
@@ -102,6 +103,8 @@ export const actions: Actions = {
 			sameSite: 'lax',
 			expires: session.expiresAt
 		});
+		cookies.delete(OTP_CHALLENGE_COOKIE, { path: '/auth/verify' });
+		cookies.delete(DEV_OTP_COOKIE, { path: '/auth/verify' });
 		throw redirect(303, '/');
 	}
 };
