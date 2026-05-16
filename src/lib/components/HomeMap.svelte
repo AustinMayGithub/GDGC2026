@@ -4,7 +4,6 @@
 	import { goto } from '$app/navigation';
 	import type { PostSummary } from '$lib/types';
 	import { NZ_BBOX } from '$lib/data/nz-regions';
-	import { NZ_OUTLINE_BASE } from '$lib/data/nz-outline';
 
 	interface Props {
 		posts: PostSummary[];
@@ -12,27 +11,6 @@
 		onMapReady: (map: unknown) => void;
 		onMarkerPositionsChange: () => void;
 	}
-
-	type FeatureGeometry =
-		| {
-				type: 'Polygon';
-				coordinates: number[][][];
-		  }
-		| {
-				type: 'MultiPolygon';
-				coordinates: number[][][][];
-		  };
-
-	type Feature = {
-		type: 'Feature';
-		properties: Record<string, unknown>;
-		geometry: FeatureGeometry;
-	};
-
-	type FeatureCollection = {
-		type: 'FeatureCollection';
-		features: Feature[];
-	};
 
 	type CameraOptions = {
 		center?: [number, number];
@@ -47,73 +25,32 @@
 	let maplibre: typeof import('maplibre-gl') | null = null;
 	let markersMap = new Map<string, { marker: unknown; el: HTMLElement }>();
 
-	const WATER_COLOR = '#cfe9ff';
-	const LAND_COLOR = '#c7ffab';
-	const OUTLINE_COLOR = 'rgba(92, 126, 111, 0.18)';
 	const NZ_VISUAL_CENTER: [number, number] = [174.25, -41.15];
-	const NZ_BASE_FEATURES = NZ_OUTLINE_BASE.features as unknown as Feature[];
 
-	const RASTER_STYLE = {
+	const OSM_STYLE = {
 		version: 8 as const,
 		sources: {
-			carto: {
+			osm: {
 				type: 'raster' as const,
-				tiles: ['https://a.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}.png'],
+				tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
 				tileSize: 256,
 				attribution: 'OpenStreetMap contributors'
 			}
 		},
 		layers: [
 			{
-				id: 'carto-base',
+				id: 'osm',
 				type: 'raster' as const,
-				source: 'carto',
+				source: 'osm',
 				paint: {
-					'raster-opacity': 0.42,
-					'raster-saturation': -0.35,
-					'raster-brightness-min': 0.92,
-					'raster-brightness-max': 1.08,
+					'raster-saturation': -0.22,
+					'raster-brightness-min': 0.03,
+					'raster-brightness-max': 0.98,
 					'raster-contrast': -0.08
 				}
 			}
 		]
 	};
-
-	function wrapFeature(feature: Feature, offset: number): Feature {
-		if (feature.geometry.type === 'Polygon') {
-			return {
-				...feature,
-				geometry: {
-					type: 'Polygon',
-					coordinates: feature.geometry.coordinates.map((ring) =>
-						ring.map(([lng, lat]) => [lng + offset, lat])
-					)
-				}
-			};
-		}
-
-		return {
-			...feature,
-			geometry: {
-				type: 'MultiPolygon',
-				coordinates: feature.geometry.coordinates.map((polygon) =>
-					polygon.map((ring) => ring.map(([lng, lat]) => [lng + offset, lat]))
-				)
-			}
-		};
-	}
-
-	function buildWrappedFeatureCollection(): FeatureCollection {
-		const offsets = [-360, 0, 360];
-		return {
-			type: 'FeatureCollection',
-			features: offsets.flatMap((offset) =>
-				NZ_BASE_FEATURES.map((feature) => wrapFeature(feature, offset))
-			)
-		};
-	}
-
-	const NZ_OUTLINE = buildWrappedFeatureCollection();
 
 	function isNationalView(bbox: [number, number, number, number]) {
 		return bbox[2] - bbox[0] > 8;
@@ -137,43 +74,6 @@
 		};
 	}
 
-	function addLandOverlay() {
-		if (!map || !maplibre) return;
-		const ml = maplibre as typeof import('maplibre-gl');
-		const m = map as InstanceType<typeof ml.Map>;
-
-		if (!m.getSource('nz-land')) {
-			m.addSource('nz-land', {
-				type: 'geojson',
-				data: NZ_OUTLINE
-			});
-		}
-
-		if (!m.getLayer('nz-land-fill')) {
-			m.addLayer({
-				id: 'nz-land-fill',
-				type: 'fill',
-				source: 'nz-land',
-				paint: {
-					'fill-color': LAND_COLOR,
-					'fill-opacity': 0.68
-				}
-			});
-		}
-
-		if (!m.getLayer('nz-land-outline')) {
-			m.addLayer({
-				id: 'nz-land-outline',
-				type: 'line',
-				source: 'nz-land',
-				paint: {
-					'line-color': OUTLINE_COLOR,
-					'line-width': 1.15
-				}
-			});
-		}
-	}
-
 	function createMarkerEl(post: PostSummary, hovered: boolean): HTMLElement {
 		const el = document.createElement('div');
 		el.className = post.category === 'factual' ? 'marker-factual' : 'marker-personal';
@@ -186,12 +86,12 @@
 			transition: transform 0.15s ease, box-shadow 0.15s ease;
 			${
 				post.category === 'factual'
-					? `background: linear-gradient(120deg, #9ad87a, #8fd4ff);
+					? `background: linear-gradient(120deg, #6366f1, #ec4899);
 					   border: none;
-					   box-shadow: 0 0 0 2px #fff, 0 2px 10px rgba(116,171,135,0.34);`
+					   box-shadow: 0 0 0 2px #fff, 0 2px 8px rgba(99,102,241,0.45);`
 					: `background: #fff;
-					   border: 2px solid #93d67d;
-					   box-shadow: 0 0 0 1px rgba(147,214,125,0.24), 0 2px 8px rgba(116,171,135,0.2);`
+					   border: 2px solid #6366f1;
+					   box-shadow: 0 0 0 1px rgba(99,102,241,0.2), 0 2px 6px rgba(99,102,241,0.2);`
 			}
 			${hovered ? 'transform: scale(1.6); z-index: 2;' : ''}
 		`;
@@ -218,11 +118,11 @@
 				el.style.transform = hovered ? 'scale(1.6)' : '';
 				el.style.boxShadow = hovered
 					? post.category === 'factual'
-						? '0 0 0 3px #fff, 0 6px 18px rgba(143,212,255,0.42)'
-						: '0 0 0 2px #93d67d, 0 6px 14px rgba(147,214,125,0.34)'
+						? '0 0 0 3px #fff, 0 4px 16px rgba(99,102,241,0.7)'
+						: '0 0 0 2px #6366f1, 0 4px 12px rgba(99,102,241,0.5)'
 					: post.category === 'factual'
-						? '0 0 0 2px #fff, 0 2px 10px rgba(116,171,135,0.34)'
-						: '0 0 0 1px rgba(147,214,125,0.24), 0 2px 8px rgba(116,171,135,0.2)';
+						? '0 0 0 2px #fff, 0 2px 8px rgba(99,102,241,0.45)'
+						: '0 0 0 1px rgba(99,102,241,0.2), 0 2px 6px rgba(99,102,241,0.2)';
 			} else {
 				const el = createMarkerEl(post, hoveredPostId === post.id);
 				el.addEventListener('click', () => goto(`/post/${post.id}`));
@@ -282,7 +182,7 @@
 
 		const m = new ml.Map({
 			container,
-			style: RASTER_STYLE,
+			style: OSM_STYLE,
 			center: [173.3, -41.2],
 			zoom: 4.75,
 			renderWorldCopies: true,
@@ -291,6 +191,7 @@
 			attributionControl: false
 		});
 
+		m.addControl(new ml.AttributionControl({ compact: true }), 'bottom-left');
 		m.addControl(
 			new ml.NavigationControl({ visualizePitch: false, showCompass: false }),
 			'bottom-right'
@@ -299,7 +200,6 @@
 		map = m;
 
 		m.on('load', () => {
-			addLandOverlay();
 			fitToBbox(NZ_BBOX);
 			syncMarkers();
 			onMarkerPositionsChange();
@@ -334,37 +234,28 @@
 		width: 100%;
 		height: 100%;
 		position: relative;
-		background:
-			radial-gradient(circle at top, rgba(255, 255, 255, 0.34), transparent 34%),
-			linear-gradient(180deg, #def3ff 0%, #cfe9ff 100%);
+		background: #eef6fb;
 	}
 
 	.map-container {
 		width: 100%;
 		height: 100%;
+		filter: saturate(0.82) brightness(1.04) contrast(0.96);
 	}
 
 	:global(.map-container .maplibregl-canvas) {
-		filter: saturate(0.94);
+		filter: none;
 	}
 
-	:global(.map-container .maplibregl-ctrl-bottom-right) {
+	:global(.map-container .maplibregl-ctrl-bottom-right),
+	:global(.map-container .maplibregl-ctrl-bottom-left) {
 		margin: 0 18px 18px;
 	}
 
 	:global(.map-container .maplibregl-ctrl-group) {
 		border-radius: 16px;
 		overflow: hidden;
-		box-shadow: 0 10px 28px rgba(84, 126, 136, 0.12);
-		border: 1px solid rgba(255, 255, 255, 0.8);
-		background: rgba(255, 255, 255, 0.8);
-	}
-
-	:global(.map-container .maplibregl-ctrl button) {
-		background: rgba(255, 255, 255, 0.78);
-	}
-
-	:global(.map-container .maplibregl-ctrl button .maplibregl-ctrl-icon) {
-		opacity: 0.78;
+		box-shadow: 0 12px 30px rgba(15, 23, 42, 0.12);
+		border: 1px solid rgba(255, 255, 255, 0.7);
 	}
 </style>
