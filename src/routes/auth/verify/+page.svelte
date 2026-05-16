@@ -41,6 +41,11 @@
 	{#if form?.resent}
 		<p class="ok-text">A fresh code is on its way.</p>
 	{/if}
+	{#if form?.devOtp || data.devOtp}
+		<p class="dev-code">
+			Dev OTP: <strong>{form?.devOtp ?? data.devOtp}</strong>
+		</p>
+	{/if}
 
 	<button class="btn btn-primary" type="submit" disabled={submitting}>
 		{submitting ? 'Verifying…' : 'Verify'}
@@ -51,7 +56,10 @@
 	<button class="linkbtn" type="submit">Didn't get it? Resend code</button>
 </form>
 
-<p class="hint">Dev mode: if no email service is configured, the code is printed to the server console.</p>
+<p class="hint">
+	Dev mode: if no email service is configured, the code appears above and is also printed to the
+	server console.
+</p>
 
 <style>
 	.sub {
@@ -77,6 +85,14 @@
 	}
 	.resend {
 		margin-top: 14px;
+	}
+	.dev-code {
+		margin: 0;
+		font-size: 13px;
+		background: #fff6cc;
+		border: 1px solid #f3de88;
+		border-radius: 10px;
+		padding: 10px 12px;
 	}
 	.linkbtn {
 		background: none;

@@ -1,4 +1,5 @@
 import { fail, redirect } from '@sveltejs/kit';
+import { dev } from '$app/environment';
 import { and, eq, gte } from 'drizzle-orm';
 import { db } from '$lib/server/db';
 import { users, emailOtps, signupAttempts } from '$lib/server/db/schema';
@@ -9,7 +10,8 @@ import {
 	otpExpiry,
 	isDisposableEmail,
 	encodePending,
-	PENDING_COOKIE
+	PENDING_COOKIE,
+	DEV_OTP_COOKIE
 } from '$lib/server/auth';
 import { sendOtpEmail } from '$lib/server/email';
 import type { Actions, PageServerLoad } from './$types';
@@ -85,7 +87,7 @@ export const actions: Actions = {
 			purpose: 'signup',
 			expiresAt: otpExpiry()
 		});
-		await sendOtpEmail(email, code, 'signup');
+		const delivery = await sendOtpEmail(email, code, 'signup');
 
 		cookies.set(PENDING_COOKIE, encodePending(user.id, 'signup'), {
 			path: '/',
@@ -93,6 +95,16 @@ export const actions: Actions = {
 			sameSite: 'lax',
 			maxAge: 60 * 15
 		});
+		if (dev && delivery.channel === 'console') {
+			cookies.set(DEV_OTP_COOKIE, delivery.code, {
+				path: '/auth/verify',
+				httpOnly: true,
+				sameSite: 'lax',
+				maxAge: 60 * 15
+			});
+		} else {
+			cookies.delete(DEV_OTP_COOKIE, { path: '/auth/verify' });
+		}
 		throw redirect(303, '/auth/verify');
 	}
 };
