@@ -27,26 +27,31 @@
 
 	const NZ_VISUAL_CENTER: [number, number] = [174.25, -41.15];
 
-	const OSM_STYLE = {
+	const BASEMAP_STYLE = {
 		version: 8 as const,
 		sources: {
-			osm: {
+			basemap: {
 				type: 'raster' as const,
-				tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
+				tiles: [
+					'https://a.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}.png',
+					'https://b.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}.png',
+					'https://c.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}.png',
+					'https://d.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}.png'
+				],
 				tileSize: 256,
 				attribution: 'OpenStreetMap contributors'
 			}
 		},
 		layers: [
 			{
-				id: 'osm',
+				id: 'basemap',
 				type: 'raster' as const,
-				source: 'osm',
+				source: 'basemap',
 				paint: {
-					'raster-saturation': -0.22,
-					'raster-brightness-min': 0.03,
-					'raster-brightness-max': 0.98,
-					'raster-contrast': -0.08
+					'raster-saturation': -0.18,
+					'raster-brightness-min': 0.02,
+					'raster-brightness-max': 1,
+					'raster-contrast': -0.06
 				}
 			}
 		]
@@ -182,7 +187,7 @@
 
 		const m = new ml.Map({
 			container,
-			style: OSM_STYLE,
+			style: BASEMAP_STYLE,
 			center: [173.3, -41.2],
 			zoom: 4.75,
 			renderWorldCopies: true,
