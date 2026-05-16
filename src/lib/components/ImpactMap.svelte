@@ -16,6 +16,7 @@
 	let map: import('maplibre-gl').Map | null = null;
 	let renderedLng = lng;
 	let renderedLat = lat;
+	let renderedRadiusM = radiusM;
 	let hasLoaded = false;
 
 	const OSM_STYLE = {
@@ -82,7 +83,7 @@
 		}
 	}
 
-	function fitToImpactZone(
+	function fitToAffectedArea(
 		duration = 0,
 		centerLng = lng,
 		centerLat = lat,
@@ -127,10 +128,14 @@
 		updateCircle(currentLng, currentLat, currentRadiusM);
 		updateMarker(currentLng, currentLat);
 		const movedPin = currentLng !== renderedLng || currentLat !== renderedLat;
+		const changedRadius = currentRadiusM !== renderedRadiusM;
 		renderedLng = currentLng;
 		renderedLat = currentLat;
+		renderedRadiusM = currentRadiusM;
 		if (movedPin) {
-			fitToImpactZone(350, currentLng, currentLat, currentRadiusM);
+			fitToAffectedArea(350, currentLng, currentLat, currentRadiusM);
+		} else if (changedRadius) {
+			fitToAffectedArea(0, currentLng, currentLat, currentRadiusM);
 		}
 	});
 
@@ -185,9 +190,10 @@
 					const { lng: clickLng, lat: clickLat } = e.lngLat;
 					renderedLng = clickLng;
 					renderedLat = clickLat;
+					renderedRadiusM = radiusM;
 					updateMarker(clickLng, clickLat);
 					updateCircle(clickLng, clickLat, radiusM);
-					fitToImpactZone(350, clickLng, clickLat, radiusM);
+					fitToAffectedArea(350, clickLng, clickLat, radiusM);
 					onpick!(clickLng, clickLat);
 				});
 				map.getCanvas().style.cursor = 'crosshair';
@@ -196,7 +202,8 @@
 			hasLoaded = true;
 			renderedLng = lng;
 			renderedLat = lat;
-			fitToImpactZone(0, lng, lat, radiusM);
+			renderedRadiusM = radiusM;
+			fitToAffectedArea(0, lng, lat, radiusM);
 		});
 	});
 
