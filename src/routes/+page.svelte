@@ -393,8 +393,8 @@
 
 	function handleSelectPost(id: string | null) {
 		if (trendingOpen) {
-			clearSelectedPost();
-			return;
+			trendingOpen = false;
+			lastTrendingFitKey = '';
 		}
 		selectedPostId = id;
 		hoveredPostId = id;
@@ -641,7 +641,6 @@
 				posts={mapPosts}
 				{hoveredPostId}
 				{selectedPostId}
-				disableSelection={trendingOpen}
 				showAllRadii={trendingOpen}
 				radiusPosts={trendingPosts}
 				onMapReady={handleMapReady}

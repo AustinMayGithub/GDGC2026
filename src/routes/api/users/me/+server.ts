@@ -1,4 +1,8 @@
 import { json, error } from '@sveltejs/kit';
+import { eq } from 'drizzle-orm';
+import { SESSION_COOKIE, verifyPassword } from '$lib/server/auth';
+import { db } from '$lib/server/db';
+import { users } from '$lib/server/db/schema';
 import { updateUserProfile } from '$lib/server/users';
 import type { RequestHandler } from './$types';
 
@@ -40,4 +44,26 @@ export const PATCH: RequestHandler = async ({ request, locals }) => {
 
 	await updateUserProfile(locals.user.id, updates);
 	return json({ ok: true });
+};
+
+export const DELETE: RequestHandler = async ({ request, locals, cookies }) => {
+	if (!locals.user) throw error(401);
+
+	const body = await request.json().catch(() => null);
+	const password = typeof body?.password === 'string' ? body.password : '';
+	if (!password) throw error(400, 'Password is required.');
+
+	const [row] = await db
+		.select({ passwordHash: users.passwordHash })
+		.from(users)
+		.where(eq(users.id, locals.user.id));
+
+	if (!row || !verifyPassword(password, row.passwordHash)) {
+		throw error(403, 'Password is incorrect.');
+	}
+
+	await db.delete(users).where(eq(users.id, locals.user.id));
+	cookies.delete(SESSION_COOKIE, { path: '/' });
+
+	return new Response(null, { status: 204 });
 };
