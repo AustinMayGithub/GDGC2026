@@ -34,14 +34,14 @@
 	let listItemEls = new Map<string, HTMLElement>();
 
 	// --- Data fetching ---
-	async function fetchPosts() {
+	async function fetchPosts(scopeToFetch: Scope = scope, regionId = selectedRegionId) {
 		loading = true;
 		error = null;
 		try {
 			const url =
-				scope === 'national'
+				scopeToFetch === 'national'
 					? '/api/posts?scope=national'
-					: `/api/posts?scope=local&regionId=${selectedRegionId}`;
+					: `/api/posts?scope=local&regionId=${regionId}`;
 			const res = await fetch(url);
 			if (!res.ok) throw new Error(`HTTP ${res.status}`);
 			const json = await res.json();
@@ -59,7 +59,7 @@
 		scope = 'national';
 		geoError = null;
 		mapComponent?.fitToBbox(NZ_BBOX);
-		await fetchPosts();
+		await fetchPosts('national');
 	}
 
 	async function switchToLocal() {
@@ -74,13 +74,13 @@
 					selectedRegionId = regionId;
 					geoLoading = false;
 					zoomToRegion(regionId);
-					await fetchPosts();
+					await fetchPosts('local', regionId);
 				},
 				async () => {
 					geoError = 'Location access denied — pick your region below.';
 					geoLoading = false;
 					zoomToRegion(selectedRegionId);
-					await fetchPosts();
+					await fetchPosts('local');
 				},
 				{ timeout: 8000 }
 			);
@@ -88,7 +88,7 @@
 			geoError = 'Geolocation not available — pick your region below.';
 			geoLoading = false;
 			zoomToRegion(selectedRegionId);
-			await fetchPosts();
+			await fetchPosts('local');
 		}
 	}
 
@@ -102,7 +102,7 @@
 	async function onRegionChange(e: Event) {
 		selectedRegionId = (e.target as HTMLSelectElement).value;
 		zoomToRegion(selectedRegionId);
-		await fetchPosts();
+		await fetchPosts('local');
 	}
 
 	// --- Map callbacks ---
@@ -143,16 +143,16 @@
 		<div class="header-center">
 			<div class="scope-toggle">
 				<button
-					class="toggle-btn"
-					class:active={scope === 'national'}
+					type="button"
+					class={scope === 'national' ? 'toggle-btn active' : 'toggle-btn'}
 					onclick={switchToNational}
 					aria-pressed={scope === 'national'}
 				>
 					National
 				</button>
 				<button
-					class="toggle-btn"
-					class:active={scope === 'local'}
+					type="button"
+					class={scope === 'local' ? 'toggle-btn active' : 'toggle-btn'}
 					onclick={switchToLocal}
 					aria-pressed={scope === 'local'}
 				>
@@ -230,7 +230,7 @@
 			{#if error}
 				<div class="error-banner card">
 					<span class="error-text">{error}</span>
-					<button class="btn" onclick={fetchPosts} style="font-size:12px;padding:6px 12px;">Retry</button>
+					<button class="btn" onclick={() => fetchPosts()} style="font-size:12px;padding:6px 12px;">Retry</button>
 				</div>
 			{/if}
 		</div>
