@@ -32,6 +32,8 @@
 	let map: unknown = null;
 	let maplibre: typeof import('maplibre-gl') | null = null;
 	let markersMap = new Map<string, { marker: unknown; el: HTMLElement }>();
+	let locationMarker: unknown = null;
+	let locationMarkerEl: HTMLElement | null = null;
 
 	const MAP_STYLE_URL = 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json';
 	const WATER_COLOR = '#cfe9ff';
@@ -275,6 +277,47 @@
 				markersMap.set(post.id, { marker, el });
 			}
 		}
+	}
+
+	function createLocationMarkerEl(): HTMLElement {
+		const el = document.createElement('div');
+		el.setAttribute('aria-label', 'Current location');
+		el.style.cssText = `
+			width: 18px;
+			height: 18px;
+			border-radius: 50%;
+			background: #2563eb;
+			border: 3px solid #fff;
+			box-shadow: 0 2px 10px rgba(37, 99, 235, 0.32);
+			pointer-events: none;
+			will-change: auto;
+		`;
+		return el;
+	}
+
+	export function focusOnLocation(lng: number, lat: number, radiusKm = 5) {
+		if (!map || !maplibre) return;
+		const ml = maplibre as typeof import('maplibre-gl');
+		const m = map as InstanceType<typeof ml.Map>;
+
+		if (!locationMarker) {
+			locationMarkerEl = createLocationMarkerEl();
+			locationMarker = new ml.Marker({
+				element: locationMarkerEl,
+				anchor: 'center'
+			})
+				.setLngLat([lng, lat])
+				.addTo(m);
+		} else {
+			(locationMarker as InstanceType<typeof ml.Marker>).setLngLat([lng, lat]);
+		}
+
+		m.easeTo({
+			center: [lng, lat],
+			zoom: radiusKm <= 5 ? 12 : 10,
+			duration: 450
+		});
+		onMarkerPositionsChange();
 	}
 
 	export function getMarkerScreenPos(postId: string): { x: number; y: number } | null {

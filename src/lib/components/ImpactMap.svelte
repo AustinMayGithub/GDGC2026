@@ -80,7 +80,6 @@
 		if (!map) return;
 		updateCircle();
 		updateMarker(lng, lat);
-		map.panTo([lng, lat]);
 	});
 
 	onMount(async () => {
