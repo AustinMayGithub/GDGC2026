@@ -816,19 +816,6 @@
 					'circle-radius': [
 						'*',
 						[
-							'interpolate',
-							['linear'],
-							['zoom'],
-							4.5,
-							0.45,
-							7,
-							0.7,
-							10,
-							0.9,
-							14,
-							1
-						],
-						[
 							'case',
 							['==', ['get', 'selected'], true],
 							9,
@@ -859,22 +846,10 @@
 						'#ffffff'
 					],
 					'circle-stroke-width': [
-						'*',
-						[
-							'interpolate',
-							['linear'],
-							['zoom'],
-							4.5,
-							0.7,
-							14,
-							1
-						],
-						[
-							'case',
-							['==', ['get', 'selected'], true],
-							3,
-							2
-						]
+						'case',
+						['==', ['get', 'selected'], true],
+						3,
+						2
 					]
 				}
 			});
