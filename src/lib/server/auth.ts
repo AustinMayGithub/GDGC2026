@@ -6,6 +6,7 @@ import type { SessionUser } from '$lib/types';
 
 export const SESSION_COOKIE = 'birdseye_session';
 export const PENDING_COOKIE = 'birdseye_pending';
+export const DEV_OTP_COOKIE = 'birdseye_dev_otp';
 const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 const OTP_TTL_MS = 10 * 60 * 1000;
 

@@ -1,15 +1,17 @@
 import { env } from '$env/dynamic/private';
 import type { PendingPurpose } from './auth';
 
+export type OtpDeliveryResult = { channel: 'email' } | { channel: 'console'; code: string };
+
 /**
  * Sends an OTP code. With no RESEND_API_KEY configured the code is logged to
- * the server console instead — keeps signup/login working in local dev.
+ * the server console instead - keeps signup/login working in local dev.
  */
 export async function sendOtpEmail(
 	to: string,
 	code: string,
 	purpose: PendingPurpose
-): Promise<void> {
+): Promise<OtpDeliveryResult> {
 	const subject =
 		purpose === 'signup' ? 'Verify your BirdsEye account' : 'Your BirdsEye login code';
 	const intro =
@@ -18,11 +20,10 @@ export async function sendOtpEmail(
 			: 'Use this code to finish signing in:';
 
 	if (!env.RESEND_API_KEY) {
-		console.log(`\n  ┌─ BirdsEye OTP (${purpose}) ──────────────`);
-		console.log(`  │  to:   ${to}`);
-		console.log(`  │  code: ${code}`);
-		console.log(`  └─────────────────────────────────────────\n`);
-		return;
+		console.log(`\n  [BirdsEye OTP ${purpose}]`);
+		console.log(`  to:   ${to}`);
+		console.log(`  code: ${code}\n`);
+		return { channel: 'console', code };
 	}
 
 	try {
@@ -35,8 +36,10 @@ export async function sendOtpEmail(
 			text: `${intro}\n\n    ${code}\n\nThis code expires in 10 minutes.\nIf you didn't request it, you can ignore this email.`
 		});
 		if (result.error) throw new Error(result.error.message);
+		return { channel: 'email' };
 	} catch (err) {
 		console.error('[email] failed to send OTP, falling back to console:', err);
 		console.log(`[BirdsEye OTP] ${purpose} code for ${to}: ${code}`);
+		return { channel: 'console', code };
 	}
 }
