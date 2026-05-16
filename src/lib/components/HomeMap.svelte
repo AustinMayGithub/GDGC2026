@@ -31,27 +31,101 @@
 		version: 8 as const,
 		sources: {
 			basemap: {
-				type: 'raster' as const,
-				tiles: [
-					'https://a.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}.png',
-					'https://b.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}.png',
-					'https://c.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}.png',
-					'https://d.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}.png'
-				],
-				tileSize: 256,
-				attribution: 'OpenStreetMap contributors'
+				type: 'vector' as const,
+				url: 'https://tiles.basemaps.cartocdn.com/vector/carto.streets/v1/tiles.json',
+				attribution: 'OpenStreetMap contributors, CARTO'
 			}
 		},
 		layers: [
 			{
-				id: 'basemap',
-				type: 'raster' as const,
-				source: 'basemap',
+				id: 'land',
+				type: 'background' as const,
 				paint: {
-					'raster-saturation': -0.18,
-					'raster-brightness-min': 0.02,
-					'raster-brightness-max': 1,
-					'raster-contrast': -0.06
+					'background-color': '#c7ffab'
+				}
+			},
+			{
+				id: 'landcover',
+				type: 'fill' as const,
+				source: 'basemap',
+				'source-layer': 'landcover',
+				filter: [
+					'any',
+					['==', 'class', 'wood'],
+					['==', 'class', 'grass'],
+					['==', 'subclass', 'recreation_ground']
+				],
+				paint: {
+					'fill-color': '#bdf29f',
+					'fill-opacity': 0.42
+				}
+			},
+			{
+				id: 'parks',
+				type: 'fill' as const,
+				source: 'basemap',
+				'source-layer': 'park',
+				minzoom: 6,
+				paint: {
+					'fill-color': '#b9f59c',
+					'fill-opacity': 0.48
+				}
+			},
+			{
+				id: 'water',
+				type: 'fill' as const,
+				source: 'basemap',
+				'source-layer': 'water',
+				filter: ['==', '$type', 'Polygon'],
+				paint: {
+					'fill-color': '#cfe9ff',
+					'fill-antialias': true
+				}
+			},
+			{
+				id: 'waterways',
+				type: 'line' as const,
+				source: 'basemap',
+				'source-layer': 'waterway',
+				minzoom: 7,
+				paint: {
+					'line-color': '#b6dcf4',
+					'line-opacity': 0.5,
+					'line-width': ['interpolate', ['linear'], ['zoom'], 7, 0.35, 12, 1.1, 16, 2.4]
+				}
+			},
+			{
+				id: 'roads-major',
+				type: 'line' as const,
+				source: 'basemap',
+				'source-layer': 'transportation',
+				minzoom: 5,
+				filter: ['in', 'class', 'motorway', 'trunk', 'primary', 'secondary'],
+				layout: {
+					'line-cap': 'round' as const,
+					'line-join': 'round' as const
+				},
+				paint: {
+					'line-color': '#f7fff1',
+					'line-opacity': ['interpolate', ['linear'], ['zoom'], 5, 0.18, 8, 0.32, 12, 0.48],
+					'line-width': ['interpolate', ['linear'], ['zoom'], 5, 0.45, 8, 0.75, 12, 1.8, 16, 4]
+				}
+			},
+			{
+				id: 'roads-minor',
+				type: 'line' as const,
+				source: 'basemap',
+				'source-layer': 'transportation',
+				minzoom: 10,
+				filter: ['in', 'class', 'tertiary', 'minor', 'service'],
+				layout: {
+					'line-cap': 'round' as const,
+					'line-join': 'round' as const
+				},
+				paint: {
+					'line-color': '#f8fff4',
+					'line-opacity': ['interpolate', ['linear'], ['zoom'], 10, 0.14, 14, 0.34],
+					'line-width': ['interpolate', ['linear'], ['zoom'], 10, 0.35, 14, 1.2, 17, 2.6]
 				}
 			}
 		]
@@ -239,17 +313,12 @@
 		width: 100%;
 		height: 100%;
 		position: relative;
-		background: #eef6fb;
+		background: #cfe9ff;
 	}
 
 	.map-container {
 		width: 100%;
 		height: 100%;
-		filter: saturate(0.82) brightness(1.04) contrast(0.96);
-	}
-
-	:global(.map-container .maplibregl-canvas) {
-		filter: none;
 	}
 
 	:global(.map-container .maplibregl-ctrl-bottom-right),
