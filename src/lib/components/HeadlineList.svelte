@@ -160,7 +160,7 @@
 		position: absolute;
 		top: 0;
 		bottom: 0;
-		width: clamp(128px, 12vw, 176px);
+		width: clamp(148px, 15vw, 216px);
 		display: flex;
 		flex-direction: column;
 		justify-content: space-evenly;
@@ -177,10 +177,10 @@
 
 	.headline-item {
 		width: 100%;
-		aspect-ratio: 1;
+		aspect-ratio: 1.12;
 		padding: 12px;
 		border: 1px solid rgba(255, 255, 255, 0.72);
-		border-radius: 26px;
+		border-radius: 16px;
 		background:
 			linear-gradient(180deg, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0.84)),
 			radial-gradient(circle at top, rgba(99, 102, 241, 0.08), transparent 55%);
@@ -271,7 +271,7 @@
 		}
 
 		.bubble-rail {
-			width: clamp(122px, 14vw, 156px);
+			width: clamp(138px, 17vw, 188px);
 		}
 
 		.headline-item {

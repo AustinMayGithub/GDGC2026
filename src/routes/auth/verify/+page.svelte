@@ -91,7 +91,7 @@
 		font-size: 13px;
 		background: #fff6cc;
 		border: 1px solid #f3de88;
-		border-radius: 10px;
+		border-radius: var(--radius-sm);
 		padding: 10px 12px;
 	}
 	.linkbtn {

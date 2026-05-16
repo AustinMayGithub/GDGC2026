@@ -349,7 +349,7 @@
 		gap: 16px;
 		padding: 0 16px;
 		height: 64px;
-		border-radius: 22px;
+		border-radius: 16px;
 		border: 1px solid rgba(255, 255, 255, 0.72);
 		z-index: 22;
 		background: rgba(255, 255, 255, 0.82);
@@ -524,7 +524,7 @@
 		top: 96px;
 		left: 18px;
 		width: min(320px, calc(100vw - 36px));
-		z-index: 18;
+		z-index: 20;
 	}
 
 	.empty-state {

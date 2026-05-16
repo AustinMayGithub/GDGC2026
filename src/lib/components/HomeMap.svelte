@@ -41,7 +41,7 @@
 				id: 'land',
 				type: 'background' as const,
 				paint: {
-					'background-color': '#c7ffab'
+					'background-color': '#eef5f1'
 				}
 			},
 			{
@@ -56,8 +56,8 @@
 					['==', 'subclass', 'recreation_ground']
 				],
 				paint: {
-					'fill-color': '#bdf29f',
-					'fill-opacity': 0.42
+					'fill-color': '#dfe8d8',
+					'fill-opacity': 0.34
 				}
 			},
 			{
@@ -67,8 +67,8 @@
 				'source-layer': 'park',
 				minzoom: 6,
 				paint: {
-					'fill-color': '#b9f59c',
-					'fill-opacity': 0.48
+					'fill-color': '#d8e6cf',
+					'fill-opacity': 0.4
 				}
 			},
 			{
@@ -78,8 +78,20 @@
 				'source-layer': 'water',
 				filter: ['==', '$type', 'Polygon'],
 				paint: {
-					'fill-color': '#cfe9ff',
+					'fill-color': '#d9eaf0',
 					'fill-antialias': true
+				}
+			},
+			{
+				id: 'water-outline',
+				type: 'line' as const,
+				source: 'basemap',
+				'source-layer': 'water',
+				filter: ['==', '$type', 'Polygon'],
+				paint: {
+					'line-color': '#aec4cc',
+					'line-opacity': ['interpolate', ['linear'], ['zoom'], 4, 0.24, 8, 0.36, 12, 0.5],
+					'line-width': ['interpolate', ['linear'], ['zoom'], 4, 0.35, 8, 0.7, 12, 1.2]
 				}
 			},
 			{
@@ -89,8 +101,8 @@
 				'source-layer': 'waterway',
 				minzoom: 7,
 				paint: {
-					'line-color': '#b6dcf4',
-					'line-opacity': 0.5,
+					'line-color': '#b7ccd4',
+					'line-opacity': 0.38,
 					'line-width': ['interpolate', ['linear'], ['zoom'], 7, 0.35, 12, 1.1, 16, 2.4]
 				}
 			},
@@ -106,8 +118,8 @@
 					'line-join': 'round' as const
 				},
 				paint: {
-					'line-color': '#f7fff1',
-					'line-opacity': ['interpolate', ['linear'], ['zoom'], 5, 0.18, 8, 0.32, 12, 0.48],
+					'line-color': '#fffaf0',
+					'line-opacity': ['interpolate', ['linear'], ['zoom'], 5, 0.16, 8, 0.34, 12, 0.52],
 					'line-width': ['interpolate', ['linear'], ['zoom'], 5, 0.45, 8, 0.75, 12, 1.8, 16, 4]
 				}
 			},
@@ -123,8 +135,8 @@
 					'line-join': 'round' as const
 				},
 				paint: {
-					'line-color': '#f8fff4',
-					'line-opacity': ['interpolate', ['linear'], ['zoom'], 10, 0.14, 14, 0.34],
+					'line-color': '#fffdf6',
+					'line-opacity': ['interpolate', ['linear'], ['zoom'], 10, 0.12, 14, 0.32],
 					'line-width': ['interpolate', ['linear'], ['zoom'], 10, 0.35, 14, 1.2, 17, 2.6]
 				}
 			}
@@ -165,12 +177,12 @@
 			transition: transform 0.15s ease, box-shadow 0.15s ease;
 			${
 				post.category === 'factual'
-					? `background: linear-gradient(120deg, #6366f1, #ec4899);
+					? `background: linear-gradient(135deg, #111827, #475569);
 					   border: none;
-					   box-shadow: 0 0 0 2px #fff, 0 2px 8px rgba(99,102,241,0.45);`
+					   box-shadow: 0 0 0 2px #fffef8, 0 2px 10px rgba(15, 23, 42, 0.34);`
 					: `background: #fff;
-					   border: 2px solid #6366f1;
-					   box-shadow: 0 0 0 1px rgba(99,102,241,0.2), 0 2px 6px rgba(99,102,241,0.2);`
+					   border: 2px solid #111827;
+					   box-shadow: 0 0 0 1px rgba(255, 254, 248, 0.9), 0 2px 8px rgba(15, 23, 42, 0.18);`
 			}
 			${hovered ? 'transform: scale(1.6); z-index: 2;' : ''}
 		`;
@@ -197,11 +209,11 @@
 				el.style.transform = hovered ? 'scale(1.6)' : '';
 				el.style.boxShadow = hovered
 					? post.category === 'factual'
-						? '0 0 0 3px #fff, 0 4px 16px rgba(99,102,241,0.7)'
-						: '0 0 0 2px #6366f1, 0 4px 12px rgba(99,102,241,0.5)'
+						? '0 0 0 3px #fffef8, 0 5px 18px rgba(15, 23, 42, 0.42)'
+						: '0 0 0 2px #111827, 0 5px 16px rgba(15, 23, 42, 0.28)'
 					: post.category === 'factual'
-						? '0 0 0 2px #fff, 0 2px 8px rgba(99,102,241,0.45)'
-						: '0 0 0 1px rgba(99,102,241,0.2), 0 2px 6px rgba(99,102,241,0.2)';
+						? '0 0 0 2px #fffef8, 0 2px 10px rgba(15, 23, 42, 0.34)'
+						: '0 0 0 1px rgba(255, 254, 248, 0.9), 0 2px 8px rgba(15, 23, 42, 0.18)';
 			} else {
 				const el = createMarkerEl(post, hoveredPostId === post.id);
 				el.addEventListener('click', () => goto(`/post/${post.id}`));
@@ -261,7 +273,7 @@
 
 		const m = new ml.Map({
 			container,
-			style: BASEMAP_STYLE,
+			style: BASEMAP_STYLE as import('maplibre-gl').StyleSpecification,
 			center: [173.3, -41.2],
 			zoom: 4.75,
 			renderWorldCopies: true,
@@ -313,12 +325,35 @@
 		width: 100%;
 		height: 100%;
 		position: relative;
-		background: #cfe9ff;
+		background: #d9eaf0;
+		overflow: hidden;
+	}
+
+	.map-wrap::before,
+	.map-wrap::after {
+		position: absolute;
+		inset: 0;
+		z-index: 1;
+		pointer-events: none;
+		content: '';
+	}
+
+	.map-wrap::before {
+		background:
+			radial-gradient(circle at 50% 42%, rgba(255, 253, 244, 0.32), transparent 32%),
+			linear-gradient(135deg, rgba(255, 255, 255, 0.18), rgba(148, 163, 184, 0.12));
+		mix-blend-mode: soft-light;
+	}
+
+	.map-wrap::after {
+		box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.44), inset 0 0 90px rgba(15, 23, 42, 0.08);
 	}
 
 	.map-container {
 		width: 100%;
 		height: 100%;
+		position: relative;
+		z-index: 0;
 	}
 
 	:global(.map-container .maplibregl-ctrl-bottom-right),
@@ -327,7 +362,7 @@
 	}
 
 	:global(.map-container .maplibregl-ctrl-group) {
-		border-radius: 16px;
+		border-radius: 12px;
 		overflow: hidden;
 		box-shadow: 0 12px 30px rgba(15, 23, 42, 0.12);
 		border: 1px solid rgba(255, 255, 255, 0.7);
