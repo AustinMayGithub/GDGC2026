@@ -2,6 +2,7 @@ import { desc, eq, sql } from 'drizzle-orm';
 import { db } from './db';
 import { posts, users, postVotes, comments, reactions } from './db/schema';
 import type { PostSummary, UserProfile } from '$lib/types';
+import { fallbackAreaLabel } from '$lib/data/geo-labels';
 
 const iso = (d: Date) => d.toISOString();
 
@@ -177,7 +178,8 @@ export async function getUserProfile(id: string): Promise<UserProfile | null> {
 		verifyCount: verify.get(r.id) ?? 0,
 		disputeCount: dispute.get(r.id) ?? 0,
 		hasImage: Boolean(r.hasImage),
-		anonymous: r.anonymous
+		anonymous: r.anonymous,
+		areaLabel: fallbackAreaLabel(r.lng, r.lat, r.impactRadiusM)
 	}));
 
 	const totalVerify = userPosts.reduce((sum, p) => sum + p.verifyCount, 0);

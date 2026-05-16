@@ -1,7 +1,6 @@
 ﻿<script lang="ts">
 	import { onDestroy, onMount, tick } from 'svelte';
 	import { fly } from 'svelte/transition';
-	import { goto } from '$app/navigation';
 	import UserMenu from '$lib/components/UserMenu.svelte';
 	import HomeMap from '$lib/components/HomeMap.svelte';
 	import HeadlineList from '$lib/components/HeadlineList.svelte';
@@ -13,6 +12,7 @@
 	import CommunityNote from '$lib/components/CommunityNote.svelte';
 	import ReactionBar from '$lib/components/ReactionBar.svelte';
 	import CommentThread from '$lib/components/CommentThread.svelte';
+	import { fallbackAreaLabel } from '$lib/data/geo-labels';
 	import type {
 		SessionUser,
 		PostSummary,
@@ -106,6 +106,8 @@
 	let composeAnonymous = $state(false);
 	let composeSubmitting = $state(false);
 	let composeError = $state('');
+	let composeAreaLabel = $state('Local Auckland area');
+	let areaLabelRequestId = 0;
 	let trendingOpen = $state(false);
 	let lastTrendingFitKey = '';
 	let localAutoNationalEnabledAt = 0;
@@ -524,6 +526,25 @@
 		mapComponent?.focusOnLocation(lng, lat, COMPOSE_FOCUS_RADIUS_KM, composeMapOffset());
 	}
 
+	async function refreshComposeAreaLabel() {
+		const requestId = ++areaLabelRequestId;
+		composeAreaLabel = fallbackAreaLabel(composeLng, composeLat, composeRadiusM);
+
+		try {
+			const params = new URLSearchParams({
+				lng: String(composeLng),
+				lat: String(composeLat),
+				radiusM: String(composeRadiusM)
+			});
+			const res = await fetch(`/api/location-label?${params}`);
+			if (requestId !== areaLabelRequestId || !res.ok) return;
+			const json = (await res.json()) as { label?: string };
+			if (json.label) composeAreaLabel = json.label;
+		} catch {
+			// Keep the local fallback label.
+		}
+	}
+
 	function openCompose() {
 		const target = userLocation ?? { lng: localFocusLng, lat: localFocusLat };
 		composeLng = target.lng;
@@ -539,6 +560,7 @@
 		pauseLocalAutoNational();
 		scrollHost?.scrollTo({ top: 0, behavior: 'auto' });
 		composing = true;
+		void refreshComposeAreaLabel();
 		void resizeMapAfterLayout();
 		void tick().then(() => focusComposeLocation(target.lng, target.lat));
 	}
@@ -550,14 +572,47 @@
 		void resizeMapAfterLayout();
 	}
 
+	async function resetMapView() {
+		clearSelectedPost();
+		composing = false;
+		composeError = '';
+		trendingOpen = false;
+		lastTrendingFitKey = '';
+		scrollHost?.scrollTo({ top: 0, behavior: 'auto' });
+		await resizeMapAfterLayout();
+
+		if (scope === 'national') {
+			geoLoading = false;
+			geoError = null;
+			mapComponent?.fitToBbox(NZ_BBOX);
+			return;
+		}
+
+		pauseLocalAutoNational();
+		if (userLocation) {
+			mapComponent?.focusOnLocation(userLocation.lng, userLocation.lat, LOCAL_FOCUS_RADIUS_KM);
+			return;
+		}
+
+		zoomToRegion(selectedRegionId);
+	}
+
+	function handleLogoKeydown(e: KeyboardEvent) {
+		if (e.key !== 'Enter' && e.key !== ' ') return;
+		e.preventDefault();
+		void resetMapView();
+	}
+
 	function handleComposePick(newLng: number, newLat: number) {
 		composeLng = newLng;
 		composeLat = newLat;
+		void refreshComposeAreaLabel();
 		focusComposeLocation(newLng, newLat);
 	}
 
 	function handleRadiusInput(e: Event) {
 		composeRadiusM = sliderToRadius(Number((e.currentTarget as HTMLInputElement).value));
+		void refreshComposeAreaLabel();
 	}
 
 	function handleComposeCategory(cat: PostCategory) {
@@ -659,10 +714,10 @@
 	<header class="header card">
 		<div
 			class="logo"
-			onclick={() => goto('/')}
+			onclick={() => resetMapView()}
 			role="button"
 			tabindex="0"
-			onkeydown={(e) => e.key === 'Enter' && goto('/')}
+			onkeydown={handleLogoKeydown}
 		>
 			<img alt="logo" src={logo} height="24px">
 			
@@ -860,15 +915,15 @@
 							{/each}
 						</div>
 
-						<div class="location-panel">
-							<div class="radius-label-row">
-								<span class="field-label">Affected area</span>
-								<span class="radius-value">{formatRadius(post.impactRadiusM)}</span>
+							<div class="location-panel">
+								<div class="radius-label-row">
+									<span class="field-label">Affected area</span>
+									<span class="radius-value">{formatRadius(post.impactRadiusM)}</span>
+								</div>
+								<div class="area-label-row muted">
+									<span>{post.areaLabel}</span>
+								</div>
 							</div>
-							<div class="coords-row muted">
-								<span>{post.lat.toFixed(4)}°, {post.lng.toFixed(4)}°</span>
-							</div>
-						</div>
 
 						{#key post.id}
 							{#if post.category === 'factual'}
@@ -1000,8 +1055,8 @@
 								<span>100 m</span>
 								<span>50 km</span>
 							</div>
-							<div class="coords-row muted">
-								<span>{composeLat.toFixed(4)}°, {composeLng.toFixed(4)}°</span>
+							<div class="area-label-row muted">
+								<span>{composeAreaLabel}</span>
 							</div>
 						</div>
 
@@ -1322,8 +1377,8 @@
 		left: 20px;
 		bottom: 20px;
 		z-index: 18;
-		width: min(640px, calc(46vw - 20px));
-		min-width: 420px;
+		width: min(760px, calc(58vw - 20px));
+		min-width: 520px;
 		margin: 0;
 		padding: 24px;
 		overflow-y: auto;
@@ -1345,7 +1400,7 @@
 		display: flex;
 		flex-direction: column;
 		gap: 20px;
-		max-width: 640px;
+		max-width: 760px;
 		margin: 0 auto;
 	}
 
@@ -1564,12 +1619,14 @@
 	}
 
 	.radius-hints,
-	.coords-row {
+	.area-label-row {
 		font-size: 11px;
 	}
 
-	.coords-row {
-		font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+	.area-label-row {
+		font-size: 13px;
+		font-weight: 650;
+		color: var(--text-2);
 	}
 
 	.error-msg {

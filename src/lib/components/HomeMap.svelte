@@ -342,11 +342,23 @@
 		const width = container.clientWidth;
 		const compact = width < 820;
 		const panelSide = options.panelSide ?? 'none';
-		const panelWidth = Math.max(420, Math.min(640, width * 0.46 - 20));
-		const panelPadding = panelWidth + 64;
+		const panelWidth = Math.max(520, Math.min(760, width * 0.58 - 20));
+		const panelPadding = panelWidth + 40;
 		const sidePadding = compact ? 24 : Math.min(320, Math.max(180, width * 0.22));
-		const leftPadding = compact ? 28 : panelSide === 'left' ? panelPadding : sidePadding;
-		const rightPadding = compact ? 28 : panelSide === 'right' ? panelPadding : sidePadding;
+		const leftPadding = compact
+			? 28
+			: panelSide === 'left'
+				? panelPadding
+				: panelSide === 'right'
+					? 24
+					: sidePadding;
+		const rightPadding = compact
+			? 28
+			: panelSide === 'right'
+				? panelPadding
+				: panelSide === 'left'
+					? 24
+					: sidePadding;
 
 		let minLng = Infinity;
 		let minLat = Infinity;

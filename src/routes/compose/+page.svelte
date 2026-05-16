@@ -5,6 +5,7 @@
 	import ImpactMap from '$lib/components/ImpactMap.svelte';
 	import CategoryPicker from '$lib/components/CategoryPicker.svelte';
 	import HeaderImageCropper from '$lib/components/HeaderImageCropper.svelte';
+	import { fallbackAreaLabel } from '$lib/data/geo-labels';
 
 	interface PageData {
 		user: SessionUser | null;
@@ -25,6 +26,8 @@
 	let anonymous = $state(false);
 	let submitting = $state(false);
 	let error = $state('');
+	let areaLabel = $state('Local Auckland area');
+	let areaLabelRequestId = 0;
 
 	const RADIUS_MIN_M = 100;
 	const RADIUS_MAX_M = 50000;
@@ -58,10 +61,30 @@
 	function handlePick(newLng: number, newLat: number) {
 		lng = newLng;
 		lat = newLat;
+		void refreshAreaLabel();
 	}
 
 	function handleRadiusInput(e: Event) {
 		radiusM = sliderToRadius(Number((e.currentTarget as HTMLInputElement).value));
+		void refreshAreaLabel();
+	}
+
+	async function refreshAreaLabel() {
+		const requestId = ++areaLabelRequestId;
+		areaLabel = fallbackAreaLabel(lng, lat, radiusM);
+		try {
+			const params = new URLSearchParams({
+				lng: String(lng),
+				lat: String(lat),
+				radiusM: String(radiusM)
+			});
+			const res = await fetch(`/api/location-label?${params}`);
+			if (requestId !== areaLabelRequestId || !res.ok) return;
+			const json = (await res.json()) as { label?: string };
+			if (json.label) areaLabel = json.label;
+		} catch {
+			// Keep fallback label.
+		}
 	}
 
 	function handleCategory(cat: PostCategory) {
@@ -231,7 +254,7 @@
 						</div>
 
 						<div class="coords-row muted">
-							<span>📍 {lat.toFixed(4)}°, {lng.toFixed(4)}°</span>
+							<span>{areaLabel}</span>
 						</div>
 
 						<!-- Radius slider -->

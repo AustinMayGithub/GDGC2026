@@ -163,6 +163,7 @@
 									: undefined}
 							/>
 						</div>
+						<p class="area-label muted">{post.areaLabel}</p>
 						{#if post.category === 'factual'}
 							<p class="map-caption muted">
 								{#if heatmapReady}
@@ -392,6 +393,12 @@
 		border-radius: var(--radius);
 		overflow: hidden;
 	}
+	.area-label {
+		font-size: 13px;
+		font-weight: 650;
+		margin: 8px 0 0;
+	}
+
 	.map-caption {
 		font-size: 11px;
 		line-height: 1.45;

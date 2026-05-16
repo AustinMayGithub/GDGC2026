@@ -3,6 +3,7 @@ import { desc, eq, sql } from 'drizzle-orm';
 import { db } from './db';
 import { posts, comments, communityNotes } from './db/schema';
 import type { CommunityNote } from '$lib/types';
+import { fallbackAreaLabel } from '$lib/data/geo-labels';
 
 const NOTE_MODEL = 'gpt-4o-mini';
 const MAX_COMMENTS_IN_PROMPT = 20;
@@ -42,6 +43,47 @@ export async function moderateText(text: string): Promise<boolean> {
 	} catch (err) {
 		console.error('[ai] moderation call failed, allowing content:', err);
 		return true;
+	}
+}
+
+export async function generateAreaLabel(params: {
+	lng: number;
+	lat: number;
+	radiusM: number;
+	regionName: string;
+	nearestPlace: string;
+}): Promise<string> {
+	const fallback = fallbackAreaLabel(params.lng, params.lat, params.radiusM);
+	const client = await getClient();
+	if (!client) return fallback;
+
+	try {
+		const res = await client.chat.completions.create({
+			model: NOTE_MODEL,
+			max_tokens: 24,
+			temperature: 0.2,
+			messages: [
+				{
+					role: 'system',
+					content:
+						'Create a short New Zealand map area label. Return 2-5 words only. No coordinates. No punctuation. Be natural but restrained, like "Wider Howick area", "Botany local district", or "Auckland regional area".'
+				},
+				{
+					role: 'user',
+					content: `Nearest place: ${params.nearestPlace}
+Region: ${params.regionName}
+Radius metres: ${params.radiusM}
+Fallback label: ${fallback}`
+				}
+			]
+		});
+
+		const label = res.choices[0]?.message?.content?.trim().replace(/^["']|["']$/g, '');
+		if (!label || label.length > 48 || /[-\d.]+,\s*[-\d.]+/.test(label)) return fallback;
+		return label;
+	} catch (err) {
+		console.error('[ai] area label generation failed:', err);
+		return fallback;
 	}
 }
 

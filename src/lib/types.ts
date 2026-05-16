@@ -29,6 +29,7 @@ export interface PostSummary {
 	disputeCount: number;
 	hasImage: boolean;
 	anonymous: boolean;
+	areaLabel: string;
 }
 
 export interface UserProfile {

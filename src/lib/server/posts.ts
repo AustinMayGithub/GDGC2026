@@ -1,6 +1,9 @@
 import { and, desc, eq, isNotNull, sql } from 'drizzle-orm';
 import { db } from './db';
 import { posts, users, postVotes, comments, communityNotes, reactions } from './db/schema';
+import { getRegion } from '$lib/data/nz-regions';
+import { fallbackAreaLabel, nearestPlace } from '$lib/data/geo-labels';
+import { generateAreaLabel } from './ai';
 import type {
 	PostSummary,
 	PostDetail,
@@ -198,6 +201,7 @@ export async function listPosts(opts: { regionId?: string } = {}): Promise<PostS
 		disputeCount: dispute.get(r.id) ?? 0,
 		hasImage: Boolean(r.hasImage),
 		anonymous: r.anonymous,
+		areaLabel: fallbackAreaLabel(r.lng, r.lat, r.impactRadiusM),
 		authorId: r.anonymous ? '' : r.authorId,
 		authorName: r.anonymous ? 'Anonymous' : r.authorName
 	}));
@@ -254,6 +258,16 @@ export async function getPostDetail(
 	}));
 
 	const note = noteRows[0];
+	const place = nearestPlace(r.lng, r.lat);
+	const region = getRegion(r.regionId);
+	const areaLabel = await generateAreaLabel({
+		lng: r.lng,
+		lat: r.lat,
+		radiusM: r.impactRadiusM,
+		regionName: region?.name ?? 'New Zealand',
+		nearestPlace: place?.name ?? region?.name ?? 'this area'
+	});
+
 	return {
 		id: r.id,
 		title: r.title,
@@ -273,6 +287,7 @@ export async function getPostDetail(
 		reactionCount: reactionRows.length,
 		verifyCount,
 		disputeCount,
+		areaLabel,
 		communityNote: note
 			? {
 					body: note.body,
