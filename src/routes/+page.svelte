@@ -1361,11 +1361,25 @@
 					{#if geoError}
 						<span class="error-text helper-text">{geoError}</span>
 					{/if}
-					<select class="input region-select" value={selectedRegionId} onchange={onRegionChange}>
-						{#each orderedRegions as region (region.id)}
-							<option value={region.id}>{region.name}</option>
-						{/each}
-					</select>
+					<label class="region-picker">
+						<span class="region-picker-icon" aria-hidden="true">
+							<svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+								<path
+									d="M8 14s4-3.8 4-7.2A4 4 0 0 0 4 6.8C4 10.2 8 14 8 14Z"
+									stroke="currentColor"
+									stroke-width="1.5"
+									stroke-linejoin="round"
+								/>
+								<circle cx="8" cy="6.8" r="1.35" fill="currentColor" />
+							</svg>
+						</span>
+						<select class="region-select" aria-label="Local area" value={selectedRegionId} onchange={onRegionChange}>
+							{#each orderedRegions as region (region.id)}
+								<option value={region.id}>{region.name}</option>
+							{/each}
+						</select>
+						<span class="region-picker-chevron" aria-hidden="true"></span>
+					</label>
 				</div>
 			{/if}
 		</div>
@@ -1467,7 +1481,6 @@
 			<aside class="post-panel card" transition:fly={{ x: -80, duration: 260 }}>
 				<div class="post-panel-top">
 					<div>
-						<span class="field-label">Post</span>
 						<h1 class="compose-title">
 							{selectedPostDetail?.title ?? visiblePosts.find((post) => post.id === selectedPostId)?.title ?? 'Loading post'}
 						</h1>
@@ -2371,10 +2384,70 @@
 		gap: 8px;
 	}
 
+	.region-picker {
+		position: relative;
+		display: inline-flex;
+		align-items: center;
+		height: 36px;
+		min-width: 174px;
+		border: 1px solid rgba(15, 23, 42, 0.12);
+		border-radius: var(--radius-sm);
+		background: rgba(255, 255, 255, 0.92);
+		box-shadow: 0 8px 22px rgba(15, 23, 42, 0.07);
+		color: var(--text);
+		transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+	}
+
+	.region-picker:hover {
+		border-color: rgba(15, 23, 42, 0.22);
+		background: #ffffff;
+		box-shadow: 0 10px 28px rgba(15, 23, 42, 0.1);
+	}
+
+	.region-picker:focus-within {
+		border-color: var(--accent);
+		box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.16);
+	}
+
+	.region-picker-icon {
+		position: absolute;
+		left: 11px;
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: 18px;
+		height: 18px;
+		color: var(--accent);
+		pointer-events: none;
+	}
+
 	.region-select {
-		width: auto;
-		padding: 5px 10px;
+		width: 100%;
+		height: 100%;
+		padding: 0 34px 0 36px;
+		border: 0;
+		border-radius: inherit;
+		appearance: none;
+		background: transparent;
+		color: var(--text);
 		font-size: 13px;
+		font-weight: 750;
+		cursor: pointer;
+	}
+
+	.region-select:focus {
+		outline: none;
+	}
+
+	.region-picker-chevron {
+		position: absolute;
+		right: 13px;
+		width: 8px;
+		height: 8px;
+		border-right: 2px solid var(--text-3);
+		border-bottom: 2px solid var(--text-3);
+		transform: translateY(-2px) rotate(45deg);
+		pointer-events: none;
 	}
 
 	.helper-text {
@@ -2607,6 +2680,7 @@
 		justify-content: space-between;
 		gap: 16px;
 		margin-bottom: 18px;
+		min-height: 44px;
 	}
 
 	.post-panel-body {
@@ -2621,21 +2695,24 @@
 		display: grid;
 		grid-template-columns: minmax(280px, 0.9fr) minmax(280px, 1fr);
 		gap: 18px;
-		min-height: calc(100% - 62px);
+		min-height: 0;
+		height: calc(100% - 62px);
 	}
 
 	.login-panel-body {
 		display: grid;
 		grid-template-columns: minmax(280px, 0.9fr) minmax(280px, 1fr);
 		gap: 18px;
-		min-height: calc(100% - 62px);
+		min-height: 0;
+		height: calc(100% - 62px);
 	}
 
 	.account-welcome {
 		display: grid;
 		grid-template-columns: minmax(320px, 1.05fr) minmax(280px, 0.85fr);
 		gap: 18px;
-		min-height: calc(100% - 62px);
+		min-height: 0;
+		height: calc(100% - 62px);
 	}
 
 	.login-panel-body.auth-form-mode {
@@ -2817,7 +2894,8 @@
 	}
 
 	.profile-edit-form {
-		min-height: calc(100% - 62px);
+		min-height: 0;
+		height: calc(100% - 62px);
 	}
 
 	.profile-edit-card {
@@ -2826,7 +2904,7 @@
 		gap: 24px;
 		align-items: start;
 		max-width: 860px;
-		min-height: 100%;
+		min-height: 0;
 		margin: 0 auto;
 		padding: 18px;
 		border: 1px solid var(--border);
