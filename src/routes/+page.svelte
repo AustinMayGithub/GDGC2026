@@ -27,6 +27,11 @@
 		zoom: number;
 		bounds: [number, number, number, number];
 	};
+	type RankedPost = {
+		post: PostSummary;
+		score: number;
+		engagement: number;
+	};
 
 	const DEFAULT_REGION_ID = 'auckland';
 	const REGION_CACHE_KEY = 'birdseye:local-region';
@@ -73,8 +78,8 @@
 	let geoRequestId = 0;
 	let stablePostIds = $state<Set<string>>(new Set());
 	let trendingOpen = $state(false);
-	let trendingPosts = $state<PostSummary[]>([]);
 	let viewportRerankTimer: ReturnType<typeof setTimeout> | null = null;
+	let lastTrendingFitKey = '';
 
 	function clamp(min: number, value: number, max: number) {
 		return Math.min(Math.max(value, min), max);
@@ -199,6 +204,17 @@
 		return engagement * (0.7 + approval * 0.6) + freshnessBoost;
 	}
 
+	function engagementFor(post: PostSummary): number {
+		const votes = post.verifyCount + post.disputeCount;
+		return post.commentCount * 4 + post.reactionCount * 3 + votes * 2;
+	}
+
+	function trendScore(post: PostSummary): number {
+		const engagement = engagementFor(post);
+		const ageHours = Math.max((Date.now() - new Date(post.createdAt).getTime()) / 36e5, 0);
+		return Math.round((engagement * 100) / Math.max(ageHours + 2, 2));
+	}
+
 	function adjustedScore(post: PostSummary): number {
 		const base = popularityScore(post) + locationRelevanceScore(post);
 		if (!stablePostIds.has(post.id)) return base;
@@ -243,6 +259,19 @@
 	const maxHomepagePosts = $derived(maxHomepagePostsForViewport());
 	const feedCapacity = $derived(Math.min(rankedPosts.length, maxHomepagePosts));
 	const visiblePosts = $derived(rankedPosts.slice(0, Math.min(visibleCount, feedCapacity)));
+	const trendingEntries = $derived.by(() => {
+		const entries: RankedPost[] = visiblePosts
+			.map((post) => ({
+				post,
+				score: trendScore(post),
+				engagement: engagementFor(post)
+			}))
+			.filter((entry) => entry.engagement > 0)
+			.sort((a, b) => b.score - a.score || b.engagement - a.engagement);
+
+		return entries.slice(0, 8);
+	});
+	const trendingPosts = $derived(trendingEntries.map((entry) => entry.post));
 	const selectedPosts = $derived(
 		!trendingOpen && selectedPostId
 			? visiblePosts.filter((post) => post.id === selectedPostId)
@@ -418,18 +447,9 @@
 		trendingOpen = open;
 		if (open) {
 			clearSelectedPost();
-			if (trendingPosts.length > 0) mapComponent?.fitToPosts(trendingPosts);
 		} else {
 			hoveredPostId = null;
-			redrawTrigger++;
-		}
-	}
-
-	function handleTrendingPostsChange(nextPosts: PostSummary[]) {
-		trendingPosts = nextPosts;
-		if (trendingOpen && nextPosts.length > 0) {
-			clearSelectedPost();
-			mapComponent?.fitToPosts(nextPosts);
+			lastTrendingFitKey = '';
 			redrawTrigger++;
 		}
 	}
@@ -463,6 +483,16 @@
 		posts;
 		mapReady;
 		redrawTrigger;
+	});
+
+	$effect(() => {
+		if (!trendingOpen || !mapReady || trendingPosts.length === 0) return;
+		const fitKey = trendingPosts.map((post) => post.id).join('|');
+		if (fitKey === lastTrendingFitKey) return;
+		lastTrendingFitKey = fitKey;
+		clearSelectedPost();
+		mapComponent?.fitToPosts(trendingPosts);
+		redrawTrigger++;
 	});
 </script>
 
@@ -549,6 +579,7 @@
 				{hoveredPostId}
 				{selectedPostId}
 				disableSelection={trendingOpen}
+				showAllRadii={trendingOpen}
 				onMapReady={handleMapReady}
 				onMarkerPositionsChange={handleMarkerPositionsChange}
 				onSelectPost={handleSelectPost}
@@ -556,11 +587,12 @@
 
 			<div class="trending-overlay">
 				<TrendingDropdown
-					posts={visiblePosts}
+					entries={trendingEntries}
 					{scope}
+					open={trendingOpen}
 					onOpenChange={handleTrendingOpenChange}
-					onTrendingPostsChange={handleTrendingPostsChange}
 					itemEls={trendingItemEls}
+					onItemsChange={() => redrawTrigger++}
 				/>
 			</div>
 

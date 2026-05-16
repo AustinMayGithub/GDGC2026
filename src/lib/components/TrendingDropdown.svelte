@@ -4,11 +4,12 @@
 	import type { PostSummary } from '$lib/types';
 
 	interface Props {
-		posts: PostSummary[];
+		entries: RankedPost[];
 		scope: 'national' | 'local';
-		onOpenChange?: (open: boolean) => void;
-		onTrendingPostsChange?: (posts: PostSummary[]) => void;
+		open: boolean;
+		onOpenChange: (open: boolean) => void;
 		itemEls?: Map<string, HTMLElement>;
+		onItemsChange?: () => void;
 	}
 
 	type RankedPost = {
@@ -17,14 +18,7 @@
 		engagement: number;
 	};
 
-	let { posts, scope, onOpenChange, onTrendingPostsChange, itemEls }: Props = $props();
-
-	let open = $state(false);
-
-	function hoursSince(iso: string): number {
-		const diffMs = Date.now() - new Date(iso).getTime();
-		return Math.max(diffMs / (1000 * 60 * 60), 0);
-	}
+	let { entries, scope, open, onOpenChange, itemEls, onItemsChange }: Props = $props();
 
 	function timeAgo(iso: string): string {
 		const diff = Date.now() - new Date(iso).getTime();
@@ -36,55 +30,28 @@
 		return `${Math.floor(h / 24)}d ago`;
 	}
 
-	function engagementFor(post: PostSummary): number {
-		const votes = post.verifyCount + post.disputeCount;
-		return post.commentCount * 4 + post.reactionCount * 3 + votes * 2;
-	}
-
-	function trendScore(post: PostSummary): number {
-		const engagement = engagementFor(post);
-		const ageHours = hoursSince(post.createdAt);
-		return Math.round((engagement * 100) / Math.max(ageHours + 2, 2));
-	}
-
 	function engagementLabel(engagement: number): string {
 		return `${engagement} engagement${engagement === 1 ? '' : 's'}`;
 	}
-
-	const trendingPosts = $derived.by(() => {
-		const ranked: RankedPost[] = posts
-			.map((post) => ({
-				post,
-				score: trendScore(post),
-				engagement: engagementFor(post)
-			}))
-			.filter((entry) => entry.engagement > 0)
-			.sort((a, b) => b.score - a.score || b.engagement - a.engagement);
-
-		return ranked.slice(0, 8);
-	});
 
 	const scopeCopy = $derived(
 		scope === 'local' ? 'Trending in your area' : 'Trending across New Zealand'
 	);
 
 	function setOpen(nextOpen: boolean) {
-		open = nextOpen;
-		onOpenChange?.(nextOpen);
+		onOpenChange(nextOpen);
 	}
 
 	function registerEl(el: HTMLElement, postId: string) {
 		itemEls?.set(postId, el);
+		onItemsChange?.();
 		return {
 			destroy() {
 				itemEls?.delete(postId);
+				onItemsChange?.();
 			}
 		};
 	}
-
-	$effect(() => {
-		onTrendingPostsChange?.(trendingPosts.map((item) => item.post));
-	});
 </script>
 
 <section class="trending card">
@@ -100,8 +67,8 @@
 			<span class="toggle-sub">{scopeCopy}</span>
 		</div>
 		<div class="toggle-meta">
-			{#if trendingPosts.length > 0}
-				<span class="toggle-count">{trendingPosts.length}</span>
+			{#if entries.length > 0}
+				<span class="toggle-count">{entries.length}</span>
 			{/if}
 			<svg class="chevron" width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
 				<path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
@@ -111,11 +78,11 @@
 
 	{#if open}
 		<div class="trending-menu">
-			{#if trendingPosts.length === 0}
+			{#if entries.length === 0}
 				<p class="empty-copy muted">Nothing is trending yet. Once people start reacting and commenting, stories will surface here.</p>
 			{:else}
 				<ul class="trending-list">
-					{#each trendingPosts as item (item.post.id)}
+					{#each entries as item (item.post.id)}
 						<li>
 							<button
 								type="button"

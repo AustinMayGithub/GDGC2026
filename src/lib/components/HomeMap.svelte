@@ -10,6 +10,7 @@
 		hoveredPostId: string | null;
 		selectedPostId: string | null;
 		disableSelection?: boolean;
+		showAllRadii?: boolean;
 		onMapReady: (map: unknown) => void;
 		onMarkerPositionsChange: () => void;
 		onSelectPost: (id: string | null) => void;
@@ -33,6 +34,7 @@
 		hoveredPostId,
 		selectedPostId,
 		disableSelection = false,
+		showAllRadii = false,
 		onMapReady,
 		onMarkerPositionsChange,
 		onSelectPost
@@ -224,6 +226,13 @@
 	}
 
 	function selectedRadiusFeatures(): GeoJSON.FeatureCollection<GeoJSON.Polygon> {
+		if (showAllRadii) {
+			return {
+				type: 'FeatureCollection',
+				features: posts.map((post) => buildCircle(post.lng, post.lat, post.impactRadiusM))
+			};
+		}
+
 		const post = posts.find((item) => item.id === selectedPostId);
 		return {
 			type: 'FeatureCollection',
@@ -290,12 +299,7 @@
 		const compact = container.clientWidth < 820;
 
 		if (postsToFit.length === 1) {
-			const post = postsToFit[0];
-			m.easeTo({
-				center: [post.lng, post.lat],
-				zoom: 10,
-				duration: 500
-			});
+			fitToPostRadius(postsToFit[0]);
 			return;
 		}
 
@@ -305,10 +309,13 @@
 		let maxLat = -Infinity;
 
 		for (const post of postsToFit) {
-			if (post.lng < minLng) minLng = post.lng;
-			if (post.lng > maxLng) maxLng = post.lng;
-			if (post.lat < minLat) minLat = post.lat;
-			if (post.lat > maxLat) maxLat = post.lat;
+			const ring = buildCircle(post.lng, post.lat, post.impactRadiusM).geometry.coordinates[0];
+			for (const [lng, lat] of ring) {
+				if (lng < minLng) minLng = lng;
+				if (lng > maxLng) maxLng = lng;
+				if (lat < minLat) minLat = lat;
+				if (lat > maxLat) maxLat = lat;
+			}
 		}
 
 		m.fitBounds(
@@ -514,6 +521,7 @@
 		hoveredPostId;
 		selectedPostId;
 		disableSelection;
+		showAllRadii;
 		syncPostLayers();
 	});
 </script>

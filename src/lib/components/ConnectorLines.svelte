@@ -117,22 +117,24 @@
 			stroke-dasharray={line.hovered ? 'none' : '5 8'}
 			stroke-linecap="round"
 			opacity={line.hovered ? 1 : 0.92}
-			marker-end={arrowheads ? 'url(#connector-arrow)' : undefined}
+			marker-end={arrowheads ? 'url(#connector-arrow)' : null}
 		/>
-		<circle
-			cx={line.x1}
-			cy={line.y1}
-			r={line.hovered ? 3.2 : 2.2}
-			fill={line.hovered ? 'var(--brand-1)' : 'rgba(71, 85, 105, 0.4)'}
-		/>
-		<circle
-			cx={line.x2}
-			cy={line.y2}
-			r={line.hovered ? 6.5 : 5}
-			fill="rgba(255, 255, 255, 0.96)"
-			stroke="rgba(17, 24, 39, 0.92)"
-			stroke-width={line.hovered ? 2.4 : 1.8}
-		/>
+		{#if !arrowheads}
+			<circle
+				cx={line.x1}
+				cy={line.y1}
+				r={line.hovered ? 3.2 : 2.2}
+				fill={line.hovered ? 'var(--brand-1)' : 'rgba(71, 85, 105, 0.4)'}
+			/>
+			<circle
+				cx={line.x2}
+				cy={line.y2}
+				r={line.hovered ? 6.5 : 5}
+				fill="rgba(255, 255, 255, 0.96)"
+				stroke="rgba(17, 24, 39, 0.92)"
+				stroke-width={line.hovered ? 2.4 : 1.8}
+			/>
+		{/if}
 	{/each}
 
 	<defs>
