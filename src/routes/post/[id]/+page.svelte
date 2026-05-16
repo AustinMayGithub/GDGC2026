@@ -40,6 +40,12 @@
 		});
 	}
 
+	async function deletePost() {
+		if (!confirm('Delete this post? This cannot be undone.')) return;
+		const res = await fetch(`/api/posts/${post.id}`, { method: 'DELETE' });
+		if (res.ok) await goto('/');
+	}
+
 	async function reportPost() {
 		const reason = window.prompt('Reason for reporting this post?');
 		if (!reason?.trim()) return;
@@ -86,7 +92,11 @@
 						<span class="badge">Community notice</span>
 					{/if}
 					<span class="muted meta-sep">·</span>
-					<a class="muted author author-link" href="/profile/{post.authorId}">{post.authorName}</a>
+					{#if post.anonymous}
+						<span class="muted author">Anonymous</span>
+					{:else}
+						<a class="muted author author-link" href="/profile/{post.authorId}">{post.authorName}</a>
+					{/if}
 					<span class="muted meta-sep">·</span>
 					<time class="muted" datetime={post.createdAt}>{formatDate(post.createdAt)}</time>
 				</div>
@@ -101,11 +111,18 @@
 					{/each}
 				</div>
 
-				{#if user}
-					<button class="report-post-btn muted" onclick={reportPost}>
-						⚑ Report this post
-					</button>
-				{/if}
+				<div class="post-actions">
+					{#if post.isOwn}
+						<button class="delete-post-btn" onclick={deletePost}>
+							Delete post
+						</button>
+					{/if}
+					{#if user}
+						<button class="report-post-btn muted" onclick={reportPost}>
+							⚑ Report this post
+						</button>
+					{/if}
+				</div>
 			</article>
 		</main>
 
@@ -261,8 +278,25 @@
 		margin-bottom: 0;
 	}
 
-	.report-post-btn {
+	.post-actions {
+		display: flex;
+		align-items: center;
+		gap: 16px;
 		margin-top: 24px;
+	}
+	.delete-post-btn {
+		border: none;
+		background: none;
+		font-size: 12px;
+		font-weight: 600;
+		cursor: pointer;
+		padding: 0;
+		color: var(--dispute);
+	}
+	.delete-post-btn:hover {
+		text-decoration: underline;
+	}
+	.report-post-btn {
 		border: none;
 		background: none;
 		font-size: 12px;

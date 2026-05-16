@@ -31,6 +31,7 @@ export async function getUserProfile(id: string): Promise<UserProfile | null> {
 			impactRadiusM: posts.impactRadiusM,
 			regionId: posts.regionId,
 			createdAt: posts.createdAt,
+			anonymous: posts.anonymous,
 			hasImage: sql<boolean>`(${posts.headerImageDataUrl} IS NOT NULL)`
 		})
 		.from(posts)
@@ -81,7 +82,8 @@ export async function getUserProfile(id: string): Promise<UserProfile | null> {
 		reactionCount: reactionCount.get(r.id) ?? 0,
 		verifyCount: verify.get(r.id) ?? 0,
 		disputeCount: dispute.get(r.id) ?? 0,
-		hasImage: Boolean(r.hasImage)
+		hasImage: Boolean(r.hasImage),
+		anonymous: r.anonymous
 	}));
 
 	const totalVerify = userPosts.reduce((sum, p) => sum + p.verifyCount, 0);

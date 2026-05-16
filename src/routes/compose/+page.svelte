@@ -22,6 +22,7 @@
 	let lng = $state(174.76); // Default: Auckland
 	let lat = $state(-36.85);
 	let radiusM = $state(2000);
+	let anonymous = $state(false);
 	let submitting = $state(false);
 	let error = $state('');
 
@@ -70,6 +71,7 @@
 					body: body.trim(),
 					headerImageDataUrl,
 					category,
+					anonymous,
 					lng,
 					lat,
 					impactRadiusM: radiusM
@@ -165,6 +167,15 @@
 						<span class="field-label">Category</span>
 						<CategoryPicker value={category} onchange={handleCategory} />
 					</div>
+
+					<!-- Anonymous toggle -->
+					<label class="anon-row">
+						<input type="checkbox" bind:checked={anonymous} disabled={submitting} class="anon-check" />
+						<span class="anon-text">
+							Post anonymously
+							<span class="field-hint muted">— your name won't be shown publicly</span>
+						</span>
+					</label>
 
 					<!-- Error -->
 					{#if error}
@@ -360,6 +371,28 @@
 	.error-msg {
 		margin: 0;
 		font-size: 14px;
+	}
+
+	.anon-row {
+		display: flex;
+		align-items: center;
+		gap: 10px;
+		cursor: pointer;
+		font-size: 14px;
+		font-weight: 550;
+	}
+	.anon-check {
+		width: 16px;
+		height: 16px;
+		flex-shrink: 0;
+		cursor: pointer;
+		accent-color: var(--accent);
+	}
+	.anon-text {
+		display: flex;
+		align-items: baseline;
+		gap: 6px;
+		flex-wrap: wrap;
 	}
 
 	.submit-row {

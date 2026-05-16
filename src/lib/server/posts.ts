@@ -24,6 +24,7 @@ export async function listPosts(opts: { regionId?: string } = {}): Promise<PostS
 			createdAt: posts.createdAt,
 			authorId: posts.authorId,
 			authorName: users.displayName,
+			anonymous: posts.anonymous,
 			hasImage: sql<boolean>`(${posts.headerImageDataUrl} IS NOT NULL)`
 		})
 		.from(posts)
@@ -63,14 +64,15 @@ export async function listPosts(opts: { regionId?: string } = {}): Promise<PostS
 		lat: r.lat,
 		impactRadiusM: r.impactRadiusM,
 		regionId: r.regionId,
-		authorName: r.authorName,
 		createdAt: iso(r.createdAt),
 		commentCount: cmt.get(r.id) ?? 0,
 		reactionCount: reactionCount.get(r.id) ?? 0,
 		verifyCount: verify.get(r.id) ?? 0,
 		disputeCount: dispute.get(r.id) ?? 0,
 		hasImage: Boolean(r.hasImage),
-		authorId: r.authorId
+		anonymous: r.anonymous,
+		authorId: r.anonymous ? '' : r.authorId,
+		authorName: r.anonymous ? 'Anonymous' : r.authorName
 	}));
 }
 
@@ -91,7 +93,8 @@ export async function getPostDetail(
 			regionId: posts.regionId,
 			createdAt: posts.createdAt,
 			authorId: posts.authorId,
-			authorName: users.displayName
+			authorName: users.displayName,
+			anonymous: posts.anonymous
 		})
 		.from(posts)
 		.innerJoin(users, eq(posts.authorId, users.id))
@@ -152,8 +155,10 @@ export async function getPostDetail(
 		lat: r.lat,
 		impactRadiusM: r.impactRadiusM,
 		regionId: r.regionId,
-		authorId: r.authorId,
-		authorName: r.authorName,
+		anonymous: r.anonymous,
+		authorId: r.anonymous && viewerId !== r.authorId ? '' : r.authorId,
+		authorName: r.anonymous ? 'Anonymous' : r.authorName,
+		isOwn: viewerId !== null && viewerId === r.authorId,
 		createdAt: iso(r.createdAt),
 		commentCount: commentCountRows[0]?.c ?? 0,
 		reactionCount: reactionRows.length,

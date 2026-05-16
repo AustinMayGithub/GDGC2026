@@ -276,7 +276,7 @@
 
 		<!-- Posts -->
 		<section class="posts-section">
-			<h2 class="posts-heading">
+			<h2 id="posts" class="posts-heading">
 				{isOwn ? 'Your posts' : `Posts by ${profile.displayName}`}
 				<span class="posts-count muted">({profile.posts.length})</span>
 			</h2>
@@ -293,6 +293,9 @@
 								<span class={post.category === 'factual' ? 'badge badge-factual' : 'badge'}>
 									{post.category === 'factual' ? 'Factual' : 'Community'}
 								</span>
+								{#if post.anonymous}
+									<span class="anon-badge">Anonymous</span>
+								{/if}
 								<span class="post-time muted">{timeAgo(post.createdAt)}</span>
 							</div>
 							<p class="post-title">{post.title}</p>
@@ -638,6 +641,15 @@
 
 	.vote-pct {
 		font-weight: 700;
+	}
+
+	.anon-badge {
+		font-size: 11px;
+		font-weight: 600;
+		color: var(--text-3);
+		border: 1px solid var(--border);
+		border-radius: var(--radius-sm);
+		padding: 1px 6px;
 	}
 
 	@media (max-width: 600px) {
