@@ -1,10 +1,37 @@
 import { json, error } from '@sveltejs/kit';
 import { db } from '$lib/server/db';
 import { posts } from '$lib/server/db/schema';
-import { regionForPoint } from '$lib/data/nz-regions';
+import { NZ_REGIONS, regionForPoint } from '$lib/data/nz-regions';
 import { listPosts } from '$lib/server/posts';
 import { moderateText } from '$lib/server/ai';
 import type { RequestHandler } from './$types';
+
+const DEFAULT_LOCATION_EPSILON = 0.000001;
+const DEFAULT_JITTER_MIN_M = 250;
+const DEFAULT_JITTER_MAX_M = 500;
+const METERS_PER_DEGREE_LAT = 111320;
+
+function isDefaultRegionLocation(lng: number, lat: number) {
+	return NZ_REGIONS.some(
+		(region) =>
+			Math.abs(region.center[0] - lng) <= DEFAULT_LOCATION_EPSILON &&
+			Math.abs(region.center[1] - lat) <= DEFAULT_LOCATION_EPSILON
+	);
+}
+
+function jitterLocation(lng: number, lat: number) {
+	const angle = Math.random() * Math.PI * 2;
+	const distanceM =
+		DEFAULT_JITTER_MIN_M + Math.random() * (DEFAULT_JITTER_MAX_M - DEFAULT_JITTER_MIN_M);
+	const latOffset = (Math.cos(angle) * distanceM) / METERS_PER_DEGREE_LAT;
+	const lngMetersPerDegree = METERS_PER_DEGREE_LAT * Math.cos((lat * Math.PI) / 180);
+	const lngOffset = (Math.sin(angle) * distanceM) / lngMetersPerDegree;
+
+	return {
+		lng: lng + lngOffset,
+		lat: lat + latOffset
+	};
+}
 
 export const GET: RequestHandler = async ({ url }) => {
 	const scope = url.searchParams.get('scope');
@@ -56,6 +83,8 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 	if (!allowed)
 		throw error(422, 'This content was flagged by moderation and cannot be posted.');
 
+	const postLocation = isDefaultRegionLocation(lng, lat) ? jitterLocation(lng, lat) : { lng, lat };
+
 	const [post] = await db
 		.insert(posts)
 		.values({
@@ -64,10 +93,10 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 			body,
 			headerImageDataUrl,
 			category,
-			lng,
-			lat,
+			lng: postLocation.lng,
+			lat: postLocation.lat,
 			impactRadiusM,
-			regionId: regionForPoint(lng, lat)
+			regionId: regionForPoint(postLocation.lng, postLocation.lat)
 		})
 		.returning({ id: posts.id });
 

@@ -7,8 +7,6 @@
 
 <div class="error-shell">
 	<a class="logo" href="/">
-		<span class="logo-dot"></span>
-		<span class="gradient-text">BirdsEye</span>
 		<img alt="logo" src={logo} height="24px">
 	</a>
 	<div class="error-card card">

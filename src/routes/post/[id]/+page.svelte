@@ -6,6 +6,8 @@
 	import CommunityNote from '$lib/components/CommunityNote.svelte';
 	import ReactionBar from '$lib/components/ReactionBar.svelte';
 	import CommentThread from '$lib/components/CommentThread.svelte';
+	import logo from '$lib/data/birdseye.png';
+
 
 	interface PageData {
 		post: PostDetail;
@@ -59,7 +61,7 @@
 		<a class="back-link btn" href="/">
 			← Back to map
 		</a>
-		<span class="topbar-title gradient-text">BirdsEye</span>
+		<span class="topbar-title gradient-text"><img alt="logo" src={logo} height="24px"></span>
 		<UserMenu {user} />
 	</header>
 

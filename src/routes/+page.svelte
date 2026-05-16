@@ -52,6 +52,7 @@
 	let loading = $state(false);
 	let error = $state<string | null>(null);
 	let hoveredPostId = $state<string | null>(null);
+	let selectedPostId = $state<string | null>(null);
 	let visibleCount = $state(INITIAL_VISIBLE_POSTS);
 
 	let selectedRegionId = $state<string>(DEFAULT_REGION_ID);
@@ -239,6 +240,9 @@
 	const maxHomepagePosts = $derived(maxHomepagePostsForViewport());
 	const feedCapacity = $derived(Math.min(rankedPosts.length, maxHomepagePosts));
 	const visiblePosts = $derived(rankedPosts.slice(0, Math.min(visibleCount, feedCapacity)));
+	const selectedPosts = $derived(
+		selectedPostId ? visiblePosts.filter((post) => post.id === selectedPostId) : []
+	);
 	const hiddenPostCount = $derived(Math.max(feedCapacity - visiblePosts.length, 0));
 	const scrollSpacerHeight = $derived(
 		hiddenPostCount === 0 ? 0 : Math.ceil(hiddenPostCount / POSTS_PER_SCROLL_STEP) * SCROLL_STEP_PX
@@ -247,6 +251,12 @@
 	function resetFeedVisibility() {
 		visibleCount = Math.min(INITIAL_VISIBLE_POSTS, maxHomepagePosts);
 		scrollHost?.scrollTo({ top: 0, behavior: 'auto' });
+	}
+
+	function clearSelectedPost() {
+		selectedPostId = null;
+		hoveredPostId = null;
+		redrawTrigger++;
 	}
 
 	function handleFeedScroll() {
@@ -277,6 +287,10 @@
 			if (requestId !== fetchRequestId) return;
 			posts = json.posts as PostSummary[];
 			stablePostIds = computeStableSet(json.posts as PostSummary[]);
+			if (selectedPostId && !posts.some((post) => post.id === selectedPostId)) {
+				selectedPostId = null;
+				hoveredPostId = null;
+			}
 			resetFeedVisibility();
 		} catch (err) {
 			if (err instanceof DOMException && err.name === 'AbortError') return;
@@ -294,6 +308,7 @@
 	}
 
 	async function switchToNational() {
+		clearSelectedPost();
 		scope = 'national';
 		geoLoading = false;
 		geoError = null;
@@ -302,6 +317,7 @@
 	}
 
 	async function switchToLocal() {
+		clearSelectedPost();
 		scope = 'local';
 		geoError = null;
 		zoomToRegion(selectedRegionId);
@@ -356,6 +372,7 @@
 	}
 
 	async function onRegionChange(e: Event) {
+		clearSelectedPost();
 		selectedRegionId = (e.target as HTMLSelectElement).value;
 		writeCachedRegion(selectedRegionId);
 		zoomToRegion(selectedRegionId);
@@ -377,6 +394,12 @@
 
 	function getMarkerScreenPos(id: string): { x: number; y: number } | null {
 		return mapComponent?.getMarkerScreenPos(id) ?? null;
+	}
+
+	function handleSelectPost(id: string | null) {
+		selectedPostId = id;
+		hoveredPostId = id;
+		redrawTrigger++;
 	}
 
 	onMount(() => {
@@ -420,7 +443,6 @@
 			tabindex="0"
 			onkeydown={(e) => e.key === 'Enter' && goto('/')}
 		>
-			<span class="logo-dot"></span>
 			<img alt="logo" src={logo} height="24px">
 			
 		</div>
@@ -493,8 +515,10 @@
 				bind:this={mapComponent}
 				posts={visiblePosts}
 				{hoveredPostId}
+				{selectedPostId}
 				onMapReady={handleMapReady}
 				onMarkerPositionsChange={handleMarkerPositionsChange}
+				onSelectPost={handleSelectPost}
 			/>
 
 			<div class="trending-overlay">
@@ -502,7 +526,7 @@
 			</div>
 
 			<HeadlineList
-				posts={visiblePosts}
+				posts={selectedPosts}
 				{hoveredPostId}
 				onHover={(id) => {
 					hoveredPostId = id;
@@ -534,7 +558,7 @@
 
 	{#if mapReady}
 		<ConnectorLines
-			posts={visiblePosts}
+			posts={selectedPosts}
 			{hoveredPostId}
 			{getMarkerScreenPos}
 			{listItemEls}
