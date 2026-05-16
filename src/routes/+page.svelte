@@ -23,7 +23,12 @@
 	let hoveredPostId = $state<string | null>(null);
 
 	// Local mode state
-	let selectedRegionId = $state<string>(NZ_REGIONS[0].id);
+	const DEFAULT_REGION_ID = 'auckland';
+	const orderedRegions = [
+		...NZ_REGIONS.filter((region) => region.id === DEFAULT_REGION_ID),
+		...NZ_REGIONS.filter((region) => region.id !== DEFAULT_REGION_ID)
+	];
+	let selectedRegionId = $state<string>(DEFAULT_REGION_ID);
 	let geoError = $state<string | null>(null);
 	let geoLoading = $state(false);
 	const scopeSwitching = $derived(loading || geoLoading);
@@ -78,7 +83,7 @@
 					await fetchPosts('local', regionId);
 				},
 				async () => {
-					geoError = 'Location access denied — pick your region below.';
+					geoError = 'Location access denied - pick your region below.';
 					geoLoading = false;
 					zoomToRegion(selectedRegionId);
 					await fetchPosts('local');
@@ -86,7 +91,7 @@
 				{ timeout: 8000 }
 			);
 		} else {
-			geoError = 'Geolocation not available — pick your region below.';
+			geoError = 'Geolocation not available - pick your region below.';
 			geoLoading = false;
 			zoomToRegion(selectedRegionId);
 			await fetchPosts('local');
@@ -136,55 +141,69 @@
 <div class="page">
 	<!-- Header -->
 	<header class="header card">
-		<div class="logo" onclick={() => goto('/')} role="button" tabindex="0" onkeydown={(e) => e.key === 'Enter' && goto('/')}>
+		<div
+			class="logo"
+			onclick={() => goto('/')}
+			role="button"
+			tabindex="0"
+			onkeydown={(e) => e.key === 'Enter' && goto('/')}
+		>
 			<span class="logo-dot"></span>
 			<span class="logo-name gradient-text">BirdsEye</span>
 		</div>
 
 		<div class="header-center">
-			<div class="scope-toggle" class:local={scope === 'local'} class:switching={scopeSwitching} aria-busy={scopeSwitching}>
-				<span class="toggle-indicator" aria-hidden="true"></span>
-				<button
-					type="button"
-					class={scope === 'national' ? 'toggle-btn active' : 'toggle-btn'}
-					onclick={switchToNational}
-					aria-pressed={scope === 'national'}
-					disabled={scopeSwitching}
+			<div class="scope-toggle-slot">
+				<div
+					class="scope-toggle"
+					class:local={scope === 'local'}
+					class:switching={scopeSwitching}
+					aria-busy={scopeSwitching}
 				>
-					National
-				</button>
-				<button
-					type="button"
-					class={scope === 'local' ? 'toggle-btn active' : 'toggle-btn'}
-					onclick={switchToLocal}
-					aria-pressed={scope === 'local'}
-					disabled={scopeSwitching}
-				>
-					Local
-				</button>
+					<span class="toggle-indicator" aria-hidden="true"></span>
+					<button
+						type="button"
+						class={scope === 'national' ? 'toggle-btn active' : 'toggle-btn'}
+						onclick={switchToNational}
+						aria-pressed={scope === 'national'}
+						disabled={scopeSwitching}
+					>
+						National
+					</button>
+					<button
+						type="button"
+						class={scope === 'local' ? 'toggle-btn active' : 'toggle-btn'}
+						onclick={switchToLocal}
+						aria-pressed={scope === 'local'}
+						disabled={scopeSwitching}
+					>
+						Local
+					</button>
+				</div>
 			</div>
 
-			{#if scope === 'local'}
-				<div class="region-controls">
-					{#if geoLoading}
-						<span class="muted" style="font-size:12px;">Detecting location…</span>
-					{/if}
-					{#if geoError}
-						<span class="error-text" style="font-size:12px;">{geoError}</span>
-					{/if}
-					<select class="input region-select" value={selectedRegionId} onchange={onRegionChange}>
-						{#each NZ_REGIONS as region (region.id)}
-							<option value={region.id}>{region.name}</option>
-						{/each}
-					</select>
-				</div>
-			{/if}
+			<div class="region-controls-slot" aria-live="polite">
+				{#if scope === 'local'}
+					<div class="region-controls">
+						{#if geoLoading}
+							<span class="muted region-status">Detecting location...</span>
+						{:else if geoError}
+							<span class="error-text region-status">{geoError}</span>
+						{/if}
+						<select class="input region-select" value={selectedRegionId} onchange={onRegionChange}>
+							{#each orderedRegions as region (region.id)}
+								<option value={region.id}>{region.name}</option>
+							{/each}
+						</select>
+					</div>
+				{/if}
+			</div>
 		</div>
 
 		<div class="header-right">
 			<a href="/compose" class="btn btn-primary new-post-btn">
 				<svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-					<path d="M8 1v14M1 8h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+					<path d="M8 1v14M1 8h14" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
 				</svg>
 				New post
 			</a>
@@ -234,7 +253,9 @@
 			{#if error}
 				<div class="error-banner card">
 					<span class="error-text">{error}</span>
-					<button class="btn" onclick={() => fetchPosts()} style="font-size:12px;padding:6px 12px;">Retry</button>
+					<button class="btn" onclick={() => fetchPosts()} style="font-size:12px;padding:6px 12px;">
+						Retry
+					</button>
 				</div>
 			{/if}
 		</div>
@@ -242,13 +263,7 @@
 
 	<!-- Connector SVG overlay -->
 	{#if mapReady}
-		<ConnectorLines
-			{posts}
-			{hoveredPostId}
-			{getMarkerScreenPos}
-			{listItemEls}
-			{redrawTrigger}
-		/>
+		<ConnectorLines {posts} {hoveredPostId} {getMarkerScreenPos} {listItemEls} {redrawTrigger} />
 	{/if}
 </div>
 
@@ -301,11 +316,16 @@
 
 	.header-center {
 		flex: 1;
-		display: flex;
+		display: grid;
+		grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
 		align-items: center;
-		justify-content: center;
 		gap: 12px;
-		flex-wrap: wrap;
+		min-width: 0;
+	}
+
+	.scope-toggle-slot {
+		grid-column: 2;
+		justify-self: center;
 	}
 
 	.scope-toggle {
@@ -330,7 +350,7 @@
 		border-radius: calc(var(--radius-sm) - 2px);
 		background: var(--surface);
 		box-shadow: var(--shadow-sm);
-		transition: transform 0.2s ease;
+		transition: transform 0.22s cubic-bezier(0.22, 1, 0.36, 1);
 		pointer-events: none;
 	}
 
@@ -350,7 +370,7 @@
 		color: var(--text-2);
 		font-size: 13px;
 		font-weight: 550;
-		transition: color 0.15s ease, transform 0.15s ease;
+		transition: color 0.18s ease, transform 0.15s ease;
 		position: relative;
 		z-index: 1;
 	}
@@ -372,16 +392,30 @@
 		cursor: wait;
 	}
 
+	.region-controls-slot {
+		grid-column: 3;
+		justify-self: start;
+		min-width: 0;
+	}
+
 	.region-controls {
 		display: flex;
 		align-items: center;
 		gap: 8px;
+		min-width: 0;
+	}
+
+	.region-status {
+		flex-shrink: 0;
+		font-size: 12px;
+		white-space: nowrap;
 	}
 
 	.region-select {
 		width: auto;
 		padding: 5px 10px;
 		font-size: 13px;
+		min-width: 160px;
 	}
 
 	.header-right {
@@ -431,7 +465,9 @@
 	}
 
 	@keyframes spin {
-		to { transform: rotate(360deg); }
+		to {
+			transform: rotate(360deg);
+		}
 	}
 
 	.panel-area {
@@ -481,5 +517,32 @@
 		padding: 10px 14px;
 		flex-shrink: 0;
 	}
-</style>
 
+	@media (max-width: 980px) {
+		.header {
+			height: auto;
+			min-height: 58px;
+			padding-top: 10px;
+			padding-bottom: 10px;
+			flex-wrap: wrap;
+		}
+
+		.header-center {
+			order: 3;
+			flex-basis: 100%;
+			grid-template-columns: 1fr;
+			justify-items: center;
+		}
+
+		.scope-toggle-slot,
+		.region-controls-slot {
+			grid-column: 1;
+			justify-self: center;
+		}
+
+		.region-controls {
+			flex-wrap: wrap;
+			justify-content: center;
+		}
+	}
+</style>
