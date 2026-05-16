@@ -307,44 +307,64 @@
 
 				map.addLayer({
 					id: 'verify-heat',
-					type: 'heatmap',
+					type: 'circle',
 					source: 'verify-votes',
 					paint: {
-						'heatmap-weight': 1,
-						'heatmap-intensity': heatIntensity as never,
-						'heatmap-radius': heatRadius as never,
-						'heatmap-opacity': 0.64,
-						'heatmap-color': [
-							'interpolate', ['linear'], ['heatmap-density'],
-							0, 'rgba(34,197,94,0)',
-							0.18, 'rgba(220,252,231,0.18)',
-							0.4, 'rgba(187,247,208,0.34)',
-							0.62, 'rgba(134,239,172,0.5)',
-							0.82, 'rgba(74,222,128,0.62)',
-							0.94, 'rgba(34,197,94,0.72)',
-							1, 'rgba(21,128,61,0.8)'
-						] as never
+						'circle-radius': [
+							'interpolate', ['linear'], ['zoom'],
+							8, 16, 13, 30, 18, 52
+						] as never,
+						'circle-color': '#16a34a',
+						'circle-opacity': [
+							'interpolate', ['linear'], ['zoom'],
+							8, 0.16, 13, 0.22, 18, 0.28
+						] as never,
+						'circle-blur': 0.88
 					}
 				});
 				map.addLayer({
 					id: 'dispute-heat',
-					type: 'heatmap',
+					type: 'circle',
 					source: 'dispute-votes',
 					paint: {
-						'heatmap-weight': 1,
-						'heatmap-intensity': heatIntensity as never,
-						'heatmap-radius': heatRadius as never,
-						'heatmap-opacity': 0.64,
-						'heatmap-color': [
-							'interpolate', ['linear'], ['heatmap-density'],
-							0, 'rgba(239,68,68,0)',
-							0.18, 'rgba(254,242,242,0.18)',
-							0.4, 'rgba(254,202,202,0.34)',
-							0.62, 'rgba(252,165,165,0.5)',
-							0.82, 'rgba(248,113,113,0.62)',
-							0.94, 'rgba(239,68,68,0.72)',
-							1, 'rgba(185,28,28,0.8)'
-						] as never
+						'circle-radius': [
+							'interpolate', ['linear'], ['zoom'],
+							8, 16, 13, 30, 18, 52
+						] as never,
+						'circle-color': '#dc2626',
+						'circle-opacity': [
+							'interpolate', ['linear'], ['zoom'],
+							8, 0.18, 13, 0.24, 18, 0.3
+						] as never,
+						'circle-blur': 0.88
+					}
+				});
+				map.addLayer({
+					id: 'verify-heat-core',
+					type: 'circle',
+					source: 'verify-votes',
+					paint: {
+						'circle-radius': [
+							'interpolate', ['linear'], ['zoom'],
+							8, 7, 13, 11, 18, 18
+						] as never,
+						'circle-color': '#16a34a',
+						'circle-opacity': 0.18,
+						'circle-blur': 0.5
+					}
+				});
+				map.addLayer({
+					id: 'dispute-heat-core',
+					type: 'circle',
+					source: 'dispute-votes',
+					paint: {
+						'circle-radius': [
+							'interpolate', ['linear'], ['zoom'],
+							8, 7, 13, 11, 18, 18
+						] as never,
+						'circle-color': '#dc2626',
+						'circle-opacity': 0.22,
+						'circle-blur': 0.5
 					}
 				});
 

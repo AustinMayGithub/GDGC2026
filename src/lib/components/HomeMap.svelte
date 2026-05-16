@@ -710,40 +710,13 @@
 			});
 			m.addLayer({
 				id: 'selected-verify-heat',
-				type: 'heatmap',
+				type: 'circle',
 				source: 'selected-verify-votes',
 				paint: {
-					'heatmap-weight': 1,
-					'heatmap-intensity': ['interpolate', ['linear'], ['zoom'], 6, 0.72, 14, 1.75],
-					'heatmap-radius': ['interpolate', ['linear'], ['zoom'], 5, 16, 10, 28, 16, 56],
-					'heatmap-opacity': [
-						'interpolate',
-						['linear'],
-						['zoom'],
-						4,
-						0.42,
-						12,
-						0.66
-					],
-					'heatmap-color': [
-						'interpolate',
-						['linear'],
-						['heatmap-density'],
-						0,
-						'rgba(22,163,74,0)',
-						0.18,
-						'rgba(220,252,231,0.18)',
-						0.4,
-						'rgba(187,247,208,0.34)',
-						0.62,
-						'rgba(134,239,172,0.5)',
-						0.82,
-						'rgba(74,222,128,0.62)',
-						0.94,
-						'rgba(34,197,94,0.72)',
-						1,
-						'rgba(21,128,61,0.8)'
-					]
+					'circle-radius': ['interpolate', ['linear'], ['zoom'], 5, 20, 10, 34, 16, 52],
+					'circle-color': '#16a34a',
+					'circle-opacity': ['interpolate', ['linear'], ['zoom'], 5, 0.14, 10, 0.2, 16, 0.26],
+					'circle-blur': 0.88
 				}
 			});
 			m.addSource('selected-dispute-votes', {
@@ -752,40 +725,35 @@
 			});
 			m.addLayer({
 				id: 'selected-dispute-heat',
-				type: 'heatmap',
+				type: 'circle',
 				source: 'selected-dispute-votes',
 				paint: {
-					'heatmap-weight': 1,
-					'heatmap-intensity': ['interpolate', ['linear'], ['zoom'], 6, 0.72, 14, 1.75],
-					'heatmap-radius': ['interpolate', ['linear'], ['zoom'], 5, 16, 10, 28, 16, 56],
-					'heatmap-opacity': [
-						'interpolate',
-						['linear'],
-						['zoom'],
-						4,
-						0.42,
-						12,
-						0.66
-					],
-					'heatmap-color': [
-						'interpolate',
-						['linear'],
-						['heatmap-density'],
-						0,
-						'rgba(220,38,38,0)',
-						0.18,
-						'rgba(254,242,242,0.18)',
-						0.4,
-						'rgba(254,202,202,0.34)',
-						0.62,
-						'rgba(252,165,165,0.5)',
-						0.82,
-						'rgba(248,113,113,0.62)',
-						0.94,
-						'rgba(239,68,68,0.72)',
-						1,
-						'rgba(185,28,28,0.8)'
-					]
+					'circle-radius': ['interpolate', ['linear'], ['zoom'], 5, 20, 10, 34, 16, 52],
+					'circle-color': '#dc2626',
+					'circle-opacity': ['interpolate', ['linear'], ['zoom'], 5, 0.16, 10, 0.22, 16, 0.3],
+					'circle-blur': 0.88
+				}
+			});
+			m.addLayer({
+				id: 'selected-verify-core',
+				type: 'circle',
+				source: 'selected-verify-votes',
+				paint: {
+					'circle-radius': ['interpolate', ['linear'], ['zoom'], 5, 8, 10, 12, 16, 18],
+					'circle-color': '#16a34a',
+					'circle-opacity': ['interpolate', ['linear'], ['zoom'], 5, 0.12, 10, 0.18, 16, 0.24],
+					'circle-blur': 0.52
+				}
+			});
+			m.addLayer({
+				id: 'selected-dispute-core',
+				type: 'circle',
+				source: 'selected-dispute-votes',
+				paint: {
+					'circle-radius': ['interpolate', ['linear'], ['zoom'], 5, 8, 10, 12, 16, 18],
+					'circle-color': '#dc2626',
+					'circle-opacity': ['interpolate', ['linear'], ['zoom'], 5, 0.14, 10, 0.2, 16, 0.28],
+					'circle-blur': 0.52
 				}
 			});
 			m.addLayer({
