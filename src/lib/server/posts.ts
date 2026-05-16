@@ -22,6 +22,7 @@ export async function listPosts(opts: { regionId?: string } = {}): Promise<PostS
 			impactRadiusM: posts.impactRadiusM,
 			regionId: posts.regionId,
 			createdAt: posts.createdAt,
+			authorId: posts.authorId,
 			authorName: users.displayName,
 			hasImage: sql<boolean>`(${posts.headerImageDataUrl} IS NOT NULL)`
 		})
@@ -68,7 +69,8 @@ export async function listPosts(opts: { regionId?: string } = {}): Promise<PostS
 		reactionCount: reactionCount.get(r.id) ?? 0,
 		verifyCount: verify.get(r.id) ?? 0,
 		disputeCount: dispute.get(r.id) ?? 0,
-		hasImage: Boolean(r.hasImage)
+		hasImage: Boolean(r.hasImage),
+		authorId: r.authorId
 	}));
 }
 
@@ -88,6 +90,7 @@ export async function getPostDetail(
 			impactRadiusM: posts.impactRadiusM,
 			regionId: posts.regionId,
 			createdAt: posts.createdAt,
+			authorId: posts.authorId,
 			authorName: users.displayName
 		})
 		.from(posts)
@@ -149,6 +152,7 @@ export async function getPostDetail(
 		lat: r.lat,
 		impactRadiusM: r.impactRadiusM,
 		regionId: r.regionId,
+		authorId: r.authorId,
 		authorName: r.authorName,
 		createdAt: iso(r.createdAt),
 		commentCount: commentCountRows[0]?.c ?? 0,
@@ -162,6 +166,7 @@ export async function getPostDetail(
 					basedOnCommentCount: note.basedOnCommentCount
 				}
 			: null,
+		hasImage: r.headerImageDataUrl !== null,
 		myVote: (myVoteRows[0]?.vote as VoteValue) ?? null,
 		reactions: reactionTally
 	};

@@ -79,7 +79,7 @@
 						<span class="badge">Community notice</span>
 					{/if}
 					<span class="muted meta-sep">·</span>
-					<span class="muted author">{post.authorName}</span>
+					<a class="muted author author-link" href="/profile/{post.authorId}">{post.authorName}</a>
 					<span class="muted meta-sep">·</span>
 					<time class="muted" datetime={post.createdAt}>{formatDate(post.createdAt)}</time>
 				</div>
@@ -232,6 +232,7 @@
 	}
 	.meta-sep { user-select: none; }
 	.author { font-weight: 550; }
+	.author-link:hover { text-decoration: underline; }
 
 	.article-title {
 		font-size: clamp(22px, 3vw, 32px);

@@ -20,6 +20,7 @@ export interface PostSummary {
 	lat: number;
 	impactRadiusM: number;
 	regionId: string;
+	authorId: string;
 	authorName: string;
 	createdAt: string;
 	commentCount: number;
@@ -27,6 +28,23 @@ export interface PostSummary {
 	verifyCount: number;
 	disputeCount: number;
 	hasImage: boolean;
+}
+
+export interface UserProfile {
+	id: string;
+	displayName: string;
+	bio: string | null;
+	age: number | null;
+	location: string | null;
+	hasAvatar: boolean;
+	joinedAt: string;
+	reputation: {
+		score: number | null;
+		label: string;
+		totalVotes: number;
+		postCount: number;
+	};
+	posts: PostSummary[];
 }
 
 export interface CommunityNote {

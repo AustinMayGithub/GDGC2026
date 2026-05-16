@@ -25,6 +25,9 @@
 					<strong>{user.displayName}</strong>
 					<span class="email">{user.email}</span>
 				</div>
+				<a class="menu-link" href="/profile/{user.id}" onclick={() => (open = false)}>
+					My profile
+				</a>
 				<form method="POST" action="/auth/logout">
 					<button class="signout" type="submit">Sign out</button>
 				</form>
@@ -69,6 +72,18 @@
 	.email {
 		font-size: 12px;
 		color: var(--text-3);
+	}
+	.menu-link {
+		display: block;
+		padding: 8px;
+		border-radius: var(--radius-sm);
+		font-size: 14px;
+		font-weight: 500;
+		color: var(--text);
+		margin-bottom: 6px;
+	}
+	.menu-link:hover {
+		background: var(--surface-2);
 	}
 	.signout {
 		width: 100%;

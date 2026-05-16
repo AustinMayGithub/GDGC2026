@@ -22,7 +22,11 @@ export const users = pgTable('users', {
 	displayName: text('display_name').notNull(),
 	emailVerified: boolean('email_verified').notNull().default(false),
 	loginOtpEnabled: boolean('login_otp_enabled').notNull().default(false),
-	createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow()
+	createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+	avatarDataUrl: text('avatar_data_url'),
+	bio: text('bio'),
+	age: integer('age'),
+	location: text('location')
 });
 
 export const sessions = pgTable('sessions', {
