@@ -1,6 +1,6 @@
 import { json, error } from '@sveltejs/kit';
 import { eq } from 'drizzle-orm';
-import { DEV_OTP_COOKIE, PENDING_COOKIE, SESSION_COOKIE, verifyPassword } from '$lib/server/auth';
+import { SESSION_COOKIE, verifyPassword } from '$lib/server/auth';
 import { db } from '$lib/server/db';
 import { users } from '$lib/server/db/schema';
 import { updateUserProfile } from '$lib/server/users';
@@ -64,8 +64,6 @@ export const DELETE: RequestHandler = async ({ request, locals, cookies }) => {
 
 	await db.delete(users).where(eq(users.id, locals.user.id));
 	cookies.delete(SESSION_COOKIE, { path: '/' });
-	cookies.delete(PENDING_COOKIE, { path: '/' });
-	cookies.delete(DEV_OTP_COOKIE, { path: '/auth/verify' });
 
 	return new Response(null, { status: 204 });
 };
