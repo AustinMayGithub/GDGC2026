@@ -10,7 +10,8 @@ import type {
 	CommentItem,
 	VoteValue,
 	ReactionTally,
-	VotePoint
+	VotePoint,
+	VoteUser
 } from '$lib/types';
 
 const iso = (d: Date) => d.toISOString();
@@ -325,6 +326,27 @@ export async function getVotePoints(postId: string): Promise<VotePoint[]> {
 	return rows
 		.filter((r) => r.lng !== null && r.lat !== null)
 		.map((r) => ({ vote: r.vote, lng: r.lng as number, lat: r.lat as number }));
+}
+
+export async function getVoteUsers(postId: string): Promise<VoteUser[]> {
+	const rows = await db
+		.select({
+			userId: users.id,
+			displayName: users.displayName,
+			vote: postVotes.vote,
+			createdAt: postVotes.createdAt
+		})
+		.from(postVotes)
+		.innerJoin(users, eq(postVotes.userId, users.id))
+		.where(eq(postVotes.postId, postId))
+		.orderBy(desc(postVotes.createdAt));
+
+	return rows.map((r) => ({
+		userId: r.userId,
+		displayName: r.displayName,
+		vote: r.vote,
+		createdAt: iso(r.createdAt)
+	}));
 }
 
 export async function getComments(postId: string): Promise<CommentItem[]> {

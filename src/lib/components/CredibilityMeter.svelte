@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import type { PostDetail, SessionUser, VoteValue, VotePoint } from '$lib/types';
+	import type { PostDetail, SessionUser, VoteValue, VotePoint, VoteUser } from '$lib/types';
 	import { haversineMeters, formatDistance, MAX_ACCURACY_BUFFER_M } from '$lib/geo';
 	import { getLocation, prewarm, type GeoFix } from '$lib/location';
 
@@ -9,6 +9,7 @@
 		disputeCount: number;
 		myVote: VoteValue | null;
 		points: VotePoint[];
+		voters?: VoteUser[];
 	}
 
 	interface Props {

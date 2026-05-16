@@ -83,6 +83,13 @@ export interface VotePoint {
 	vote: VoteValue;
 }
 
+export interface VoteUser {
+	userId: string;
+	displayName: string;
+	vote: VoteValue;
+	createdAt: string;
+}
+
 export interface CommentItem {
 	id: string;
 	authorName: string;

@@ -1,7 +1,7 @@
 <script lang="ts">
 	import 'maplibre-gl/dist/maplibre-gl.css';
 	import { onMount, onDestroy } from 'svelte';
-	import type { PostSummary } from '$lib/types';
+	import type { PostSummary, VotePoint } from '$lib/types';
 	import { NZ_BBOX } from '$lib/data/nz-regions';
 	import type { StyleSpecification } from 'maplibre-gl';
 
@@ -12,6 +12,7 @@
 		disableSelection?: boolean;
 		showAllRadii?: boolean;
 		radiusPosts?: PostSummary[];
+		selectedVotePoints?: VotePoint[];
 		threeD?: boolean;
 		onMapReady: (map: unknown) => void;
 		onMarkerPositionsChange: () => void;
@@ -49,6 +50,7 @@
 		disableSelection = false,
 		showAllRadii = false,
 		radiusPosts = [],
+		selectedVotePoints = [],
 		threeD = false,
 		onMapReady,
 		onMarkerPositionsChange,
@@ -318,6 +320,19 @@
 		};
 	}
 
+	function votePointFeatures(vote: VotePoint['vote']): GeoJSON.FeatureCollection<GeoJSON.Point> {
+		return {
+			type: 'FeatureCollection',
+			features: selectedVotePoints
+				.filter((point) => point.vote === vote)
+				.map((point) => ({
+					type: 'Feature',
+					geometry: { type: 'Point', coordinates: [point.lng, point.lat] },
+					properties: { vote: point.vote }
+				}))
+		};
+	}
+
 	function syncPostLayers() {
 		if (!map || !maplibre) return;
 		const ml = maplibre as typeof import('maplibre-gl');
@@ -332,11 +347,19 @@
 		const composePinSource = m.getSource('compose-pin') as
 			| import('maplibre-gl').GeoJSONSource
 			| undefined;
+		const verifyVoteSource = m.getSource('selected-verify-votes') as
+			| import('maplibre-gl').GeoJSONSource
+			| undefined;
+		const disputeVoteSource = m.getSource('selected-dispute-votes') as
+			| import('maplibre-gl').GeoJSONSource
+			| undefined;
 
 		postSource?.setData(postsToFeatures());
 		radiusSource?.setData(selectedRadiusFeatures());
 		composeRadiusSource?.setData(composeRadiusFeatures());
 		composePinSource?.setData(composePinFeatures());
+		verifyVoteSource?.setData(votePointFeatures('verify'));
+		disputeVoteSource?.setData(votePointFeatures('dispute'));
 	}
 
 	function firstLabelLayerId() {
@@ -679,7 +702,83 @@
 				id: 'selected-radius-fill',
 				type: 'fill',
 				source: 'selected-radius',
-				paint: { 'fill-color': '#6366f1', 'fill-opacity': 0.16 }
+				paint: { 'fill-color': '#ffffff', 'fill-opacity': 0.1 }
+			});
+			m.addSource('selected-verify-votes', {
+				type: 'geojson',
+				data: EMPTY_FEATURES
+			});
+			m.addLayer({
+				id: 'selected-verify-heat',
+				type: 'heatmap',
+				source: 'selected-verify-votes',
+				paint: {
+					'heatmap-weight': 1,
+					'heatmap-intensity': ['interpolate', ['linear'], ['zoom'], 6, 1, 14, 2.4],
+					'heatmap-radius': ['interpolate', ['linear'], ['zoom'], 5, 18, 10, 34, 16, 72],
+					'heatmap-opacity': [
+						'interpolate',
+						['linear'],
+						['zoom'],
+						4,
+						0.68,
+						12,
+						0.82
+					],
+					'heatmap-color': [
+						'interpolate',
+						['linear'],
+						['heatmap-density'],
+						0,
+						'rgba(22,163,74,0)',
+						0.25,
+						'rgba(134,239,172,0.46)',
+						0.55,
+						'rgba(34,197,94,0.68)',
+						0.85,
+						'rgba(22,163,74,0.88)',
+						1,
+						'rgba(21,128,61,0.96)'
+					]
+				}
+			});
+			m.addSource('selected-dispute-votes', {
+				type: 'geojson',
+				data: EMPTY_FEATURES
+			});
+			m.addLayer({
+				id: 'selected-dispute-heat',
+				type: 'heatmap',
+				source: 'selected-dispute-votes',
+				paint: {
+					'heatmap-weight': 1,
+					'heatmap-intensity': ['interpolate', ['linear'], ['zoom'], 6, 1, 14, 2.4],
+					'heatmap-radius': ['interpolate', ['linear'], ['zoom'], 5, 18, 10, 34, 16, 72],
+					'heatmap-opacity': [
+						'interpolate',
+						['linear'],
+						['zoom'],
+						4,
+						0.68,
+						12,
+						0.82
+					],
+					'heatmap-color': [
+						'interpolate',
+						['linear'],
+						['heatmap-density'],
+						0,
+						'rgba(220,38,38,0)',
+						0.25,
+						'rgba(252,165,165,0.5)',
+						0.55,
+						'rgba(239,68,68,0.7)',
+						0.85,
+						'rgba(220,38,38,0.9)',
+						1,
+						'rgba(185,28,28,0.98)'
+					]
+				}
 			});
 			m.addLayer({
 				id: 'selected-radius-line',
@@ -833,6 +932,7 @@
 		posts;
 		hoveredPostId;
 		selectedPostId;
+		selectedVotePoints;
 		threeD;
 		composing;
 		composeLng;

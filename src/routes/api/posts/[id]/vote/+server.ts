@@ -2,7 +2,7 @@ import { json, error } from '@sveltejs/kit';
 import { eq, sql } from 'drizzle-orm';
 import { db } from '$lib/server/db';
 import { posts, postVotes } from '$lib/server/db/schema';
-import { getVotePoints } from '$lib/server/posts';
+import { getVotePoints, getVoteUsers } from '$lib/server/posts';
 import { haversineMeters, isWithinRadius, formatDistance } from '$lib/geo';
 import type { RequestHandler } from './$types';
 
@@ -73,6 +73,6 @@ export const POST: RequestHandler = async ({ request, params, locals }) => {
 	}
 
 	// Return refreshed heatmap points so the article view can update live.
-	const points = await getVotePoints(params.id);
-	return json({ verifyCount, disputeCount, myVote: vote, points });
+	const [points, voters] = await Promise.all([getVotePoints(params.id), getVoteUsers(params.id)]);
+	return json({ verifyCount, disputeCount, myVote: vote, points, voters });
 };
