@@ -1,6 +1,7 @@
 import { and, desc, eq, sql } from 'drizzle-orm';
 import { db } from './db';
 import { posts, users, postVotes, comments, communityNotes, reactions } from './db/schema';
+import { getPostHeaderImageUrl } from './uploads';
 import type {
 	PostSummary,
 	PostDetail,
@@ -79,7 +80,6 @@ export async function getPostDetail(
 			id: posts.id,
 			title: posts.title,
 			body: posts.body,
-			headerImageUrl: posts.headerImageUrl,
 			category: posts.category,
 			lng: posts.lng,
 			lat: posts.lat,
@@ -93,7 +93,7 @@ export async function getPostDetail(
 		.where(eq(posts.id, id));
 	if (!r) return null;
 
-	const [voteRows, commentCountRows, noteRows, reactionRows, myVoteRows] = await Promise.all([
+	const [voteRows, commentCountRows, noteRows, reactionRows, myVoteRows, headerImageUrl] = await Promise.all([
 		db
 			.select({ vote: postVotes.vote, c: sql<number>`count(*)::int` })
 			.from(postVotes)
@@ -113,7 +113,8 @@ export async function getPostDetail(
 					.select({ vote: postVotes.vote })
 					.from(postVotes)
 					.where(and(eq(postVotes.postId, id), eq(postVotes.userId, viewerId)))
-			: Promise.resolve([] as { vote: VoteValue }[])
+			: Promise.resolve([] as { vote: VoteValue }[]),
+		getPostHeaderImageUrl(id)
 	]);
 
 	let verifyCount = 0;
@@ -141,7 +142,7 @@ export async function getPostDetail(
 		id: r.id,
 		title: r.title,
 		body: r.body,
-		headerImageUrl: r.headerImageUrl,
+		headerImageUrl,
 		category: r.category,
 		lng: r.lng,
 		lat: r.lat,

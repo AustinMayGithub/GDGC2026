@@ -1,4 +1,4 @@
-import { fail, redirect } from '@sveltejs/kit';
+import { error, fail, redirect } from '@sveltejs/kit';
 import { dev } from '$app/environment';
 import { and, desc, eq } from 'drizzle-orm';
 import { db } from '$lib/server/db';
@@ -13,7 +13,7 @@ import {
 	PENDING_COOKIE,
 	DEV_OTP_COOKIE
 } from '$lib/server/auth';
-import { sendOtpEmail } from '$lib/server/email';
+import { sendOtpEmail, type OtpDeliveryResult } from '$lib/server/email';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ cookies, locals }) => {
@@ -21,11 +21,23 @@ export const load: PageServerLoad = async ({ cookies, locals }) => {
 	const pending = parsePending(cookies.get(PENDING_COOKIE));
 	if (!pending) throw redirect(302, '/auth/login');
 
-	const [user] = await db
-		.select({ email: users.email })
-		.from(users)
-		.where(eq(users.id, pending.userId));
+	let user: { email: string; emailVerified: boolean } | undefined;
+	try {
+		const rows = await db
+			.select({ email: users.email, emailVerified: users.emailVerified })
+			.from(users)
+			.where(eq(users.id, pending.userId));
+		user = rows[0];
+	} catch (err) {
+		console.error('[verify] failed to load pending user:', err);
+		throw error(500, 'We could not load verification right now. Please try again.');
+	}
 	if (!user) throw redirect(302, '/auth/login');
+	if (pending.purpose === 'signup' && user.emailVerified) {
+		cookies.delete(PENDING_COOKIE, { path: '/' });
+		cookies.delete(DEV_OTP_COOKIE, { path: '/auth/verify' });
+		throw redirect(302, '/auth/login');
+	}
 
 	const devOtp = dev ? cookies.get(DEV_OTP_COOKIE) ?? null : null;
 	return { email: user.email, purpose: pending.purpose, devOtp };
@@ -36,51 +48,84 @@ export const actions: Actions = {
 		const pending = parsePending(cookies.get(PENDING_COOKIE));
 		if (!pending) throw redirect(302, '/auth/login');
 
+		let pendingUser: { emailVerified: boolean } | undefined;
+		try {
+			const rows = await db
+				.select({ emailVerified: users.emailVerified })
+				.from(users)
+				.where(eq(users.id, pending.userId));
+			pendingUser = rows[0];
+		} catch (err) {
+			console.error('[verify] failed to load pending user:', err);
+			return fail(500, { error: 'We could not check that code right now. Please try again.' });
+		}
+		if (!pendingUser) throw redirect(302, '/auth/login');
+		if (pending.purpose === 'signup' && pendingUser.emailVerified) {
+			cookies.delete(PENDING_COOKIE, { path: '/' });
+			cookies.delete(DEV_OTP_COOKIE, { path: '/auth/verify' });
+			throw redirect(303, '/auth/login');
+		}
+
 		const form = await request.formData();
 		const code = String(form.get('code') ?? '').trim();
 		if (!/^\d{6}$/.test(code)) return fail(400, { error: 'Enter the 6-digit code.' });
 		const codeHash = hashOtp(code);
 
-		const [otp] = await db
-			.select()
-			.from(emailOtps)
-			.where(
-				and(
-					eq(emailOtps.userId, pending.userId),
-					eq(emailOtps.purpose, pending.purpose),
-					eq(emailOtps.used, false),
-					eq(emailOtps.codeHash, codeHash)
+		let otp: typeof emailOtps.$inferSelect | undefined;
+		try {
+			const rows = await db
+				.select()
+				.from(emailOtps)
+				.where(
+					and(
+						eq(emailOtps.userId, pending.userId),
+						eq(emailOtps.purpose, pending.purpose),
+						eq(emailOtps.used, false),
+						eq(emailOtps.codeHash, codeHash)
+					)
 				)
-			)
-			.orderBy(desc(emailOtps.createdAt))
-			.limit(1);
+				.orderBy(desc(emailOtps.createdAt))
+				.limit(1);
+			otp = rows[0];
+		} catch (err) {
+			console.error('[verify] failed to check OTP:', err);
+			return fail(500, { error: 'We could not check that code right now. Please try again.' });
+		}
 
 		if (!otp || otp.expiresAt.getTime() < Date.now())
 			return fail(400, { error: 'That code is invalid or has expired.' });
 
-		// Burn every still-open OTP for this flow after a successful verification.
-		await db
-			.update(emailOtps)
-			.set({ used: true })
-			.where(
-				and(
-					eq(emailOtps.userId, pending.userId),
-					eq(emailOtps.purpose, pending.purpose),
-					eq(emailOtps.used, false)
-				)
-			);
-		if (pending.purpose === 'signup')
+		let session: Awaited<ReturnType<typeof createSession>>;
+		try {
+			// Burn every still-open OTP for this flow after a successful verification.
 			await db
-				.update(users)
-				.set({ emailVerified: true })
-				.where(eq(users.id, pending.userId));
+				.update(emailOtps)
+				.set({ used: true })
+				.where(
+					and(
+						eq(emailOtps.userId, pending.userId),
+						eq(emailOtps.purpose, pending.purpose),
+						eq(emailOtps.used, false)
+					)
+				);
+			if (pending.purpose === 'signup')
+				await db
+					.update(users)
+					.set({ emailVerified: true })
+					.where(eq(users.id, pending.userId));
 
-		const { token, expiresAt } = await createSession(pending.userId);
-		cookies.set(SESSION_COOKIE, token, {
+			session = await createSession(pending.userId);
+		} catch (err) {
+			console.error('[verify] failed to complete verification:', err);
+			return fail(500, {
+				error: 'We could not finish verification right now. Please try again.'
+			});
+		}
+		cookies.set(SESSION_COOKIE, session.token, {
 			path: '/',
 			httpOnly: true,
 			sameSite: 'lax',
-			expires: expiresAt
+			expires: session.expiresAt
 		});
 		cookies.delete(PENDING_COOKIE, { path: '/' });
 		cookies.delete(DEV_OTP_COOKIE, { path: '/auth/verify' });
@@ -91,32 +136,49 @@ export const actions: Actions = {
 		const pending = parsePending(cookies.get(PENDING_COOKIE));
 		if (!pending) throw redirect(302, '/auth/login');
 
-		const [user] = await db
-			.select({ email: users.email })
-			.from(users)
-			.where(eq(users.id, pending.userId));
+		let user: { email: string; emailVerified: boolean } | undefined;
+		try {
+			const rows = await db
+				.select({ email: users.email, emailVerified: users.emailVerified })
+				.from(users)
+				.where(eq(users.id, pending.userId));
+			user = rows[0];
+		} catch (err) {
+			console.error('[verify] failed to load user for resend:', err);
+			return fail(500, { error: 'We could not resend a code right now. Please try again.' });
+		}
 		if (!user) throw redirect(302, '/auth/login');
-
-		// Keep resend deterministic: only the most recent code remains usable.
-		await db
-			.update(emailOtps)
-			.set({ used: true })
-			.where(
-				and(
-					eq(emailOtps.userId, pending.userId),
-					eq(emailOtps.purpose, pending.purpose),
-					eq(emailOtps.used, false)
-				)
-			);
+		if (pending.purpose === 'signup' && user.emailVerified) {
+			cookies.delete(PENDING_COOKIE, { path: '/' });
+			cookies.delete(DEV_OTP_COOKIE, { path: '/auth/verify' });
+			throw redirect(303, '/auth/login');
+		}
 
 		const code = generateOtp();
-		await db.insert(emailOtps).values({
-			userId: pending.userId,
-			codeHash: hashOtp(code),
-			purpose: pending.purpose,
-			expiresAt: otpExpiry()
-		});
-		const delivery = await sendOtpEmail(user.email, code, pending.purpose);
+		let delivery: OtpDeliveryResult;
+		try {
+			// Keep resend deterministic: only the most recent code remains usable.
+			await db
+				.update(emailOtps)
+				.set({ used: true })
+				.where(
+					and(
+						eq(emailOtps.userId, pending.userId),
+						eq(emailOtps.purpose, pending.purpose),
+						eq(emailOtps.used, false)
+					)
+				);
+			await db.insert(emailOtps).values({
+				userId: pending.userId,
+				codeHash: hashOtp(code),
+				purpose: pending.purpose,
+				expiresAt: otpExpiry()
+			});
+			delivery = await sendOtpEmail(user.email, code, pending.purpose);
+		} catch (err) {
+			console.error('[verify] failed to resend verification code:', err);
+			return fail(500, { error: 'We could not resend a code right now. Please try again.' });
+		}
 		if (dev && delivery.channel === 'console') {
 			cookies.set(DEV_OTP_COOKIE, delivery.code, {
 				path: '/auth/verify',

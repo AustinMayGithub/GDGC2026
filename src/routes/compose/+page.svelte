@@ -50,11 +50,12 @@
 		headerImageBlob = image;
 	}
 
-	async function uploadHeaderImage(): Promise<string | null> {
-		if (!headerImageBlob) return null;
+	async function uploadHeaderImage(postId: string): Promise<void> {
+		if (!headerImageBlob) return;
 
 		const form = new FormData();
 		form.append('image', headerImageBlob, 'post-header.jpg');
+		form.append('postId', postId);
 
 		const res = await fetch('/api/uploads/post-header', {
 			method: 'POST',
@@ -65,8 +66,6 @@
 		if (!res.ok) {
 			throw new Error(data.message ?? 'Header image upload failed.');
 		}
-
-		return data.url as string;
 	}
 
 	async function handleSubmit(e: SubmitEvent) {
@@ -77,14 +76,12 @@
 		submitting = true;
 
 		try {
-			const headerImageUrl = await uploadHeaderImage();
 			const res = await fetch('/api/posts', {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({
 					title: title.trim(),
 					body: body.trim(),
-					headerImageUrl,
 					category,
 					lng,
 					lat,
@@ -94,6 +91,7 @@
 
 			if (res.ok) {
 				const data = await res.json();
+				await uploadHeaderImage(data.id);
 				await goto(`/post/${data.id}`);
 			} else {
 				const data = await res.json();

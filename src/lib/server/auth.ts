@@ -76,29 +76,6 @@ export async function deleteSession(token: string): Promise<void> {
 	await db.delete(sessions).where(eq(sessions.id, token));
 }
 
-// A small disposable-domain blocklist — the cheap half of anti-sock-puppet
-// defence (project.md §3). Not exhaustive; covers the common throwaways.
-const DISPOSABLE_DOMAINS = new Set([
-	'mailinator.com',
-	'guerrillamail.com',
-	'10minutemail.com',
-	'tempmail.com',
-	'temp-mail.org',
-	'trashmail.com',
-	'yopmail.com',
-	'sharklasers.com',
-	'throwawaymail.com',
-	'getnada.com',
-	'maildrop.cc',
-	'fakeinbox.com',
-	'dispostable.com'
-]);
-
-export function isDisposableEmail(email: string): boolean {
-	const domain = email.split('@')[1]?.toLowerCase();
-	return domain ? DISPOSABLE_DOMAINS.has(domain) : false;
-}
-
 export type PendingPurpose = 'signup' | 'login';
 
 export function encodePending(userId: string, purpose: PendingPurpose): string {

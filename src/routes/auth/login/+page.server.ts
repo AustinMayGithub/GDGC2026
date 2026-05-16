@@ -14,7 +14,7 @@ import {
 	PENDING_COOKIE,
 	DEV_OTP_COOKIE
 } from '$lib/server/auth';
-import { sendOtpEmail } from '$lib/server/email';
+import { sendOtpEmail, type OtpDeliveryResult } from '$lib/server/email';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ locals }) => {
@@ -29,31 +29,47 @@ export const actions: Actions = {
 			.toLowerCase();
 		const password = String(form.get('password') ?? '');
 
-		const [user] = await db.select().from(users).where(eq(users.email, email));
+		let user: typeof users.$inferSelect | undefined;
+		try {
+			const rows = await db.select().from(users).where(eq(users.email, email));
+			user = rows[0];
+		} catch (err) {
+			console.error('[login] failed to load user:', err);
+			return fail(500, { email, error: 'We could not sign you in right now. Please try again.' });
+		}
 		if (!user || !verifyPassword(password, user.passwordHash))
 			return fail(400, { email, error: 'Incorrect email or password.' });
 
 		// Unverified accounts, or accounts with login-OTP enabled, go via /verify.
 		if (!user.emailVerified || user.loginOtpEnabled) {
 			const purpose = user.emailVerified ? 'login' : 'signup';
-			await db
-				.update(emailOtps)
-				.set({ used: true })
-				.where(
-					and(
-						eq(emailOtps.userId, user.id),
-						eq(emailOtps.purpose, purpose),
-						eq(emailOtps.used, false)
-					)
-				);
 			const code = generateOtp();
-			await db.insert(emailOtps).values({
-				userId: user.id,
-				codeHash: hashOtp(code),
-				purpose,
-				expiresAt: otpExpiry()
-			});
-			const delivery = await sendOtpEmail(email, code, purpose);
+			let delivery: OtpDeliveryResult;
+			try {
+				await db
+					.update(emailOtps)
+					.set({ used: true })
+					.where(
+						and(
+							eq(emailOtps.userId, user.id),
+							eq(emailOtps.purpose, purpose),
+							eq(emailOtps.used, false)
+						)
+					);
+				await db.insert(emailOtps).values({
+					userId: user.id,
+					codeHash: hashOtp(code),
+					purpose,
+					expiresAt: otpExpiry()
+				});
+				delivery = await sendOtpEmail(email, code, purpose);
+			} catch (err) {
+				console.error('[login] failed to issue verification code:', err);
+				return fail(500, {
+					email,
+					error: 'We could not send a verification code right now. Please try again.'
+				});
+			}
 			cookies.set(PENDING_COOKIE, encodePending(user.id, purpose), {
 				path: '/',
 				httpOnly: true,
@@ -73,12 +89,18 @@ export const actions: Actions = {
 			throw redirect(303, '/auth/verify');
 		}
 
-		const { token, expiresAt } = await createSession(user.id);
-		cookies.set(SESSION_COOKIE, token, {
+		let session: Awaited<ReturnType<typeof createSession>>;
+		try {
+			session = await createSession(user.id);
+		} catch (err) {
+			console.error('[login] failed to create session:', err);
+			return fail(500, { email, error: 'We could not sign you in right now. Please try again.' });
+		}
+		cookies.set(SESSION_COOKIE, session.token, {
 			path: '/',
 			httpOnly: true,
 			sameSite: 'lax',
-			expires: expiresAt
+			expires: session.expiresAt
 		});
 		throw redirect(303, '/');
 	}
