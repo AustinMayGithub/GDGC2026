@@ -5,38 +5,132 @@ import type { PostSummary, UserProfile } from '$lib/types';
 
 const iso = (d: Date) => d.toISOString();
 
-export async function getUserProfile(id: string): Promise<UserProfile | null> {
-	const [u] = await db
-		.select({
-			id: users.id,
-			displayName: users.displayName,
-			bio: users.bio,
-			age: users.age,
-			location: users.location,
-			hasAvatar: sql<boolean>`(${users.avatarDataUrl} IS NOT NULL)`,
-			createdAt: users.createdAt
-		})
-		.from(users)
-		.where(eq(users.id, id));
+type UserProfileRow = {
+	id: string;
+	displayName: string;
+	bio: string | null;
+	age: number | null;
+	location: string | null;
+	hasAvatar: boolean;
+	createdAt: Date;
+};
 
+type UserPostRow = {
+	id: string;
+	title: string;
+	category: PostSummary['category'];
+	lng: number;
+	lat: number;
+	impactRadiusM: number;
+	regionId: string;
+	createdAt: Date;
+	anonymous: boolean;
+	hasImage: boolean;
+};
+
+function isMissingOptionalProfileColumn(err: unknown) {
+	const message = err instanceof Error ? err.message : String(err);
+	return (
+		message.includes('does not exist') &&
+		[
+			'avatar_data_url',
+			'bio',
+			'age',
+			'location',
+			'anonymous',
+			'header_image_data_url'
+		].some((column) => message.includes(column))
+	);
+}
+
+async function selectUserProfileRow(id: string): Promise<UserProfileRow | null> {
+	try {
+		const [u] = await db
+			.select({
+				id: users.id,
+				displayName: users.displayName,
+				bio: users.bio,
+				age: users.age,
+				location: users.location,
+				hasAvatar: sql<boolean>`(${users.avatarDataUrl} IS NOT NULL)`,
+				createdAt: users.createdAt
+			})
+			.from(users)
+			.where(eq(users.id, id));
+
+		return u ?? null;
+	} catch (err) {
+		if (!isMissingOptionalProfileColumn(err)) throw err;
+
+		const [u] = await db
+			.select({
+				id: users.id,
+				displayName: users.displayName,
+				createdAt: users.createdAt
+			})
+			.from(users)
+			.where(eq(users.id, id));
+
+		if (!u) return null;
+		return {
+			...u,
+			bio: null,
+			age: null,
+			location: null,
+			hasAvatar: false
+		};
+	}
+}
+
+async function selectUserPostRows(id: string): Promise<UserPostRow[]> {
+	try {
+		return await db
+			.select({
+				id: posts.id,
+				title: posts.title,
+				category: posts.category,
+				lng: posts.lng,
+				lat: posts.lat,
+				impactRadiusM: posts.impactRadiusM,
+				regionId: posts.regionId,
+				createdAt: posts.createdAt,
+				anonymous: posts.anonymous,
+				hasImage: sql<boolean>`(${posts.headerImageDataUrl} IS NOT NULL)`
+			})
+			.from(posts)
+			.where(eq(posts.authorId, id))
+			.orderBy(desc(posts.createdAt));
+	} catch (err) {
+		if (!isMissingOptionalProfileColumn(err)) throw err;
+
+		const rows = await db
+			.select({
+				id: posts.id,
+				title: posts.title,
+				category: posts.category,
+				lng: posts.lng,
+				lat: posts.lat,
+				impactRadiusM: posts.impactRadiusM,
+				regionId: posts.regionId,
+				createdAt: posts.createdAt
+			})
+			.from(posts)
+			.where(eq(posts.authorId, id))
+			.orderBy(desc(posts.createdAt));
+
+		return rows.map((row) => ({
+			...row,
+			anonymous: false,
+			hasImage: false
+		}));
+	}
+}
+
+export async function getUserProfile(id: string): Promise<UserProfile | null> {
+	const u = await selectUserProfileRow(id);
 	if (!u) return null;
 
-	const rows = await db
-		.select({
-			id: posts.id,
-			title: posts.title,
-			category: posts.category,
-			lng: posts.lng,
-			lat: posts.lat,
-			impactRadiusM: posts.impactRadiusM,
-			regionId: posts.regionId,
-			createdAt: posts.createdAt,
-			anonymous: posts.anonymous,
-			hasImage: sql<boolean>`(${posts.headerImageDataUrl} IS NOT NULL)`
-		})
-		.from(posts)
-		.where(eq(posts.authorId, id))
-		.orderBy(desc(posts.createdAt));
+	const rows = await selectUserPostRows(id);
 
 	const [voteRows, commentRows, reactionRows] = await Promise.all([
 		db
@@ -123,5 +217,15 @@ export async function updateUserProfile(
 		avatarDataUrl?: string | null;
 	}
 ) {
-	await db.update(users).set(data).where(eq(users.id, id));
+	try {
+		await db.update(users).set(data).where(eq(users.id, id));
+	} catch (err) {
+		if (!isMissingOptionalProfileColumn(err)) throw err;
+
+		const fallback: { displayName?: string } = {};
+		if (data.displayName !== undefined) fallback.displayName = data.displayName;
+		if (fallback.displayName !== undefined) {
+			await db.update(users).set(fallback).where(eq(users.id, id));
+		}
+	}
 }
