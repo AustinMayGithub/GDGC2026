@@ -5,6 +5,7 @@ import { db } from '$lib/server/db';
 import { users, emailOtps } from '$lib/server/db/schema';
 import {
 	hashOtp,
+	normalizeOtp,
 	generateOtp,
 	otpExpiry,
 	createSession,
@@ -37,7 +38,7 @@ export const actions: Actions = {
 		if (!pending) throw redirect(302, '/auth/login');
 
 		const form = await request.formData();
-		const code = String(form.get('code') ?? '').trim();
+		const code = normalizeOtp(String(form.get('code') ?? ''));
 		if (!/^\d{6}$/.test(code)) return fail(400, { error: 'Enter the 6-digit code.' });
 		const codeHash = hashOtp(code);
 

@@ -28,8 +28,12 @@ export function generateOtp(): string {
 	return String(Math.floor(100000 + Math.random() * 900000));
 }
 
+export function normalizeOtp(code: string): string {
+	return code.replace(/\D/g, '');
+}
+
 export function hashOtp(code: string): string {
-	return createHash('sha256').update(code.trim()).digest('hex');
+	return createHash('sha256').update(normalizeOtp(code)).digest('hex');
 }
 
 export function otpExpiry(): Date {

@@ -1,6 +1,10 @@
 <script lang="ts">
-	import type { PostDetail, CommentItem, SessionUser } from '$lib/types';
-	import { goto } from '$app/navigation';
+	import type {
+		PostDetail,
+		CommentItem,
+		SessionUser,
+		CommunityNote as CommunityNoteData
+	} from '$lib/types';
 	import UserMenu from '$lib/components/UserMenu.svelte';
 	import ImpactMap from '$lib/components/ImpactMap.svelte';
 	import CredibilityMeter from '$lib/components/CredibilityMeter.svelte';
@@ -167,7 +171,7 @@
 							postId={post.id}
 							{comments}
 							{user}
-							onCommunityNoteUpdated={(note: CommunityNote) => (communityNote = note)}
+							onCommunityNoteUpdated={(note: CommunityNoteData) => (communityNote = note)}
 						/>
 					</section>
 				</div>
