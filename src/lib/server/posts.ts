@@ -30,7 +30,7 @@ export async function listPosts(opts: { regionId?: string } = {}): Promise<PostS
 		.orderBy(desc(posts.createdAt))
 		.limit(300);
 
-	const [voteRows, commentRows] = await Promise.all([
+	const [voteRows, commentRows, reactionRows] = await Promise.all([
 		db
 			.select({ postId: postVotes.postId, vote: postVotes.vote, c: sql<number>`count(*)::int` })
 			.from(postVotes)
@@ -38,14 +38,20 @@ export async function listPosts(opts: { regionId?: string } = {}): Promise<PostS
 		db
 			.select({ postId: comments.postId, c: sql<number>`count(*)::int` })
 			.from(comments)
-			.groupBy(comments.postId)
+			.groupBy(comments.postId),
+		db
+			.select({ postId: reactions.postId, c: sql<number>`count(*)::int` })
+			.from(reactions)
+			.groupBy(reactions.postId)
 	]);
 
 	const verify = new Map<string, number>();
 	const dispute = new Map<string, number>();
 	const cmt = new Map<string, number>();
+	const reactionCount = new Map<string, number>();
 	for (const v of voteRows) (v.vote === 'verify' ? verify : dispute).set(v.postId, v.c);
 	for (const c of commentRows) cmt.set(c.postId, c.c);
+	for (const r of reactionRows) reactionCount.set(r.postId, r.c);
 
 	return rows.map((r) => ({
 		id: r.id,
@@ -58,6 +64,7 @@ export async function listPosts(opts: { regionId?: string } = {}): Promise<PostS
 		authorName: r.authorName,
 		createdAt: iso(r.createdAt),
 		commentCount: cmt.get(r.id) ?? 0,
+		reactionCount: reactionCount.get(r.id) ?? 0,
 		verifyCount: verify.get(r.id) ?? 0,
 		disputeCount: dispute.get(r.id) ?? 0
 	}));
@@ -141,6 +148,7 @@ export async function getPostDetail(
 		authorName: r.authorName,
 		createdAt: iso(r.createdAt),
 		commentCount: commentCountRows[0]?.c ?? 0,
+		reactionCount: reactionRows.length,
 		verifyCount,
 		disputeCount,
 		communityNote: note

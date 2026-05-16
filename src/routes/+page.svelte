@@ -5,6 +5,7 @@
 	import HomeMap from '$lib/components/HomeMap.svelte';
 	import HeadlineList from '$lib/components/HeadlineList.svelte';
 	import ConnectorLines from '$lib/components/ConnectorLines.svelte';
+	import TrendingDropdown from '$lib/components/TrendingDropdown.svelte';
 	import type { SessionUser, PostSummary } from '$lib/types';
 	import { NZ_BBOX, NZ_REGIONS, regionForPoint } from '$lib/data/nz-regions';
 
@@ -208,6 +209,8 @@
 
 		<!-- Headline list panel -->
 		<div class="panel-area">
+			<TrendingDropdown {posts} {scope} />
+
 			{#if posts.length === 0 && !loading}
 				<div class="empty-state card">
 					<div class="empty-icon">📍</div>
