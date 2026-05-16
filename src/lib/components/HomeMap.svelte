@@ -1,7 +1,7 @@
 <script lang="ts">
 	import 'maplibre-gl/dist/maplibre-gl.css';
 	import { onMount, onDestroy } from 'svelte';
-	import type { PostSummary } from '$lib/types';
+	import type { PostSummary, VotePoint } from '$lib/types';
 	import { NZ_BBOX } from '$lib/data/nz-regions';
 	import type { StyleSpecification } from 'maplibre-gl';
 
@@ -12,6 +12,8 @@
 		disableSelection?: boolean;
 		showAllRadii?: boolean;
 		radiusPosts?: PostSummary[];
+		selectedVotePoints?: VotePoint[];
+		threeD?: boolean;
 		onMapReady: (map: unknown) => void;
 		onMarkerPositionsChange: () => void;
 		onSelectPost: (id: string | null) => void;
@@ -50,6 +52,8 @@
 		disableSelection = false,
 		showAllRadii = false,
 		radiusPosts = [],
+		selectedVotePoints = [],
+		threeD = false,
 		onMapReady,
 		onMarkerPositionsChange,
 		onSelectPost,
@@ -66,8 +70,12 @@
 	let map: unknown = null;
 	let maplibre: typeof import('maplibre-gl') | null = null;
 	let skipNextBackgroundClick = false;
+	let hasLoaded = false;
+	let appliedThreeD: boolean | null = null;
+	let buildingRemoveTimer: number | null = null;
 
 	const NZ_VISUAL_CENTER: [number, number] = [174.25, -41.15];
+	const OPENFREEMAP_VECTOR_SOURCE_URL = 'https://tiles.openfreemap.org/planet';
 	const EMPTY_FEATURES: GeoJSON.FeatureCollection = {
 		type: 'FeatureCollection',
 		features: []
@@ -332,6 +340,19 @@
 		};
 	}
 
+	function votePointFeatures(vote: VotePoint['vote']): GeoJSON.FeatureCollection<GeoJSON.Point> {
+		return {
+			type: 'FeatureCollection',
+			features: selectedVotePoints
+				.filter((point) => point.vote === vote)
+				.map((point) => ({
+					type: 'Feature',
+					geometry: { type: 'Point', coordinates: [point.lng, point.lat] },
+					properties: { vote: point.vote }
+				}))
+		};
+	}
+
 	function syncPostLayers() {
 		if (!map || !maplibre) return;
 		const ml = maplibre as typeof import('maplibre-gl');
@@ -349,12 +370,136 @@
 		const userLocationSource = m.getSource('user-location') as
 			| import('maplibre-gl').GeoJSONSource
 			| undefined;
+		const verifyVoteSource = m.getSource('selected-verify-votes') as
+			| import('maplibre-gl').GeoJSONSource
+			| undefined;
+		const disputeVoteSource = m.getSource('selected-dispute-votes') as
+			| import('maplibre-gl').GeoJSONSource
+			| undefined;
 
 		postSource?.setData(postsToFeatures());
 		radiusSource?.setData(selectedRadiusFeatures());
 		composeRadiusSource?.setData(composeRadiusFeatures());
 		composePinSource?.setData(composePinFeatures());
 		userLocationSource?.setData(userLocationFeatures());
+		verifyVoteSource?.setData(votePointFeatures('verify'));
+		disputeVoteSource?.setData(votePointFeatures('dispute'));
+	}
+
+	function firstLabelLayerId() {
+		if (!map || !maplibre) return undefined;
+		const ml = maplibre as typeof import('maplibre-gl');
+		const m = map as InstanceType<typeof ml.Map>;
+		return m
+			.getStyle()
+			.layers?.find((layer) => layer.type === 'symbol' && layer.layout?.['text-field'])?.id;
+	}
+
+	function addBuildingLayer() {
+		if (!map || !maplibre) return;
+		const ml = maplibre as typeof import('maplibre-gl');
+		const m = map as InstanceType<typeof ml.Map>;
+		if (m.getLayer('3d-buildings')) return;
+
+		if (!m.getSource('openfreemap-3d')) {
+			m.addSource('openfreemap-3d', {
+				type: 'vector',
+				url: OPENFREEMAP_VECTOR_SOURCE_URL,
+				attribution: 'OpenFreeMap, OpenStreetMap'
+			});
+		}
+
+		m.addLayer(
+			{
+				id: '3d-buildings',
+				source: 'openfreemap-3d',
+				'source-layer': 'building',
+				type: 'fill-extrusion',
+				minzoom: 14,
+				filter: ['!=', ['get', 'hide_3d'], true],
+				paint: {
+					'fill-extrusion-color': [
+						'interpolate',
+						['linear'],
+						['coalesce', ['get', 'render_height'], 0],
+						0,
+						'#e1e5ea',
+						120,
+						'#bac7d2',
+						320,
+						'#8da2b2'
+					],
+					'fill-extrusion-height': [
+						'interpolate',
+						['linear'],
+						['zoom'],
+						14,
+						0,
+						16,
+						['coalesce', ['get', 'render_height'], 12]
+					],
+					'fill-extrusion-base': [
+						'case',
+						['>=', ['zoom'], 16],
+						['coalesce', ['get', 'render_min_height'], 0],
+						0
+					],
+					'fill-extrusion-opacity': 0.68
+				}
+			},
+			firstLabelLayerId()
+		);
+	}
+
+	function removeBuildingLayer() {
+		if (!map || !maplibre) return;
+		const ml = maplibre as typeof import('maplibre-gl');
+		const m = map as InstanceType<typeof ml.Map>;
+		if (m.getLayer('3d-buildings')) m.removeLayer('3d-buildings');
+	}
+
+	function setMapMode(duration = 450) {
+		if (!map || !maplibre) return;
+		const ml = maplibre as typeof import('maplibre-gl');
+		const m = map as InstanceType<typeof ml.Map>;
+		const gestureHandlers = m as unknown as {
+			dragRotate?: { enable: () => void; disable: () => void };
+			touchPitch?: { enable: () => void; disable: () => void };
+			touchZoomRotate?: { enableRotation: () => void; disableRotation: () => void };
+		};
+
+		if (threeD) {
+			if (buildingRemoveTimer !== null) {
+				window.clearTimeout(buildingRemoveTimer);
+				buildingRemoveTimer = null;
+			}
+			addBuildingLayer();
+			gestureHandlers.dragRotate?.enable();
+			gestureHandlers.touchPitch?.enable();
+			gestureHandlers.touchZoomRotate?.enableRotation();
+			(m as unknown as { setLight?: (value: unknown) => void }).setLight?.({
+				anchor: 'viewport',
+				color: '#ffffff',
+				intensity: 0.38,
+				position: [1.2, 210, 45]
+			});
+			m.easeTo({
+				pitch: Math.max(m.getPitch(), 54),
+				bearing: m.getBearing() === 0 ? -16 : m.getBearing(),
+				duration
+			});
+		} else {
+			gestureHandlers.dragRotate?.disable();
+			gestureHandlers.touchPitch?.disable();
+			gestureHandlers.touchZoomRotate?.disableRotation();
+			m.easeTo({ pitch: 0, bearing: 0, duration });
+			if (buildingRemoveTimer !== null) window.clearTimeout(buildingRemoveTimer);
+			buildingRemoveTimer = window.setTimeout(() => {
+				removeBuildingLayer();
+				buildingRemoveTimer = null;
+			}, duration + 80);
+		}
+		appliedThreeD = threeD;
 	}
 
 	export function fitToRadius(
@@ -555,7 +700,9 @@
 		maplibre = (await import('maplibre-gl')) as typeof import('maplibre-gl');
 		const ml = maplibre as typeof import('maplibre-gl');
 
-		const m = new ml.Map({
+		const mapOptions: ConstructorParameters<typeof ml.Map>[0] & {
+			canvasContextAttributes?: { antialias: boolean };
+		} = {
 			container,
 			style: BASEMAP_STYLE,
 			center: [173.3, -41.2],
@@ -563,12 +710,14 @@
 			renderWorldCopies: true,
 			dragRotate: false,
 			touchPitch: false,
-			attributionControl: false
-		});
+			attributionControl: false,
+			canvasContextAttributes: { antialias: true }
+		};
+		const m = new ml.Map(mapOptions);
 
 		m.addControl(new ml.AttributionControl({ compact: true }), 'bottom-left');
 		m.addControl(
-			new ml.NavigationControl({ visualizePitch: false, showCompass: false }),
+			new ml.NavigationControl({ visualizePitch: true, showCompass: true }),
 			'bottom-right'
 		);
 
@@ -580,7 +729,83 @@
 				id: 'selected-radius-fill',
 				type: 'fill',
 				source: 'selected-radius',
-				paint: { 'fill-color': '#6366f1', 'fill-opacity': 0.16 }
+				paint: { 'fill-color': '#ffffff', 'fill-opacity': 0.1 }
+			});
+			m.addSource('selected-verify-votes', {
+				type: 'geojson',
+				data: EMPTY_FEATURES
+			});
+			m.addLayer({
+				id: 'selected-verify-heat',
+				type: 'heatmap',
+				source: 'selected-verify-votes',
+				paint: {
+					'heatmap-weight': 1,
+					'heatmap-intensity': ['interpolate', ['linear'], ['zoom'], 6, 1, 14, 2.4],
+					'heatmap-radius': ['interpolate', ['linear'], ['zoom'], 5, 18, 10, 34, 16, 72],
+					'heatmap-opacity': [
+						'interpolate',
+						['linear'],
+						['zoom'],
+						4,
+						0.68,
+						12,
+						0.82
+					],
+					'heatmap-color': [
+						'interpolate',
+						['linear'],
+						['heatmap-density'],
+						0,
+						'rgba(22,163,74,0)',
+						0.25,
+						'rgba(134,239,172,0.46)',
+						0.55,
+						'rgba(34,197,94,0.68)',
+						0.85,
+						'rgba(22,163,74,0.88)',
+						1,
+						'rgba(21,128,61,0.96)'
+					]
+				}
+			});
+			m.addSource('selected-dispute-votes', {
+				type: 'geojson',
+				data: EMPTY_FEATURES
+			});
+			m.addLayer({
+				id: 'selected-dispute-heat',
+				type: 'heatmap',
+				source: 'selected-dispute-votes',
+				paint: {
+					'heatmap-weight': 1,
+					'heatmap-intensity': ['interpolate', ['linear'], ['zoom'], 6, 1, 14, 2.4],
+					'heatmap-radius': ['interpolate', ['linear'], ['zoom'], 5, 18, 10, 34, 16, 72],
+					'heatmap-opacity': [
+						'interpolate',
+						['linear'],
+						['zoom'],
+						4,
+						0.68,
+						12,
+						0.82
+					],
+					'heatmap-color': [
+						'interpolate',
+						['linear'],
+						['heatmap-density'],
+						0,
+						'rgba(220,38,38,0)',
+						0.25,
+						'rgba(252,165,165,0.5)',
+						0.55,
+						'rgba(239,68,68,0.7)',
+						0.85,
+						'rgba(220,38,38,0.9)',
+						1,
+						'rgba(185,28,28,0.98)'
+					]
+				}
 			});
 			m.addLayer({
 				id: 'selected-radius-line',
@@ -699,6 +924,8 @@
 				}
 			});
 
+			hasLoaded = true;
+			setMapMode(0);
 			fitToBbox(NZ_BBOX);
 			syncPostLayers();
 			onMarkerPositionsChange();
@@ -742,6 +969,9 @@
 	});
 
 	onDestroy(() => {
+		if (buildingRemoveTimer !== null) {
+			window.clearTimeout(buildingRemoveTimer);
+		}
 		if (map && maplibre) {
 			const ml = maplibre as typeof import('maplibre-gl');
 			(map as InstanceType<typeof ml.Map>).remove();
@@ -752,6 +982,8 @@
 		posts;
 		hoveredPostId;
 		selectedPostId;
+		selectedVotePoints;
+		threeD;
 		composing;
 		composeLng;
 		composeLat;
@@ -766,6 +998,7 @@
 			const ml = maplibre as typeof import('maplibre-gl');
 			(map as InstanceType<typeof ml.Map>).getCanvas().style.cursor = composing ? 'crosshair' : '';
 		}
+		if (hasLoaded && appliedThreeD !== threeD) setMapMode();
 	});
 </script>
 

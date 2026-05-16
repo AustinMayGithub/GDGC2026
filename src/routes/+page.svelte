@@ -21,7 +21,9 @@
 		PostDetail,
 		CommentItem,
 		CommunityNote as CommunityNoteData,
-		UserProfile
+		UserProfile,
+		VotePoint,
+		VoteUser
 	} from '$lib/types';
 	import { NZ_BBOX, NZ_REGIONS, regionForPoint } from '$lib/data/nz-regions';
 	import { getLocation, prewarm, seedCoarse, GeoError } from '$lib/location';
@@ -80,6 +82,9 @@
 	let selectedPostId = $state<string | null>(null);
 	let selectedPostDetail = $state<PostDetail | null>(null);
 	let selectedPostComments = $state<CommentItem[]>([]);
+	let selectedVotePoints = $state<VotePoint[]>([]);
+	let selectedVoteUsers = $state<VoteUser[]>([]);
+	let selectedPostTab = $state<'discussion' | 'voters'>('discussion');
 	let selectedCommunityNote = $state<CommunityNoteData | null>(null);
 	let selectedPostLoading = $state(false);
 	let selectedPostError = $state('');
@@ -95,6 +100,7 @@
 	let scrollHost: HTMLElement | null = null;
 	let mapComponent: HomeMap | null = null;
 	let mapReady = $state(false);
+	let mapThreeD = $state(false);
 	let redrawTrigger = $state(0);
 	let mapViewport = $state<MapViewportState | null>(null);
 	let listItemEls = new Map<string, HTMLElement>();
@@ -340,6 +346,9 @@
 		hoveredPostId = null;
 		selectedPostDetail = null;
 		selectedPostComments = [];
+		selectedVotePoints = [];
+		selectedVoteUsers = [];
+		selectedPostTab = 'discussion';
 		selectedCommunityNote = null;
 		selectedPostError = '';
 		selectedPostRequestId++;
@@ -544,6 +553,11 @@
 		redrawTrigger++;
 	}
 
+	function toggleMapThreeD(e: Event) {
+		mapThreeD = (e.currentTarget as HTMLInputElement).checked;
+		redrawTrigger++;
+	}
+
 	function getMarkerScreenPos(id: string): { x: number; y: number } | null {
 		return mapComponent?.getMarkerScreenPos(id) ?? null;
 	}
@@ -565,15 +579,25 @@
 			const res = await fetch(`/api/posts/${id}`);
 			if (requestId !== selectedPostRequestId) return;
 			if (!res.ok) throw new Error(`HTTP ${res.status}`);
-			const json = (await res.json()) as { post: PostDetail; comments: CommentItem[] };
+			const json = (await res.json()) as {
+				post: PostDetail;
+				comments: CommentItem[];
+				votePoints?: VotePoint[];
+				voteUsers?: VoteUser[];
+			};
 			selectedPostDetail = json.post;
 			selectedPostComments = json.comments;
+			selectedVotePoints = json.votePoints ?? [];
+			selectedVoteUsers = json.voteUsers ?? [];
+			selectedPostTab = 'discussion';
 			selectedCommunityNote = json.post.communityNote;
 			focusSelectedPost(json.post);
 		} catch {
 			if (requestId !== selectedPostRequestId) return;
 			selectedPostDetail = null;
 			selectedPostComments = [];
+			selectedVotePoints = [];
+			selectedVoteUsers = [];
 			selectedCommunityNote = null;
 			selectedPostError = 'Failed to load this post. Please try again.';
 		} finally {
@@ -592,6 +616,9 @@
 		}
 		selectedPostId = id;
 		hoveredPostId = id;
+		selectedVotePoints = [];
+		selectedVoteUsers = [];
+		selectedPostTab = 'discussion';
 		composing = false;
 		const summary = visiblePosts.find((post) => post.id === id);
 		if (summary) focusSelectedPost(summary);
@@ -610,6 +637,35 @@
 			body: JSON.stringify({ targetType: 'post', reason: reason.trim() })
 		});
 		alert('Report submitted. Thank you.');
+	}
+
+	function handleSelectedPostVoted(result: {
+		verifyCount: number;
+		disputeCount: number;
+		myVote: PostDetail['myVote'];
+		points: VotePoint[];
+		voters?: VoteUser[];
+	}) {
+		selectedVotePoints = result.points;
+		if (result.voters) selectedVoteUsers = result.voters;
+		if (selectedPostDetail) {
+			selectedPostDetail = {
+				...selectedPostDetail,
+				verifyCount: result.verifyCount,
+				disputeCount: result.disputeCount,
+				myVote: result.myVote
+			};
+		}
+		posts = posts.map((post) =>
+			post.id === selectedPostId
+				? {
+						...post,
+						verifyCount: result.verifyCount,
+						disputeCount: result.disputeCount
+					}
+				: post
+		);
+		redrawTrigger++;
 	}
 
 	function formatRadius(m: number): string {
@@ -1175,6 +1231,14 @@
 				</button>
 			</div>
 
+			<label class="map-mode-toggle" aria-label="Toggle 3D map view">
+				<input type="checkbox" checked={mapThreeD} oninput={toggleMapThreeD} />
+				<span class="mode-track" aria-hidden="true">
+					<span class="mode-thumb"></span>
+				</span>
+				<span class="mode-label">3D</span>
+			</label>
+
 			{#if scope === 'local'}
 				<div class="region-controls">
 					{#if geoLoading}
@@ -1218,9 +1282,11 @@
 				{selectedPostId}
 				showAllRadii={trendingOpen}
 				radiusPosts={trendingPosts}
+				{selectedVotePoints}
 				onMapReady={handleMapReady}
 				onMarkerPositionsChange={handleMarkerPositionsChange}
 				onSelectPost={handleSelectPost}
+				threeD={mapThreeD}
 				{composing}
 				{composeLng}
 				{composeLat}
@@ -1360,23 +1426,83 @@
 
 						{#key post.id}
 							{#if post.category === 'factual'}
-								<CredibilityMeter {post} user={data.user} />
+								<CredibilityMeter
+									{post}
+									user={data.user}
+									onVoted={handleSelectedPostVoted}
+								/>
 								<CommunityNote note={selectedCommunityNote} />
 							{/if}
 
-							<section class="panel-section">
-								<h2 class="section-heading">Reactions</h2>
-								<ReactionBar postId={post.id} reactions={post.reactions} user={data.user} />
-							</section>
+							{#if post.category === 'factual'}
+								<div class="panel-tabs" role="tablist" aria-label="Post panel views">
+									<button
+										type="button"
+										role="tab"
+										class:active={selectedPostTab === 'discussion'}
+										aria-selected={selectedPostTab === 'discussion'}
+										onclick={() => (selectedPostTab = 'discussion')}
+									>
+										Discussion
+									</button>
+									<button
+										type="button"
+										role="tab"
+										class:active={selectedPostTab === 'voters'}
+										aria-selected={selectedPostTab === 'voters'}
+										onclick={() => (selectedPostTab = 'voters')}
+									>
+										Voters
+										<span>{selectedVoteUsers.length}</span>
+									</button>
+								</div>
+							{/if}
 
-							<section class="panel-section">
-								<CommentThread
-									postId={post.id}
-									comments={selectedPostComments}
-									user={data.user}
-									onCommunityNoteUpdated={(note: CommunityNoteData) => (selectedCommunityNote = note)}
-								/>
-							</section>
+							{#if selectedPostTab === 'voters' && post.category === 'factual'}
+								<section class="panel-section">
+									<h2 class="section-heading">Voters</h2>
+									{#if selectedVoteUsers.length === 0}
+										<p class="muted voter-empty">No one has voted on this post yet.</p>
+									{:else}
+										<div class="voter-list">
+											{#each selectedVoteUsers as voter (voter.userId)}
+												<div class="voter-row">
+													<a
+														class="voter-name"
+														href="/profile/{voter.userId}"
+														onclick={(e) => {
+															e.preventDefault();
+															openProfile(voter.userId);
+														}}
+													>
+														{voter.displayName}
+													</a>
+													<span class:voter-verify={voter.vote === 'verify'} class:voter-dispute={voter.vote === 'dispute'}>
+														{voter.vote === 'verify' ? 'Verified' : 'Disputed'}
+													</span>
+													<time class="muted" datetime={voter.createdAt}>
+														{formatDate(voter.createdAt)}
+													</time>
+												</div>
+											{/each}
+										</div>
+									{/if}
+								</section>
+							{:else}
+								<section class="panel-section">
+									<h2 class="section-heading">Reactions</h2>
+									<ReactionBar postId={post.id} reactions={post.reactions} user={data.user} />
+								</section>
+
+								<section class="panel-section">
+									<CommentThread
+										postId={post.id}
+										comments={selectedPostComments}
+										user={data.user}
+										onCommunityNoteUpdated={(note: CommunityNoteData) => (selectedCommunityNote = note)}
+									/>
+								</section>
+							{/if}
 						{/key}
 
 						<div class="post-actions">
@@ -1998,6 +2124,69 @@
 
 	.toggle-btn:disabled {
 		cursor: wait;
+	}
+
+	.map-mode-toggle {
+		display: inline-flex;
+		align-items: center;
+		gap: 8px;
+		height: 34px;
+		padding: 0 10px;
+		border: 1px solid var(--border);
+		border-radius: var(--radius-sm);
+		background: rgba(247, 247, 249, 0.8);
+		color: var(--text-2);
+		font-size: 13px;
+		font-weight: 700;
+		cursor: pointer;
+		user-select: none;
+	}
+
+	.map-mode-toggle input {
+		position: absolute;
+		opacity: 0;
+		pointer-events: none;
+	}
+
+	.mode-track {
+		position: relative;
+		width: 36px;
+		height: 20px;
+		border-radius: 999px;
+		background: var(--surface-3);
+		box-shadow: inset 0 0 0 1px var(--border-strong);
+		transition: background 0.16s ease, box-shadow 0.16s ease;
+	}
+
+	.mode-thumb {
+		position: absolute;
+		top: 3px;
+		left: 3px;
+		width: 14px;
+		height: 14px;
+		border-radius: 50%;
+		background: #ffffff;
+		box-shadow: 0 1px 3px rgba(15, 23, 42, 0.24);
+		transition: transform 0.16s ease;
+	}
+
+	.map-mode-toggle input:checked + .mode-track {
+		background: #111827;
+		box-shadow: inset 0 0 0 1px #111827;
+	}
+
+	.map-mode-toggle input:checked + .mode-track .mode-thumb {
+		transform: translateX(16px);
+	}
+
+	.map-mode-toggle input:focus-visible + .mode-track {
+		outline: 2px solid var(--accent);
+		outline-offset: 2px;
+	}
+
+	.map-mode-toggle:has(input:checked) {
+		color: var(--text);
+		background: rgba(255, 255, 255, 0.92);
 	}
 
 	.region-controls {
@@ -2628,6 +2817,108 @@
 		text-transform: uppercase;
 		letter-spacing: 0.07em;
 		color: var(--text-3);
+	}
+
+	.panel-tabs {
+		display: grid;
+		grid-template-columns: 1fr 1fr;
+		gap: 4px;
+		padding: 4px;
+		border: 1px solid var(--border);
+		border-radius: var(--radius-sm);
+		background: var(--surface-2);
+	}
+
+	.panel-tabs button {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		gap: 7px;
+		height: 34px;
+		border: 1px solid transparent;
+		border-radius: calc(var(--radius-sm) - 1px);
+		background: transparent;
+		color: var(--text-2);
+		font-size: 13px;
+		font-weight: 750;
+	}
+
+	.panel-tabs button.active {
+		border-color: var(--border);
+		background: var(--surface);
+		color: var(--text);
+		box-shadow: var(--shadow-sm);
+	}
+
+	.panel-tabs span {
+		min-width: 20px;
+		padding: 1px 6px;
+		border-radius: 999px;
+		background: var(--surface-3);
+		color: var(--text-2);
+		font-size: 11px;
+	}
+
+	.voter-empty {
+		margin: 0;
+		font-size: 13px;
+	}
+
+	.voter-list {
+		display: flex;
+		flex-direction: column;
+		border: 1px solid var(--border);
+		border-radius: var(--radius);
+		overflow: hidden;
+	}
+
+	.voter-row {
+		display: grid;
+		grid-template-columns: minmax(120px, 1fr) auto;
+		gap: 4px 10px;
+		align-items: center;
+		padding: 12px 14px;
+		background: var(--surface);
+		border-bottom: 1px solid var(--border);
+	}
+
+	.voter-row:last-child {
+		border-bottom: none;
+	}
+
+	.voter-name {
+		min-width: 0;
+		font-weight: 750;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	.voter-name:hover {
+		text-decoration: underline;
+	}
+
+	.voter-row time {
+		grid-column: 1 / -1;
+		font-size: 12px;
+	}
+
+	.voter-verify,
+	.voter-dispute {
+		padding: 3px 8px;
+		border-radius: 999px;
+		font-size: 12px;
+		font-weight: 750;
+	}
+
+	.voter-verify {
+		background: var(--verify-soft);
+		color: var(--verify);
+	}
+
+	.voter-dispute {
+		background: var(--dispute-soft);
+		color: var(--dispute);
 	}
 
 	.post-actions {
