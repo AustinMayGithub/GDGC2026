@@ -8,9 +8,10 @@
 
 	let { post, user }: Props = $props();
 
-	let verifyCount = $state(post.verifyCount);
-	let disputeCount = $state(post.disputeCount);
-	let myVote = $state<VoteValue | null>(post.myVote);
+	let currentPostId = $state<string | null>(null);
+	let verifyCount = $state(0);
+	let disputeCount = $state(0);
+	let myVote = $state<VoteValue | null>(null);
 	let loading = $state(false);
 	let error = $state('');
 
@@ -65,6 +66,14 @@
 			loading = false;
 		}
 	}
+
+	$effect(() => {
+		if (currentPostId === post.id) return;
+		currentPostId = post.id;
+		verifyCount = post.verifyCount;
+		disputeCount = post.disputeCount;
+		myVote = post.myVote;
+	});
 </script>
 
 <div class="meter-card card">

@@ -10,6 +10,7 @@
 		listItemEls: Map<string, HTMLElement>;
 	}
 
+	const SIDES = ['left', 'right'] as const;
 	const MAX_BUBBLES = 8;
 
 	let { posts, hoveredPostId, onHover, listItemEls }: Props = $props();
@@ -33,7 +34,7 @@
 		};
 	}
 
-	function bubblePosts(side: 'left' | 'right') {
+	function bubblePosts(side: (typeof SIDES)[number]) {
 		return posts
 			.slice(0, MAX_BUBBLES)
 			.filter((_, index) => (side === 'left' ? index % 2 === 0 : index % 2 === 1));
@@ -42,109 +43,57 @@
 
 {#if posts.length > 0}
 	<div class="bubble-stage" aria-label="Recent articles across New Zealand">
-		<div class="bubble-rail rail-left">
-			{#each bubblePosts('left') as post (post.id)}
-				<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
-				<article
-					use:registerEl={post.id}
-					class="headline-item"
-					class:hovered={hoveredPostId === post.id}
-					onmouseenter={() => onHover(post.id)}
-					onmouseleave={() => onHover(null)}
-					onclick={() => goto(`/post/${post.id}`)}
-					role="button"
-					tabindex="0"
-					onkeydown={(e) => e.key === 'Enter' && goto(`/post/${post.id}`)}
-					aria-label={post.title}
-				>
-					<div class="item-top">
-						<span class={post.category === 'factual' ? 'badge badge-factual' : 'badge'}>
-							{post.category === 'factual' ? 'Factual' : 'Community'}
-						</span>
-						<span class="item-time muted">{timeAgo(post.createdAt)}</span>
-					</div>
-
-					<p class="item-title">{post.title}</p>
-
-					<div class="item-spacer"></div>
-
-					<div class="item-meta">
-						{#if getRegion(post.regionId)}
-							<span class="item-region muted">{getRegion(post.regionId)!.name}</span>
-						{/if}
-						<span class="item-comments muted">
-							<svg width="12" height="12" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-								<path
-									d="M14 1H2a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h3l2 3 2-3h5a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1z"
-									stroke="currentColor"
-									stroke-width="1.4"
-									stroke-linejoin="round"
-								/>
-							</svg>
-							{post.commentCount}
-						</span>
-						{#if post.category === 'factual' && (post.verifyCount + post.disputeCount) > 0}
-							<span class="item-votes">
-								{Math.round((post.verifyCount / (post.verifyCount + post.disputeCount)) * 100)}%
-								verified
+		{#each SIDES as side}
+			<div class={`bubble-rail rail-${side}`}>
+				{#each bubblePosts(side) as post (post.id)}
+					{@const region = getRegion(post.regionId)}
+					<button
+						type="button"
+						use:registerEl={post.id}
+						class="headline-item"
+						class:hovered={hoveredPostId === post.id}
+						onmouseenter={() => onHover(post.id)}
+						onmouseleave={() => onHover(null)}
+						onclick={() => goto(`/post/${post.id}`)}
+						aria-label={post.title}
+					>
+						<div class="item-top">
+							<span class={post.category === 'factual' ? 'badge badge-factual' : 'badge'}>
+								{post.category === 'factual' ? 'Factual' : 'Community'}
 							</span>
-						{/if}
-					</div>
-				</article>
-			{/each}
-		</div>
+							<span class="item-time muted">{timeAgo(post.createdAt)}</span>
+						</div>
 
-		<div class="bubble-rail rail-right">
-			{#each bubblePosts('right') as post (post.id)}
-				<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
-				<article
-					use:registerEl={post.id}
-					class="headline-item"
-					class:hovered={hoveredPostId === post.id}
-					onmouseenter={() => onHover(post.id)}
-					onmouseleave={() => onHover(null)}
-					onclick={() => goto(`/post/${post.id}`)}
-					role="button"
-					tabindex="0"
-					onkeydown={(e) => e.key === 'Enter' && goto(`/post/${post.id}`)}
-					aria-label={post.title}
-				>
-					<div class="item-top">
-						<span class={post.category === 'factual' ? 'badge badge-factual' : 'badge'}>
-							{post.category === 'factual' ? 'Factual' : 'Community'}
-						</span>
-						<span class="item-time muted">{timeAgo(post.createdAt)}</span>
-					</div>
+						<p class="item-title">{post.title}</p>
 
-					<p class="item-title">{post.title}</p>
+						<div class="item-spacer"></div>
 
-					<div class="item-spacer"></div>
-
-					<div class="item-meta">
-						{#if getRegion(post.regionId)}
-							<span class="item-region muted">{getRegion(post.regionId)!.name}</span>
-						{/if}
-						<span class="item-comments muted">
-							<svg width="12" height="12" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-								<path
-									d="M14 1H2a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h3l2 3 2-3h5a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1z"
-									stroke="currentColor"
-									stroke-width="1.4"
-									stroke-linejoin="round"
-								/>
-							</svg>
-							{post.commentCount}
-						</span>
-						{#if post.category === 'factual' && (post.verifyCount + post.disputeCount) > 0}
-							<span class="item-votes">
-								{Math.round((post.verifyCount / (post.verifyCount + post.disputeCount)) * 100)}%
-								verified
+						<div class="item-meta">
+							{#if region}
+								<span class="item-region muted">{region.name}</span>
+							{/if}
+							<span class="item-comments muted">
+								<svg width="12" height="12" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+									<path
+										d="M14 1H2a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h3l2 3 2-3h5a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1z"
+										stroke="currentColor"
+										stroke-width="1.4"
+										stroke-linejoin="round"
+									/>
+								</svg>
+								{post.commentCount}
 							</span>
-						{/if}
-					</div>
-				</article>
-			{/each}
-		</div>
+							{#if post.category === 'factual' && post.verifyCount + post.disputeCount > 0}
+								<span class="item-votes">
+									{Math.round((post.verifyCount / (post.verifyCount + post.disputeCount)) * 100)}%
+									verified
+								</span>
+							{/if}
+						</div>
+					</button>
+				{/each}
+			</div>
+		{/each}
 	</div>
 {/if}
 
@@ -186,8 +135,10 @@
 			radial-gradient(circle at top, rgba(99, 102, 241, 0.08), transparent 55%);
 		box-shadow: 0 22px 60px rgba(15, 23, 42, 0.12);
 		backdrop-filter: blur(18px);
+		color: inherit;
 		cursor: pointer;
 		pointer-events: auto;
+		text-align: left;
 		transition:
 			transform 0.18s ease,
 			box-shadow 0.18s ease,

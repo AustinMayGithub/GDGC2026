@@ -3,6 +3,7 @@
 	import { onMount, onDestroy } from 'svelte';
 	import type { PostSummary } from '$lib/types';
 	import { NZ_BBOX } from '$lib/data/nz-regions';
+	import type { StyleSpecification } from 'maplibre-gl';
 
 	interface Props {
 		posts: PostSummary[];
@@ -127,7 +128,7 @@
 				}
 			}
 		]
-	};
+	} as unknown as StyleSpecification;
 
 	function isNationalView(bbox: [number, number, number, number]) {
 		return bbox[2] - bbox[0] > 8;
@@ -192,6 +193,19 @@
 		}
 
 		m.fitBounds(bounds, options);
+	}
+
+	export function focusOnLocation(lng: number, lat: number, radiusKm = 5) {
+		if (!map || !maplibre) return;
+		const ml = maplibre as typeof import('maplibre-gl');
+		const m = map as InstanceType<typeof ml.Map>;
+
+		m.easeTo({
+			center: [lng, lat],
+			zoom: radiusKm <= 5 ? 12 : 10,
+			duration: 450
+		});
+		onMarkerPositionsChange();
 	}
 
 	onMount(async () => {

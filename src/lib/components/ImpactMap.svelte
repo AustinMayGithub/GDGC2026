@@ -14,7 +14,7 @@
 
 	let container: HTMLDivElement;
 	let map: import('maplibre-gl').Map | null = null;
-	let pinCoordinates: [number, number] = [lng, lat];
+	let pinCoordinates = $state<[number, number]>([0, 0]);
 	let hasLoaded = false;
 
 	const OSM_STYLE = {
@@ -31,7 +31,11 @@
 	};
 
 	/** Build a GeoJSON circle polygon (64-point geodesic approximation). */
-	function buildCircle(centerLng: number, centerLat: number, radiusMeters: number): GeoJSON.Feature {
+	function buildCircle(
+		centerLng: number,
+		centerLat: number,
+		radiusMeters: number
+	): GeoJSON.Feature<GeoJSON.Polygon> {
 		const coords: [number, number][] = [];
 		const steps = 64;
 		const earthR = 6371000;
@@ -180,6 +184,7 @@
 			}
 
 			hasLoaded = true;
+			pinCoordinates = [lng, lat];
 			fitToImpactZone(0);
 		});
 	});

@@ -9,7 +9,7 @@
 
 	let { postId, comments: initialComments, user }: Props = $props();
 
-	let comments = $state<CommentItem[]>(initialComments);
+	let comments = $state<CommentItem[]>([]);
 	let body = $state('');
 	let submitting = $state(false);
 	let submitError = $state('');
@@ -96,6 +96,11 @@
 			submitComment();
 		}
 	}
+
+	$effect(() => {
+		postId;
+		comments = [...initialComments];
+	});
 </script>
 
 <div class="thread">
