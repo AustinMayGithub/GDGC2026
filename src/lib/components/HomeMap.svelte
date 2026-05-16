@@ -32,7 +32,7 @@
 		layers: [{ id: 'osm', type: 'raster' as const, source: 'osm' }]
 	};
 
-	const NZ_VISUAL_CENTER: [number, number] = [173.15, -41.15];
+	const NZ_VISUAL_CENTER: [number, number] = [174.25, -41.15];
 
 	function isNationalView(bbox: [number, number, number, number]) {
 		return bbox[2] - bbox[0] > 8;
