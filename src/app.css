@@ -14,11 +14,11 @@
 	--text-2: #5b5b6b;
 	--text-3: #9090a0;
 
-	/* Brand gradient */
-	--brand-1: #6366f1;
-	--brand-2: #ec4899;
+	/* Brand accent */
+	--brand-1: #111111;
+	--brand-2: #111111;
 	--gradient: linear-gradient(120deg, var(--brand-1), var(--brand-2));
-	--accent: #6366f1;
+	--accent: #111111;
 
 	/* Semantic — verify / dispute */
 	--verify: #16a34a;
