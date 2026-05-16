@@ -32,10 +32,16 @@
 		layers: [{ id: 'osm', type: 'raster' as const, source: 'osm' }]
 	};
 
+	const NZ_VISUAL_CENTER: [number, number] = [174.25, -41.15];
+
+	function isNationalView(bbox: [number, number, number, number]) {
+		return bbox[2] - bbox[0] > 8;
+	}
+
 	function getFitOptions(bbox: [number, number, number, number]) {
 		const width = typeof window === 'undefined' ? 1440 : window.innerWidth;
 		const compact = width < 820;
-		const isNational = bbox[2] - bbox[0] > 8;
+		const isNational = isNationalView(bbox);
 		const sidePadding = compact ? 18 : isNational ? 44 : 32;
 
 		return {
@@ -129,13 +135,27 @@
 		if (!map || !maplibre) return;
 		const ml = maplibre as typeof import('maplibre-gl');
 		const m = map as InstanceType<typeof ml.Map>;
-		m.fitBounds(
-			[
-				[bbox[0], bbox[1]],
-				[bbox[2], bbox[3]]
-			],
-			getFitOptions(bbox)
-		);
+		const bounds: [[number, number], [number, number]] = [
+			[bbox[0], bbox[1]],
+			[bbox[2], bbox[3]]
+		];
+		const options = getFitOptions(bbox);
+		const camera = m.cameraForBounds(bounds, options);
+
+		if (camera) {
+			if (isNationalView(bbox)) {
+				camera.center = NZ_VISUAL_CENTER;
+				camera.zoom = Math.max((camera.zoom ?? 4.6) - 0.12, 4.2);
+			}
+
+			m.easeTo({
+				...camera,
+				duration: options.duration
+			});
+			return;
+		}
+
+		m.fitBounds(bounds, options);
 	}
 
 	onMount(async () => {
