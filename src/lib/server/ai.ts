@@ -52,6 +52,10 @@ export async function generateAreaLabel(params: {
 	radiusM: number;
 	regionName: string;
 	nearestPlace: string;
+	nearestPlaceKind?: string;
+	nearestPlaceDistanceKm?: number;
+	nearestPlaceDirection?: string;
+	nearbyPlaces?: string[];
 }): Promise<string> {
 	const fallback = fallbackAreaLabel(params.lng, params.lat, params.radiusM);
 	const client = await getClient();
@@ -66,11 +70,15 @@ export async function generateAreaLabel(params: {
 				{
 					role: 'system',
 					content:
-						'Create a short New Zealand map area label. Return 2-5 words only. No coordinates. No punctuation. Be natural but restrained, like "Wider Howick area", "Botany local district", or "Auckland regional area".'
+						'Create a short, specific New Zealand map area label. Return 2-5 words only. No coordinates. No punctuation. Prefer the nearest suburb/town or a directional phrase over broad regional wording. Match the radius: tiny areas can say "around" or "streets"; medium areas can say "neighbourhood" or "district"; large areas can use the region. Do not stack qualifiers like "near X streets". Examples: "Around Mount Eden", "Te Aro streets", "East of Hamilton", "Riccarton neighbourhood", "Wider Wellington region".'
 				},
 				{
 					role: 'user',
 					content: `Nearest place: ${params.nearestPlace}
+Nearest place type: ${params.nearestPlaceKind ?? 'place'}
+Distance from nearest place: ${params.nearestPlaceDistanceKm?.toFixed(1) ?? 'unknown'} km
+Direction from nearest place: ${params.nearestPlaceDirection ?? 'unknown'}
+Other nearby places: ${params.nearbyPlaces?.join(', ') || 'none'}
 Region: ${params.regionName}
 Radius metres: ${params.radiusM}
 Fallback label: ${fallback}`

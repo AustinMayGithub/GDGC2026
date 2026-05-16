@@ -17,13 +17,14 @@
 
 <style>
 	.auth-shell {
-		min-height: 100vh;
+		min-height: 100dvh;
 		display: flex;
 		flex-direction: column;
 		align-items: center;
 		justify-content: center;
-		gap: 18px;
-		padding: 32px 16px;
+		gap: clamp(10px, 2dvh, 18px);
+		padding: clamp(16px, 3dvh, 32px) 16px;
+		overflow-x: hidden;
 		background:
 			radial-gradient(900px 500px at 20% -10%, rgba(99, 102, 241, 0.1), transparent),
 			radial-gradient(900px 500px at 90% 110%, rgba(236, 72, 153, 0.1), transparent);
@@ -44,7 +45,7 @@
 	.auth-card {
 		width: 100%;
 		max-width: 380px;
-		padding: 28px;
+		padding: clamp(22px, 3dvh, 28px);
 		box-shadow: var(--shadow);
 	}
 	.tagline {

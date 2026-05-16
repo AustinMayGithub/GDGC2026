@@ -2,7 +2,7 @@ import { and, desc, eq, isNotNull, sql } from 'drizzle-orm';
 import { db } from './db';
 import { posts, users, postVotes, comments, communityNotes, reactions } from './db/schema';
 import { getRegion } from '$lib/data/nz-regions';
-import { fallbackAreaLabel, nearestPlace } from '$lib/data/geo-labels';
+import { fallbackAreaLabel, nearestPlaces } from '$lib/data/geo-labels';
 import { generateAreaLabel } from './ai';
 import type {
 	PostSummary,
@@ -259,14 +259,19 @@ export async function getPostDetail(
 	}));
 
 	const note = noteRows[0];
-	const place = nearestPlace(r.lng, r.lat);
+	const places = nearestPlaces(r.lng, r.lat, 4);
+	const place = places[0];
 	const region = getRegion(r.regionId);
 	const areaLabel = await generateAreaLabel({
 		lng: r.lng,
 		lat: r.lat,
 		radiusM: r.impactRadiusM,
 		regionName: region?.name ?? 'New Zealand',
-		nearestPlace: place?.name ?? region?.name ?? 'this area'
+		nearestPlace: place?.name ?? region?.name ?? 'this area',
+		nearestPlaceKind: place?.kind,
+		nearestPlaceDistanceKm: place?.distanceKm,
+		nearestPlaceDirection: place?.directionFromPlace,
+		nearbyPlaces: places.slice(1).map((nearby) => nearby.name)
 	});
 
 	return {

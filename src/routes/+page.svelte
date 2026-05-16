@@ -52,12 +52,14 @@
 		score: number;
 		engagement: number;
 	};
+	type AuthPanelMode = 'login' | 'signup' | 'verify';
 
 	const DEFAULT_REGION_ID = 'auckland';
 	const REGION_CACHE_KEY = 'birdseye:local-region';
 	const GEO_MAX_AGE_MS = 15 * 60 * 1000;
 	const GEO_TIMEOUT_MS = 10_000;
-	const LOCAL_FOCUS_RADIUS_KM = 2.5;
+	const LOCAL_FOCUS_RADIUS_KM = 1.8;
+	const LOCAL_REGION_FOCUS_RADIUS_KM = 12;
 	const LOCAL_TRENDING_RADIUS_KM = 10;
 	const LOCAL_AUTO_NATIONAL_ZOOM = 6.4;
 	const LOCAL_AUTO_NATIONAL_GRACE_MS = 1400;
@@ -65,6 +67,8 @@
 	const RADIUS_MIN_M = 100;
 	const RADIUS_MAX_M = 50000;
 	const RADIUS_SLIDER_MAX = 1000;
+	const POST_REFRESH_INTERVAL_MS = 30_000;
+	const POST_REFRESH_STALE_MS = 12_000;
 	const orderedRegions = [
 		...NZ_REGIONS.filter((region) => region.id === DEFAULT_REGION_ID),
 		...NZ_REGIONS.filter((region) => region.id !== DEFAULT_REGION_ID)
@@ -103,6 +107,8 @@
 	let trendingItemEls = new Map<string, HTMLElement>();
 	let activeFetchController: AbortController | null = null;
 	let fetchRequestId = 0;
+	let lastPostsFetchAt = 0;
+	let postRefreshTimer: ReturnType<typeof setInterval> | null = null;
 	let geoRequestId = 0;
 	let composing = $state(false);
 	let composeTitle = $state('');
@@ -138,6 +144,15 @@
 	let profileEditLocation = $state('');
 	let profileEditAvatarDataUrl = $state<string | null>(null);
 	let profileAvatarVersion = $state(0);
+	let authPanelMode = $state<AuthPanelMode>('login');
+	let authEmail = $state('');
+	let authPassword = $state('');
+	let authDisplayName = $state('');
+	let authCode = $state('');
+	let authSubmitting = $state(false);
+	let authError = $state('');
+	let authMessage = $state('');
+	let authDevOtp = $state<string | null>(null);
 
 	function toRadians(value: number) {
 		return (value * Math.PI) / 180;
@@ -307,6 +322,7 @@
 			? visiblePosts.filter((post) => post.id === selectedPostId)
 			: []
 	);
+	const mapUserLocation = $derived(userLocation ?? data.coarseLocation);
 	const canSubmitPost = $derived(
 		Boolean(data.user) &&
 			composeTitle.trim().length >= 4 &&
@@ -337,6 +353,7 @@
 		selectedPostError = '';
 		selectedPostRequestId++;
 		redrawTrigger++;
+		refreshPostsIfStale();
 	}
 
 	function closeProfile() {
@@ -350,7 +367,12 @@
 		profileSaving = false;
 		profileSaveError = '';
 		profileEditAvatarDataUrl = null;
+		authSubmitting = false;
+		authError = '';
+		authMessage = '';
+		authDevOtp = null;
 		profileRequestId++;
+		refreshPostsIfStale();
 	}
 
 	async function loadProfile(id: string) {
@@ -398,41 +420,61 @@
 		profileEditing = false;
 		profileSaveError = '';
 		profileEditAvatarDataUrl = null;
+		authPanelMode = 'login';
+		authPassword = '';
+		authCode = '';
+		authError = '';
+		authMessage = '';
+		authDevOtp = null;
 		accountPanelOpen = true;
 		composing = false;
 		void resizeMapAfterLayout();
 	}
 
-	async function fetchPosts() {
+	async function fetchPosts(options: { silent?: boolean; resetFeed?: boolean } = {}) {
+		const silent = options.silent ?? false;
+		const shouldResetFeed = options.resetFeed ?? !silent;
+		const showLoading = !silent || posts.length === 0;
 		const requestId = ++fetchRequestId;
 		activeFetchController?.abort();
 		const controller = new AbortController();
 		activeFetchController = controller;
-		loading = true;
-		error = null;
+		if (showLoading) loading = true;
+		if (!silent) error = null;
 		try {
 			const res = await fetch('/api/posts?scope=national', { signal: controller.signal });
 			if (!res.ok) throw new Error(`HTTP ${res.status}`);
 			const json = await res.json();
 			if (requestId !== fetchRequestId) return;
+			lastPostsFetchAt = Date.now();
+			error = null;
 			posts = json.posts as PostSummary[];
 			if (selectedPostId && !posts.some((post) => post.id === selectedPostId)) {
 				selectedPostId = null;
 				hoveredPostId = null;
 			}
-			resetFeedVisibility();
+			if (shouldResetFeed) resetFeedVisibility();
 		} catch (err) {
 			if (err instanceof DOMException && err.name === 'AbortError') return;
 			if (requestId !== fetchRequestId) return;
-			error = 'Failed to load posts. Please try again.';
-			posts = [];
-			resetFeedVisibility();
+			if (!silent) {
+				error = 'Failed to load posts. Please try again.';
+				posts = [];
+				resetFeedVisibility();
+			}
 		} finally {
 			if (requestId === fetchRequestId) {
-				loading = false;
+				if (showLoading) loading = false;
 				activeFetchController = null;
 			}
 		}
+	}
+
+	function refreshPostsIfStale(force = false) {
+		if (activeFetchController) return;
+		if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return;
+		if (!force && Date.now() - lastPostsFetchAt < POST_REFRESH_STALE_MS) return;
+		void fetchPosts({ silent: posts.length > 0, resetFeed: false });
 	}
 
 	async function switchToNational() {
@@ -469,7 +511,11 @@
 		if (region && mapComponent) {
 			setLocalFocus(region.center[0], region.center[1]);
 			pauseLocalAutoNational();
-			mapComponent.fitToBbox(region.bbox);
+			mapComponent.focusOnLocation(
+				region.center[0],
+				region.center[1],
+				LOCAL_REGION_FOCUS_RADIUS_KM
+			);
 		}
 	}
 
@@ -702,6 +748,111 @@
 		}
 	}
 
+	function switchAuthMode(mode: AuthPanelMode) {
+		authPanelMode = mode;
+		authError = '';
+		authMessage = '';
+		authDevOtp = null;
+		authCode = '';
+		if (mode !== 'verify') authPassword = '';
+	}
+
+	async function finishInlineAuth() {
+		authSubmitting = false;
+		authError = '';
+		authMessage = '';
+		authDevOtp = null;
+		await invalidateAll();
+		closeProfile();
+	}
+
+	async function handleInlineAuthSubmit(e: SubmitEvent) {
+		e.preventDefault();
+		if (authSubmitting) return;
+
+		authSubmitting = true;
+		authError = '';
+		authMessage = '';
+
+		try {
+			const endpoint =
+				authPanelMode === 'signup'
+					? '/api/auth/signup'
+					: authPanelMode === 'verify'
+						? '/api/auth/verify'
+						: '/api/auth/login';
+			const body =
+				authPanelMode === 'signup'
+					? {
+							displayName: authDisplayName.trim(),
+							email: authEmail.trim(),
+							password: authPassword
+						}
+					: authPanelMode === 'verify'
+						? { code: authCode }
+						: { email: authEmail.trim(), password: authPassword };
+
+			const res = await fetch(endpoint, {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify(body)
+			});
+			const text = await res.text();
+			const json = text ? (JSON.parse(text) as Record<string, unknown>) : {};
+
+			if (!res.ok) {
+				authError =
+					typeof json.message === 'string'
+						? json.message
+						: 'That did not work. Please try again.';
+				return;
+			}
+
+			if (json.status === 'signedIn') {
+				await finishInlineAuth();
+				return;
+			}
+
+			if (json.status === 'verify') {
+				authPanelMode = 'verify';
+				authPassword = '';
+				authCode = '';
+				authDevOtp = typeof json.devOtp === 'string' ? json.devOtp : null;
+				authMessage = `We sent a verification code to ${String(json.email ?? authEmail)}.`;
+			}
+		} catch {
+			authError = 'Network error. Please try again.';
+		} finally {
+			authSubmitting = false;
+		}
+	}
+
+	async function resendInlineCode() {
+		if (authSubmitting) return;
+		authSubmitting = true;
+		authError = '';
+		authMessage = '';
+
+		try {
+			const res = await fetch('/api/auth/resend', { method: 'POST' });
+			const text = await res.text();
+			const json = text ? (JSON.parse(text) as Record<string, unknown>) : {};
+			if (!res.ok) {
+				authError =
+					typeof json.message === 'string'
+						? json.message
+						: 'Could not resend the code. Please try again.';
+				return;
+			}
+			authDevOtp = typeof json.devOtp === 'string' ? json.devOtp : null;
+			authMessage = 'A new code has been sent.';
+		} catch {
+			authError = 'Network error. Please try again.';
+		} finally {
+			authSubmitting = false;
+		}
+	}
+
 	function handleProfileAvatarChange(e: Event) {
 		const input = e.currentTarget as HTMLInputElement;
 		const file = input.files?.[0];
@@ -857,6 +1008,7 @@
 		composing = false;
 		composeError = '';
 		scrollHost?.scrollTo({ top: 0, behavior: 'auto' });
+		refreshPostsIfStale();
 		void resizeMapAfterLayout();
 	}
 
@@ -988,11 +1140,34 @@
 		prewarm();
 		requestUserLocation(false);
 		fetchPosts();
+
+		const refreshWhenVisible = () => {
+			if (document.visibilityState === 'visible') refreshPostsIfStale();
+		};
+		const refreshWhenActive = () => refreshPostsIfStale();
+		postRefreshTimer = setInterval(refreshWhenActive, POST_REFRESH_INTERVAL_MS);
+		document.addEventListener('visibilitychange', refreshWhenVisible);
+		window.addEventListener('focus', refreshWhenActive);
+		window.addEventListener('pageshow', refreshWhenActive);
+
+		return () => {
+			if (postRefreshTimer !== null) {
+				clearInterval(postRefreshTimer);
+				postRefreshTimer = null;
+			}
+			document.removeEventListener('visibilitychange', refreshWhenVisible);
+			window.removeEventListener('focus', refreshWhenActive);
+			window.removeEventListener('pageshow', refreshWhenActive);
+		};
 	});
 
 	onDestroy(() => {
 		activeFetchController?.abort();
 		profileRequestId++;
+		if (postRefreshTimer !== null) {
+			clearInterval(postRefreshTimer);
+			postRefreshTimer = null;
+		}
 		if (composeRadiusFitFrame !== null) {
 			cancelAnimationFrame(composeRadiusFitFrame);
 		}
@@ -1116,6 +1291,8 @@
 				{composeLng}
 				{composeLat}
 				composeRadiusM={composeRadiusM}
+				userLng={mapUserLocation?.lng ?? null}
+				userLat={mapUserLocation?.lat ?? null}
 				onComposePick={handleComposePick}
 			/>
 
@@ -1173,10 +1350,8 @@
 							{selectedPostDetail?.title ?? visiblePosts.find((post) => post.id === selectedPostId)?.title ?? 'Loading post'}
 						</h1>
 					</div>
-					<button type="button" class="close-btn" aria-label="Close post" onclick={clearSelectedPost}>
-						<svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-							<path d="M3 3l10 10M13 3L3 13" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
-						</svg>
+					<button type="button" class="close-btn" aria-label="Back" onclick={clearSelectedPost}>
+						Back
 					</button>
 				</div>
 
@@ -1196,7 +1371,7 @@
 							>
 								Retry
 							</button>
-							<button type="button" class="btn" onclick={clearSelectedPost}>Back to map</button>
+							<button type="button" class="btn" onclick={clearSelectedPost}>Back</button>
 						</div>
 					</div>
 				{:else if selectedPostDetail}
@@ -1356,24 +1531,126 @@
 									: (profileDetail?.displayName ?? 'Loading profile')}
 						</h1>
 					</div>
-					<button type="button" class="close-btn" aria-label="Close profile" onclick={closeProfile}>
-						<svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-							<path d="M3 3l10 10M13 3L3 13" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
-						</svg>
+					<button type="button" class="close-btn" aria-label="Back" onclick={closeProfile}>
+						Back
 					</button>
 				</div>
 
 				{#if accountPanelOpen}
 					<div class="login-panel-body">
 						<section class="login-card">
-							<h2>Sign in to your account</h2>
-							<p class="muted">
-								Open your profile, manage your posts, and share updates with your community.
-							</p>
-							<div class="login-actions">
-								<a class="btn btn-primary" href="/auth/login">Sign in</a>
-								<a class="btn" href="/auth/signup">Create account</a>
+							<div class="auth-tabs" aria-label="Account mode">
+								<button
+									type="button"
+									class:active={authPanelMode === 'login'}
+									onclick={() => switchAuthMode('login')}
+								>
+									Sign in
+								</button>
+								<button
+									type="button"
+									class:active={authPanelMode === 'signup'}
+									onclick={() => switchAuthMode('signup')}
+								>
+									Create account
+								</button>
 							</div>
+
+							<form class="inline-auth-form" onsubmit={handleInlineAuthSubmit}>
+								{#if authPanelMode === 'verify'}
+									<h2>Check your email</h2>
+									<p class="muted">
+										Enter the 6-digit code to finish {authPanelMode === 'verify' ? 'signing in' : 'setup'}.
+									</p>
+									<div class="field">
+										<label class="field-label" for="inline-auth-code">Verification code</label>
+										<input
+											id="inline-auth-code"
+											class="input"
+											type="text"
+											inputmode="numeric"
+											autocomplete="one-time-code"
+											bind:value={authCode}
+											maxlength="6"
+											disabled={authSubmitting}
+											required
+										/>
+									</div>
+								{:else}
+									<h2>{authPanelMode === 'signup' ? 'Create your account' : 'Sign in to your account'}</h2>
+									<p class="muted">
+										{authPanelMode === 'signup'
+											? 'Join BirdsEye to publish, verify, and build a local reputation.'
+											: 'Open your profile, manage your posts, and share updates with your community.'}
+									</p>
+									{#if authPanelMode === 'signup'}
+										<div class="field">
+											<label class="field-label" for="inline-auth-name">Display name</label>
+											<input
+												id="inline-auth-name"
+												class="input"
+												type="text"
+												bind:value={authDisplayName}
+												disabled={authSubmitting}
+												required
+											/>
+										</div>
+									{/if}
+									<div class="field">
+										<label class="field-label" for="inline-auth-email">Email</label>
+										<input
+											id="inline-auth-email"
+											class="input"
+											type="email"
+											bind:value={authEmail}
+											disabled={authSubmitting}
+											required
+										/>
+									</div>
+									<div class="field">
+										<label class="field-label" for="inline-auth-password">Password</label>
+										<input
+											id="inline-auth-password"
+											class="input"
+											type="password"
+											bind:value={authPassword}
+											autocomplete={authPanelMode === 'signup' ? 'new-password' : 'current-password'}
+											disabled={authSubmitting}
+											required
+										/>
+									</div>
+								{/if}
+
+								{#if authMessage}
+									<p class="auth-message">{authMessage}</p>
+								{/if}
+								{#if authDevOtp}
+									<p class="auth-message auth-dev-code">Dev code: {authDevOtp}</p>
+								{/if}
+								{#if authError}
+									<p class="error-text profile-save-error">{authError}</p>
+								{/if}
+
+								<div class="login-actions">
+									<button class="btn btn-primary" type="submit" disabled={authSubmitting}>
+										{#if authPanelMode === 'signup'}
+											{authSubmitting ? 'Creating...' : 'Create account'}
+										{:else if authPanelMode === 'verify'}
+											{authSubmitting ? 'Verifying...' : 'Verify code'}
+										{:else}
+											{authSubmitting ? 'Signing in...' : 'Sign in'}
+										{/if}
+									</button>
+									{#if authPanelMode === 'verify'}
+										<button type="button" class="btn" onclick={resendInlineCode} disabled={authSubmitting}>
+											Resend code
+										</button>
+										<button type="button" class="btn" onclick={() => switchAuthMode('login')} disabled={authSubmitting}>
+											Back
+										</button>
+									{/if}
+								</div>
+							</form>
 						</section>
 						<section class="login-card login-card-muted">
 							<h2>With an account you can</h2>
@@ -1400,7 +1677,7 @@
 							>
 								Retry
 							</button>
-							<button type="button" class="btn" onclick={closeProfile}>Back to map</button>
+							<button type="button" class="btn" onclick={closeProfile}>Back</button>
 						</div>
 					</div>
 				{:else if profileDetail}
@@ -1621,8 +1898,10 @@
 							<h1 class="compose-title">Share something with your community</h1>
 							<p class="muted compose-sub">You need to sign in before creating a post.</p>
 						</div>
-						<a class="btn btn-primary" href="/auth/login">Sign in to post</a>
-						<button type="button" class="btn" onclick={closeCompose}>Back to map</button>
+						<button type="button" class="btn btn-primary" onclick={openAccountPanel}>
+							Sign in to post
+						</button>
+						<button type="button" class="btn" onclick={closeCompose}>Back</button>
 					</div>
 				{:else}
 					<form class="compose-form" onsubmit={handleComposeSubmit}>
@@ -1631,10 +1910,8 @@
 								<h1 class="compose-title">New post</h1>
 								<p class="muted compose-sub">Click the map to place the pin and set the affected area.</p>
 							</div>
-							<button type="button" class="close-btn" aria-label="Close new post" onclick={closeCompose}>
-								<svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-									<path d="M3 3l10 10M13 3L3 13" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
-								</svg>
+							<button type="button" class="close-btn" aria-label="Back" onclick={closeCompose}>
+								Back
 							</button>
 						</div>
 
@@ -2193,6 +2470,37 @@
 		min-height: 260px;
 	}
 
+	.auth-tabs {
+		display: grid;
+		grid-template-columns: 1fr 1fr;
+		gap: 4px;
+		padding: 4px;
+		border: 1px solid var(--border);
+		border-radius: var(--radius);
+		background: var(--surface-2);
+	}
+
+	.auth-tabs button {
+		border: 0;
+		border-radius: var(--radius-sm);
+		padding: 9px 10px;
+		background: transparent;
+		color: var(--text-2);
+		font-weight: 700;
+	}
+
+	.auth-tabs button.active {
+		background: var(--surface);
+		color: var(--text);
+		box-shadow: var(--shadow-sm);
+	}
+
+	.inline-auth-form {
+		display: flex;
+		flex-direction: column;
+		gap: 14px;
+	}
+
 	.login-card h2 {
 		margin: 0;
 		font-size: 22px;
@@ -2220,6 +2528,22 @@
 		display: flex;
 		gap: 10px;
 		flex-wrap: wrap;
+	}
+
+	.auth-message {
+		margin: 0;
+		padding: 10px 12px;
+		border: 1px solid var(--border);
+		border-radius: var(--radius-sm);
+		background: var(--surface-2);
+		color: var(--text-2);
+		font-size: 13px;
+	}
+
+	.auth-dev-code {
+		color: var(--text);
+		font-weight: 750;
+		letter-spacing: 0.04em;
 	}
 
 	.profile-summary {
@@ -2651,8 +2975,9 @@
 	}
 
 	.close-btn {
-		width: 34px;
+		min-width: 64px;
 		height: 34px;
+		padding: 0 14px;
 		display: inline-flex;
 		align-items: center;
 		justify-content: center;
@@ -2661,6 +2986,7 @@
 		background: var(--surface);
 		color: var(--text-2);
 		flex-shrink: 0;
+		font-weight: 700;
 	}
 
 	.close-btn:hover {

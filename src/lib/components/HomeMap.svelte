@@ -21,6 +21,8 @@
 		composeLng?: number;
 		composeLat?: number;
 		composeRadiusM?: number;
+		userLng?: number | null;
+		userLat?: number | null;
 		onComposePick?: (lng: number, lat: number) => void;
 	}
 
@@ -59,6 +61,8 @@
 		composeLng = 174.76,
 		composeLat = -36.85,
 		composeRadiusM = 1000,
+		userLng = null,
+		userLat = null,
 		onComposePick
 	}: Props = $props();
 
@@ -320,6 +324,22 @@
 		};
 	}
 
+	function userLocationFeatures(): GeoJSON.FeatureCollection<GeoJSON.Point> {
+		return {
+			type: 'FeatureCollection',
+			features:
+				Number.isFinite(userLng) && Number.isFinite(userLat)
+					? [
+							{
+								type: 'Feature',
+								geometry: { type: 'Point', coordinates: [userLng as number, userLat as number] },
+								properties: {}
+							}
+						]
+					: []
+		};
+	}
+
 	function votePointFeatures(vote: VotePoint['vote']): GeoJSON.FeatureCollection<GeoJSON.Point> {
 		return {
 			type: 'FeatureCollection',
@@ -347,6 +367,9 @@
 		const composePinSource = m.getSource('compose-pin') as
 			| import('maplibre-gl').GeoJSONSource
 			| undefined;
+		const userLocationSource = m.getSource('user-location') as
+			| import('maplibre-gl').GeoJSONSource
+			| undefined;
 		const verifyVoteSource = m.getSource('selected-verify-votes') as
 			| import('maplibre-gl').GeoJSONSource
 			| undefined;
@@ -358,6 +381,7 @@
 		radiusSource?.setData(selectedRadiusFeatures());
 		composeRadiusSource?.setData(composeRadiusFeatures());
 		composePinSource?.setData(composePinFeatures());
+		userLocationSource?.setData(userLocationFeatures());
 		verifyVoteSource?.setData(votePointFeatures('verify'));
 		disputeVoteSource?.setData(votePointFeatures('dispute'));
 	}
@@ -658,7 +682,7 @@
 
 		m.easeTo({
 			center: [lng, lat],
-			zoom: radiusKm <= 1 ? 13.4 : radiusKm <= 5 ? 12 : 10,
+			zoom: radiusKm <= 1 ? 13.5 : radiusKm <= 2 ? 12.8 : radiusKm <= 5 ? 12.35 : 10.6,
 			offset,
 			duration: 450
 		});
@@ -676,7 +700,9 @@
 		maplibre = (await import('maplibre-gl')) as typeof import('maplibre-gl');
 		const ml = maplibre as typeof import('maplibre-gl');
 
-		const m = new ml.Map({
+		const mapOptions: ConstructorParameters<typeof ml.Map>[0] & {
+			canvasContextAttributes?: { antialias: boolean };
+		} = {
 			container,
 			style: BASEMAP_STYLE,
 			center: [173.3, -41.2],
@@ -686,7 +712,8 @@
 			touchPitch: false,
 			attributionControl: false,
 			canvasContextAttributes: { antialias: true }
-		});
+		};
+		const m = new ml.Map(mapOptions);
 
 		m.addControl(new ml.AttributionControl({ compact: true }), 'bottom-left');
 		m.addControl(
@@ -826,6 +853,29 @@
 					]
 				}
 			});
+			m.addSource('user-location', { type: 'geojson', data: userLocationFeatures() });
+			m.addLayer({
+				id: 'user-location-halo',
+				type: 'circle',
+				source: 'user-location',
+				paint: {
+					'circle-radius': 18,
+					'circle-color': '#2563eb',
+					'circle-opacity': 0.16
+				}
+			});
+			m.addLayer({
+				id: 'user-location',
+				type: 'circle',
+				source: 'user-location',
+				paint: {
+					'circle-radius': 6.5,
+					'circle-color': '#2563eb',
+					'circle-opacity': 0.98,
+					'circle-stroke-color': '#ffffff',
+					'circle-stroke-width': 3
+				}
+			});
 			m.addSource('compose-pin', { type: 'geojson', data: EMPTY_FEATURES });
 			m.addLayer({
 				id: 'compose-pin-halo',
@@ -914,6 +964,8 @@
 		composeLng;
 		composeLat;
 		composeRadiusM;
+		userLng;
+		userLat;
 		disableSelection;
 		showAllRadii;
 		radiusPosts;
