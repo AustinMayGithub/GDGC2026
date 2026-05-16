@@ -420,7 +420,6 @@
 			tabindex="0"
 			onkeydown={(e) => e.key === 'Enter' && goto('/')}
 		>
-			<span class="logo-dot"></span>
 			<img alt="logo" src={logo} height="24px">
 			
 		</div>
