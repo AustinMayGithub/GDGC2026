@@ -1528,17 +1528,22 @@
 
 			{#if !composing && !viewingPost && !viewingProfile}
 				<div class="trending-overlay">
-					<TrendingDropdown
-						entries={trendingEntries}
-						{scope}
-						mode={trendMode}
-						open={trendingOpen}
-						onOpenChange={handleTrendingOpenChange}
-						onModeChange={handleTrendModeChange}
-						onSelect={handleSelectPost}
-						itemEls={trendingItemEls}
-						onItemsChange={() => redrawTrigger++}
-					/>
+						<TrendingDropdown
+							entries={trendingEntries}
+							{scope}
+							mode={trendMode}
+							open={trendingOpen}
+							{hoveredPostId}
+							onOpenChange={handleTrendingOpenChange}
+							onModeChange={handleTrendModeChange}
+							onSelect={handleSelectPost}
+							onHover={(id) => {
+								hoveredPostId = id;
+								redrawTrigger++;
+							}}
+							itemEls={trendingItemEls}
+							onItemsChange={() => redrawTrigger++}
+						/>
 				</div>
 
 				<HeadlineList
@@ -2522,58 +2527,84 @@
 		transform: translateY(-50%);
 		display: flex;
 		align-items: center;
-		gap: 8px;
+		gap: 10px;
 		white-space: nowrap;
+	}
+
+	.region-controls::before {
+		content: 'Region';
+		display: inline-flex;
+		align-items: center;
+		height: 24px;
+		padding: 0 9px;
+		border: 1px solid rgba(15, 23, 42, 0.08);
+		border-radius: 999px;
+		background: rgba(255, 255, 255, 0.72);
+		color: var(--text-3);
+		font-size: 10px;
+		font-weight: 850;
+		letter-spacing: 0.06em;
+		text-transform: uppercase;
+		box-shadow: 0 6px 18px rgba(15, 23, 42, 0.06);
 	}
 
 	.region-picker {
 		position: relative;
 		display: inline-flex;
 		align-items: center;
-		height: 36px;
-		min-width: 174px;
-		border: 1px solid rgba(15, 23, 42, 0.12);
-		border-radius: var(--radius-sm);
-		background: rgba(255, 255, 255, 0.92);
-		box-shadow: 0 8px 22px rgba(15, 23, 42, 0.07);
+		height: 38px;
+		min-width: 188px;
+		border: 1px solid rgba(15, 23, 42, 0.1);
+		border-radius: 999px;
+		background:
+			linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(247, 248, 250, 0.92));
+		box-shadow: 0 12px 30px rgba(15, 23, 42, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.92);
 		color: var(--text);
-		transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+		overflow: hidden;
+		transition:
+			border-color 0.15s ease,
+			box-shadow 0.15s ease,
+			background 0.15s ease,
+			transform 0.15s ease;
 	}
 
 	.region-picker:hover {
-		border-color: rgba(15, 23, 42, 0.22);
+		border-color: rgba(15, 23, 42, 0.2);
 		background: #ffffff;
-		box-shadow: 0 10px 28px rgba(15, 23, 42, 0.1);
+		box-shadow: 0 16px 34px rgba(15, 23, 42, 0.14), inset 0 1px 0 rgba(255, 255, 255, 0.96);
+		transform: translateY(-1px);
 	}
 
 	.region-picker:focus-within {
 		border-color: var(--accent);
-		box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.16);
+		box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15), 0 16px 34px rgba(15, 23, 42, 0.12);
 	}
 
 	.region-picker-icon {
 		position: absolute;
-		left: 11px;
+		left: 10px;
 		display: inline-flex;
 		align-items: center;
 		justify-content: center;
-		width: 18px;
-		height: 18px;
-		color: var(--accent);
+		width: 22px;
+		height: 22px;
+		border-radius: 50%;
+		background: rgba(99, 102, 241, 0.1);
+		color: #4f46e5;
 		pointer-events: none;
 	}
 
 	.region-select {
 		width: 100%;
 		height: 100%;
-		padding: 0 34px 0 36px;
+		padding: 0 38px 0 40px;
 		border: 0;
 		border-radius: inherit;
 		appearance: none;
 		background: transparent;
 		color: var(--text);
 		font-size: 13px;
-		font-weight: 750;
+		font-weight: 800;
 		cursor: pointer;
 	}
 
@@ -2581,15 +2612,29 @@
 		outline: none;
 	}
 
+	.region-select option {
+		background: #ffffff;
+		color: var(--text);
+		font-size: 13px;
+		font-weight: 650;
+	}
+
 	.region-picker-chevron {
 		position: absolute;
-		right: 13px;
-		width: 8px;
-		height: 8px;
+		right: 14px;
+		width: 7px;
+		height: 7px;
 		border-right: 2px solid var(--text-3);
 		border-bottom: 2px solid var(--text-3);
 		transform: translateY(-2px) rotate(45deg);
 		pointer-events: none;
+		transition: border-color 0.15s ease, transform 0.15s ease;
+	}
+
+	.region-picker:hover .region-picker-chevron,
+	.region-picker:focus-within .region-picker-chevron {
+		border-color: var(--text);
+		transform: translateY(0) rotate(45deg);
 	}
 
 	.helper-text {
