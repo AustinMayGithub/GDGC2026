@@ -1,7 +1,7 @@
 <script lang="ts">
 	interface Props {
 		disabled?: boolean;
-		onimagechange: (dataUrl: string | null) => void;
+		onimagechange: (image: Blob | null) => void;
 	}
 
 	const HEADER_WIDTH = 1600;
@@ -21,6 +21,7 @@
 	let zoom = $state(1);
 	let error = $state('');
 	let renderTimer: ReturnType<typeof setTimeout> | null = null;
+	let renderId = 0;
 
 	const hasImage = $derived(sourceUrl !== null);
 
@@ -59,6 +60,7 @@
 		}
 
 		if (sourceUrl) URL.revokeObjectURL(sourceUrl);
+		renderId++;
 		sourceUrl = URL.createObjectURL(file);
 		sourceLoaded = false;
 		previewUrl = null;
@@ -80,6 +82,7 @@
 
 	function renderCrop() {
 		if (!sourceImage || !sourceLoaded) return;
+		const currentRenderId = ++renderId;
 
 		const canvas = document.createElement('canvas');
 		canvas.width = HEADER_WIDTH;
@@ -101,13 +104,20 @@
 
 		ctx.drawImage(sourceImage, offsetX, offsetY, drawWidth, drawHeight);
 
-		const dataUrl = canvas.toDataURL('image/jpeg', JPEG_QUALITY);
-		previewUrl = dataUrl;
-		onimagechange(dataUrl);
+		previewUrl = canvas.toDataURL('image/jpeg', JPEG_QUALITY);
+		canvas.toBlob(
+			(blob) => {
+				if (!blob || currentRenderId !== renderId) return;
+				onimagechange(blob);
+			},
+			'image/jpeg',
+			JPEG_QUALITY
+		);
 	}
 
 	function clearImage() {
 		if (sourceUrl) URL.revokeObjectURL(sourceUrl);
+		renderId++;
 		sourceUrl = null;
 		sourceLoaded = false;
 		previewUrl = null;

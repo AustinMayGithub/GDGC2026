@@ -62,8 +62,8 @@
 		<!-- LEFT: article -->
 		<main class="article-col">
 			<article class="article card">
-				{#if post.headerImageDataUrl}
-					<img class="header-image" src={post.headerImageDataUrl} alt="" />
+				{#if post.headerImageUrl}
+					<img class="header-image" src={post.headerImageUrl} alt="" />
 				{/if}
 
 				<!-- Category + meta row -->

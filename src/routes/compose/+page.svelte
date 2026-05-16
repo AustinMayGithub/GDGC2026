@@ -17,7 +17,7 @@
 	// Form state
 	let title = $state('');
 	let body = $state('');
-	let headerImageDataUrl = $state<string | null>(null);
+	let headerImageBlob = $state<Blob | null>(null);
 	let category = $state<PostCategory | null>(null);
 	let lng = $state(174.76); // Default: Auckland
 	let lat = $state(-36.85);
@@ -46,8 +46,27 @@
 		category = cat;
 	}
 
-	function handleHeaderImage(dataUrl: string | null) {
-		headerImageDataUrl = dataUrl;
+	function handleHeaderImage(image: Blob | null) {
+		headerImageBlob = image;
+	}
+
+	async function uploadHeaderImage(): Promise<string | null> {
+		if (!headerImageBlob) return null;
+
+		const form = new FormData();
+		form.append('image', headerImageBlob, 'post-header.jpg');
+
+		const res = await fetch('/api/uploads/post-header', {
+			method: 'POST',
+			body: form
+		});
+		const data = await res.json().catch(() => ({}));
+
+		if (!res.ok) {
+			throw new Error(data.message ?? 'Header image upload failed.');
+		}
+
+		return data.url as string;
 	}
 
 	async function handleSubmit(e: SubmitEvent) {
@@ -58,13 +77,14 @@
 		submitting = true;
 
 		try {
+			const headerImageUrl = await uploadHeaderImage();
 			const res = await fetch('/api/posts', {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({
 					title: title.trim(),
 					body: body.trim(),
-					headerImageDataUrl,
+					headerImageUrl,
 					category,
 					lng,
 					lat,
@@ -79,8 +99,11 @@
 				const data = await res.json();
 				error = data.message ?? 'Failed to create post. Please try again.';
 			}
-		} catch {
-			error = 'Network error. Please check your connection and try again.';
+		} catch (err) {
+			error =
+				err instanceof Error
+					? err.message
+					: 'Network error. Please check your connection and try again.';
 		} finally {
 			submitting = false;
 		}
