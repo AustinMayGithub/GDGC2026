@@ -4,6 +4,7 @@ import { db } from '$lib/server/db';
 import { posts, comments } from '$lib/server/db/schema';
 import { getComments } from '$lib/server/posts';
 import { moderateText, maybeRegenerateNote } from '$lib/server/ai';
+import { notifyPreviousCommenters } from '$lib/server/notifications';
 import type { RequestHandler } from './$types';
 
 export const GET: RequestHandler = async ({ params }) => {
@@ -31,6 +32,8 @@ export const POST: RequestHandler = async ({ request, params, locals }) => {
 		.insert(comments)
 		.values({ postId: params.id, authorId: locals.user.id, body })
 		.returning();
+
+	await notifyPreviousCommenters(params.id, c.id, locals.user.id);
 
 	const communityNote = await maybeRegenerateNote(params.id);
 

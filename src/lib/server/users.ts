@@ -205,7 +205,8 @@ export async function getUserProfile(id: string): Promise<UserProfile | null> {
 		hasAvatar: Boolean(u.hasAvatar),
 		joinedAt: iso(u.createdAt),
 		reputation: { score, label, totalVotes, postCount: rows.length },
-		posts: userPosts
+		posts: userPosts,
+		newComments: []
 	};
 }
 

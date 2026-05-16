@@ -119,6 +119,28 @@ export const comments = pgTable(
 	})
 );
 
+export const commentNotifications = pgTable(
+	'comment_notifications',
+	{
+		id: uuid('id').primaryKey().defaultRandom(),
+		recipientId: uuid('recipient_id')
+			.notNull()
+			.references(() => users.id, { onDelete: 'cascade' }),
+		postId: uuid('post_id')
+			.notNull()
+			.references(() => posts.id, { onDelete: 'cascade' }),
+		commentId: uuid('comment_id')
+			.notNull()
+			.references(() => comments.id, { onDelete: 'cascade' }),
+		readAt: timestamp('read_at', { withTimezone: true }),
+		createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow()
+	},
+	(t) => ({
+		uniqueRecipientComment: unique('uniq_comment_notification').on(t.recipientId, t.commentId),
+		byRecipientUnread: index('comment_notifications_unread').on(t.recipientId, t.readAt, t.createdAt)
+	})
+);
+
 export const reactions = pgTable(
 	'reactions',
 	{

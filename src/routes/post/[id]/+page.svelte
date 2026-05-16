@@ -22,6 +22,7 @@
 		comments: CommentItem[];
 		votePoints: VotePoint[];
 		user: SessionUser | null;
+		hasUnreadNotifications: boolean;
 	}
 
 	let { data }: { data: PageData } = $props();
@@ -29,6 +30,7 @@
 	const post = $derived(data.post);
 	const comments = $derived(data.comments);
 	const user = $derived(data.user);
+	const hasUnreadNotifications = $derived(data.hasUnreadNotifications);
 
 	let rightOpen = $state(true);
 	let communityNote = $state(post.communityNote);
@@ -85,7 +87,7 @@
 			Back
 		</a>
 		<span class="topbar-title gradient-text"><img alt="logo" src={logo} height="24px"></span>
-		<UserMenu {user} />
+		<UserMenu {user} {hasUnreadNotifications} />
 	</header>
 
 	<div class="layout">

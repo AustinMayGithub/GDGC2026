@@ -9,11 +9,13 @@
 
 	interface PageData {
 		user: SessionUser | null;
+		hasUnreadNotifications: boolean;
 	}
 
 	let { data }: { data: PageData } = $props();
 
 	const user = $derived(data.user);
+	const hasUnreadNotifications = $derived(data.hasUnreadNotifications);
 
 	// Form state
 	let title = $state('');
@@ -141,7 +143,7 @@
 	<header class="topbar">
 		<a class="back-link btn" href="/">Back</a>
 		<span class="topbar-title gradient-text">BirdsEye</span>
-		<UserMenu {user} />
+		<UserMenu {user} {hasUnreadNotifications} />
 	</header>
 
 	<div class="content">

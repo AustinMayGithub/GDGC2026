@@ -8,12 +8,14 @@
 		profile: UserProfile;
 		isOwn: boolean;
 		user: SessionUser | null;
+		hasUnreadNotifications: boolean;
 	}
 
 	let { data }: { data: PageData } = $props();
 	let profile = $derived(data.profile);
 	let isOwn = $derived(data.isOwn);
 	let user = $derived(data.user);
+	let hasUnreadNotifications = $derived(data.hasUnreadNotifications && !isOwn);
 
 	let editing = $state(false);
 	let saving = $state(false);
@@ -167,7 +169,7 @@
 	<header class="topbar">
 		<a class="back-link btn" href="/">Back</a>
 		<span class="topbar-title gradient-text">BirdsEye</span>
-		<UserMenu {user} />
+		<UserMenu {user} {hasUnreadNotifications} />
 	</header>
 
 	<div class="content">
@@ -286,6 +288,27 @@
 				</div>
 			{/if}
 		</div>
+
+		{#if isOwn && profile.newComments.length > 0}
+			<section class="notifications-card card">
+				<div class="section-heading-row">
+					<h2 class="section-label">New comments</h2>
+					<span class="posts-count muted">({profile.newComments.length})</span>
+				</div>
+				<div class="notifications-list">
+					{#each profile.newComments as item}
+						<article class="notification-item">
+							<div class="post-top">
+								<strong>{item.authorName}</strong>
+								<span class="post-time muted">{timeAgo(item.createdAt)}</span>
+							</div>
+							<p>{item.body}</p>
+							<a class="btn post-open-btn" href="/post/{item.postId}">{item.postTitle}</a>
+						</article>
+					{/each}
+				</div>
+			</section>
+		{/if}
 
 		<!-- Reputation -->
 		<div class="rep-card card">
@@ -633,6 +656,41 @@
 	/* ── Reputation ── */
 	.rep-card {
 		padding: 20px 24px;
+	}
+
+	.notifications-card {
+		padding: 20px 24px;
+		border-color: rgba(220, 38, 38, 0.22);
+	}
+
+	.section-heading-row {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 12px;
+	}
+
+	.notifications-list {
+		display: flex;
+		flex-direction: column;
+		gap: 10px;
+	}
+
+	.notification-item {
+		display: flex;
+		flex-direction: column;
+		gap: 8px;
+		padding: 14px;
+		border: 1px solid rgba(220, 38, 38, 0.18);
+		border-radius: var(--radius-sm);
+		background: #fff7f7;
+	}
+
+	.notification-item p {
+		margin: 0;
+		color: var(--text-2);
+		font-size: 13px;
+		line-height: 1.45;
 	}
 
 	.section-label {
