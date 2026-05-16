@@ -32,6 +32,7 @@
 		autocomplete="one-time-code"
 		maxlength="6"
 		placeholder="000000"
+		value={form?.devOtp ?? data.devOtp ?? ''}
 		required
 	/>
 
