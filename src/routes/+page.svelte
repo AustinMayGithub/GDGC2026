@@ -5,6 +5,7 @@
 	import HomeMap from '$lib/components/HomeMap.svelte';
 	import HeadlineList from '$lib/components/HeadlineList.svelte';
 	import ConnectorLines from '$lib/components/ConnectorLines.svelte';
+	import TrendingDropdown from '$lib/components/TrendingDropdown.svelte';
 	import type { SessionUser, PostSummary } from '$lib/types';
 	import { NZ_BBOX, NZ_REGIONS, regionForPoint } from '$lib/data/nz-regions';
 
@@ -43,7 +44,7 @@
 			if (!res.ok) throw new Error(`HTTP ${res.status}`);
 			const json = await res.json();
 			posts = json.posts as PostSummary[];
-		} catch (e) {
+		} catch {
 			error = 'Failed to load posts. Please try again.';
 			posts = [];
 		} finally {
@@ -76,7 +77,7 @@
 					geoError = 'Location access denied, pick your region below.';
 					geoLoading = false;
 					zoomToRegion(selectedRegionId);
-					await fetchPosts('local');
+					await fetchPosts('local', selectedRegionId);
 				},
 				{ timeout: 8000 }
 			);
@@ -84,7 +85,7 @@
 			geoError = 'Geolocation not available, pick your region below.';
 			geoLoading = false;
 			zoomToRegion(selectedRegionId);
-			await fetchPosts('local');
+			await fetchPosts('local', selectedRegionId);
 		}
 	}
 
@@ -98,10 +99,10 @@
 	async function onRegionChange(e: Event) {
 		selectedRegionId = (e.target as HTMLSelectElement).value;
 		zoomToRegion(selectedRegionId);
-		await fetchPosts('local');
+		await fetchPosts('local', selectedRegionId);
 	}
 
-	function handleMapReady(map: unknown) {
+	function handleMapReady(_map: unknown) {
 		mapReady = true;
 		redrawTrigger++;
 	}
@@ -209,6 +210,10 @@
 				onMapReady={handleMapReady}
 				onMarkerPositionsChange={handleMarkerPositionsChange}
 			/>
+
+			<div class="trending-overlay">
+				<TrendingDropdown {posts} {scope} />
+			</div>
 
 			<HeadlineList
 				{posts}
@@ -439,6 +444,14 @@
 		}
 	}
 
+	.trending-overlay {
+		position: absolute;
+		top: 96px;
+		left: 18px;
+		width: min(320px, calc(100vw - 36px));
+		z-index: 18;
+	}
+
 	.empty-state {
 		position: absolute;
 		left: 50%;
@@ -501,8 +514,25 @@
 			justify-content: flex-start;
 		}
 
+		.trending-overlay {
+			top: 132px;
+			left: 12px;
+			width: min(320px, calc(100vw - 24px));
+		}
+
 		.error-banner {
 			width: calc(100vw - 24px);
+		}
+	}
+
+	@media (max-width: 820px) {
+		.trending-overlay {
+			position: absolute;
+			top: auto;
+			left: 12px;
+			right: 12px;
+			bottom: 84px;
+			width: auto;
 		}
 	}
 

@@ -23,6 +23,7 @@ export interface PostSummary {
 	authorName: string;
 	createdAt: string;
 	commentCount: number;
+	reactionCount: number;
 	verifyCount: number;
 	disputeCount: number;
 }
