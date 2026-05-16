@@ -24,9 +24,6 @@
 	let editAge = $state('');
 	let editLocation = $state('');
 	let editAvatarDataUrl = $state<string | null>(null);
-	let postToDelete = $state<{ id: string; title: string } | null>(null);
-	let deletingPostId = $state<string | null>(null);
-	let deletePostError = $state('');
 	let showDeleteAccount = $state(false);
 	let accountPassword = $state('');
 	let deletingAccount = $state(false);
@@ -74,37 +71,6 @@
 			await invalidateAll();
 		} finally {
 			saving = false;
-		}
-	}
-
-	function askDeletePost(post: { id: string; title: string }) {
-		postToDelete = post;
-		deletePostError = '';
-	}
-
-	function cancelDeletePost() {
-		if (deletingPostId) return;
-		postToDelete = null;
-		deletePostError = '';
-	}
-
-	async function confirmDeletePost() {
-		if (!postToDelete) return;
-
-		deletingPostId = postToDelete.id;
-		deletePostError = '';
-		try {
-			const res = await fetch(`/api/posts/${postToDelete.id}`, { method: 'DELETE' });
-			if (!res.ok) {
-				deletePostError = (await res.text()) || 'Could not delete this post.';
-				return;
-			}
-			postToDelete = null;
-			await invalidateAll();
-		} catch {
-			deletePostError = 'Network error. Try again.';
-		} finally {
-			deletingPostId = null;
 		}
 	}
 
@@ -389,15 +355,6 @@
 							</div>
 							<div class="post-actions">
 								<a class="btn post-open-btn" href="/post/{post.id}">Open</a>
-								{#if isOwn}
-									<button
-										type="button"
-										class="btn danger-btn"
-										onclick={() => askDeletePost({ id: post.id, title: post.title })}
-									>
-										Delete
-									</button>
-								{/if}
 							</div>
 						</article>
 					{/each}
@@ -417,39 +374,6 @@
 			</section>
 		{/if}
 	</div>
-
-	{#if postToDelete}
-		<div class="modal-backdrop" role="presentation" onclick={cancelDeletePost}>
-			<section
-				class="confirm-modal card"
-				role="dialog"
-				aria-modal="true"
-				aria-labelledby="delete-post-title"
-				onclick={(e) => e.stopPropagation()}
-			>
-				<h2 id="delete-post-title">Delete post?</h2>
-				<p class="muted">
-					Are you sure you want to delete "{postToDelete.title}"? This cannot be undone.
-				</p>
-				{#if deletePostError}
-					<p class="error-text modal-error">{deletePostError}</p>
-				{/if}
-				<div class="modal-actions">
-					<button type="button" class="btn" onclick={cancelDeletePost} disabled={!!deletingPostId}>
-						Cancel
-					</button>
-					<button
-						type="button"
-						class="btn danger-btn"
-						onclick={confirmDeletePost}
-						disabled={!!deletingPostId}
-					>
-						{deletingPostId ? 'Deleting...' : 'Delete'}
-					</button>
-				</div>
-			</section>
-		</div>
-	{/if}
 
 	{#if showDeleteAccount}
 		<div class="modal-backdrop" role="presentation" onclick={closeDeleteAccount}>

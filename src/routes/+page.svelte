@@ -9,7 +9,18 @@
 	import TrendingDropdown from '$lib/components/TrendingDropdown.svelte';
 	import CategoryPicker from '$lib/components/CategoryPicker.svelte';
 	import HeaderImageCropper from '$lib/components/HeaderImageCropper.svelte';
-	import type { SessionUser, PostSummary, PostCategory } from '$lib/types';
+	import CredibilityMeter from '$lib/components/CredibilityMeter.svelte';
+	import CommunityNote from '$lib/components/CommunityNote.svelte';
+	import ReactionBar from '$lib/components/ReactionBar.svelte';
+	import CommentThread from '$lib/components/CommentThread.svelte';
+	import type {
+		SessionUser,
+		PostSummary,
+		PostCategory,
+		PostDetail,
+		CommentItem,
+		CommunityNote as CommunityNoteData
+	} from '$lib/types';
 	import { NZ_BBOX, NZ_REGIONS, regionForPoint } from '$lib/data/nz-regions';
 	import logo from '$lib/data/birdseye.png';
 
@@ -59,6 +70,12 @@
 	let error = $state<string | null>(null);
 	let hoveredPostId = $state<string | null>(null);
 	let selectedPostId = $state<string | null>(null);
+	let selectedPostDetail = $state<PostDetail | null>(null);
+	let selectedPostComments = $state<CommentItem[]>([]);
+	let selectedCommunityNote = $state<CommunityNoteData | null>(null);
+	let selectedPostLoading = $state(false);
+	let selectedPostError = $state('');
+	let selectedPostRequestId = 0;
 
 	let selectedRegionId = $state<string>(DEFAULT_REGION_ID);
 	let localFocusLng = $state(174.76);
@@ -276,6 +293,7 @@
 			composeCategory !== null &&
 			!composeSubmitting
 	);
+	const viewingPost = $derived(selectedPostId !== null && !composing);
 	const mapPosts = $derived(visiblePosts);
 	const connectorPosts = $derived(trendingOpen ? trendingPosts : selectedPosts);
 	const connectorEls = $derived(trendingOpen ? trendingItemEls : listItemEls);
@@ -288,6 +306,11 @@
 	function clearSelectedPost() {
 		selectedPostId = null;
 		hoveredPostId = null;
+		selectedPostDetail = null;
+		selectedPostComments = [];
+		selectedCommunityNote = null;
+		selectedPostError = '';
+		selectedPostRequestId++;
 		redrawTrigger++;
 	}
 
@@ -391,19 +414,91 @@
 		return mapComponent?.getMarkerScreenPos(id) ?? null;
 	}
 
+	function postPanelOffset(): [number, number] {
+		if (typeof window === 'undefined' || window.innerWidth <= 980) return [0, 0];
+		const panelWidth = Math.max(420, Math.min(640, window.innerWidth * 0.46 - 20));
+		return [(panelWidth + 20) / 2, 0];
+	}
+
+	function focusSelectedPost(post: PostSummary | PostDetail) {
+		mapComponent?.focusOnLocation(
+			post.lng,
+			post.lat,
+			Math.max(post.impactRadiusM / 1000, LOCAL_FOCUS_RADIUS_KM),
+			postPanelOffset()
+		);
+	}
+
+	async function loadSelectedPost(id: string) {
+		const requestId = ++selectedPostRequestId;
+		selectedPostLoading = true;
+		selectedPostError = '';
+
+		try {
+			const res = await fetch(`/api/posts/${id}`);
+			if (requestId !== selectedPostRequestId) return;
+			if (!res.ok) throw new Error(`HTTP ${res.status}`);
+			const json = (await res.json()) as { post: PostDetail; comments: CommentItem[] };
+			selectedPostDetail = json.post;
+			selectedPostComments = json.comments;
+			selectedCommunityNote = json.post.communityNote;
+			focusSelectedPost(json.post);
+		} catch {
+			if (requestId !== selectedPostRequestId) return;
+			selectedPostDetail = null;
+			selectedPostComments = [];
+			selectedCommunityNote = null;
+			selectedPostError = 'Failed to load this post. Please try again.';
+		} finally {
+			if (requestId === selectedPostRequestId) selectedPostLoading = false;
+		}
+	}
+
 	function handleSelectPost(id: string | null) {
 		if (trendingOpen) {
 			trendingOpen = false;
 			lastTrendingFitKey = '';
 		}
+		if (!id) {
+			clearSelectedPost();
+			return;
+		}
 		selectedPostId = id;
 		hoveredPostId = id;
+		composing = false;
+		const summary = visiblePosts.find((post) => post.id === id);
+		if (summary) focusSelectedPost(summary);
+		void resizeMapAfterLayout();
+		void loadSelectedPost(id);
 		redrawTrigger++;
+	}
+
+	async function reportSelectedPost() {
+		if (!selectedPostDetail) return;
+		const reason = window.prompt('Reason for reporting this post?');
+		if (!reason?.trim()) return;
+		await fetch(`/api/posts/${selectedPostDetail.id}/report`, {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ targetType: 'post', reason: reason.trim() })
+		});
+		alert('Report submitted. Thank you.');
 	}
 
 	function formatRadius(m: number): string {
 		if (m >= 1000) return `${(m / 1000).toFixed(m >= 10000 ? 0 : 1)} km`;
 		return `${m} m`;
+	}
+
+	function formatDate(isoString: string): string {
+		const date = new Date(isoString);
+		return date.toLocaleDateString('en-NZ', {
+			day: 'numeric',
+			month: 'long',
+			year: 'numeric',
+			hour: '2-digit',
+			minute: '2-digit'
+		});
 	}
 
 	function sliderToRadius(value: number): number {
@@ -508,7 +603,14 @@
 				return;
 			}
 
-			await goto(`/post/${json.id}`);
+			composeTitle = '';
+			composeBody = '';
+			composeHeaderImageDataUrl = null;
+			composeCategory = null;
+			composeAnonymous = false;
+			composing = false;
+			await fetchPosts();
+			handleSelectPost(json.id);
 		} catch {
 			composeError = 'Network error. Please check your connection and try again.';
 		} finally {
@@ -559,7 +661,7 @@
 	});
 </script>
 
-<div class="page" class:composing>
+<div class="page" class:composing class:viewing-post={viewingPost}>
 	<header class="header card">
 		<div
 			class="logo"
@@ -653,13 +755,14 @@
 				onComposePick={handleComposePick}
 			/>
 
-			{#if !composing}
+			{#if !composing && !viewingPost}
 				<div class="trending-overlay">
 					<TrendingDropdown
 						entries={trendingEntries}
 						{scope}
 						open={trendingOpen}
 						onOpenChange={handleTrendingOpenChange}
+						onSelect={handleSelectPost}
 						itemEls={trendingItemEls}
 						onItemsChange={() => redrawTrigger++}
 					/>
@@ -672,11 +775,12 @@
 						hoveredPostId = id;
 						redrawTrigger++;
 					}}
+					onSelect={handleSelectPost}
 					{listItemEls}
 				/>
 			{/if}
 
-			{#if rankedPosts.length === 0 && !loading && !composing}
+			{#if rankedPosts.length === 0 && !loading && !composing && !viewingPost}
 				<div class="empty-state card">
 					<div class="empty-icon">📍</div>
 					<h2 class="empty-title">No posts here yet</h2>
@@ -695,6 +799,116 @@
 			{/if}
 		</div>
 		<div class="feed-scroll-space" aria-hidden="true" style={`height: ${scrollSpacerHeight}px;`}></div>
+
+		{#if viewingPost}
+			<aside class="post-panel card" transition:fly={{ x: -80, duration: 260 }}>
+				<div class="post-panel-top">
+					<div>
+						<span class="field-label">Post</span>
+						<h1 class="compose-title">
+							{selectedPostDetail?.title ?? visiblePosts.find((post) => post.id === selectedPostId)?.title ?? 'Loading post'}
+						</h1>
+					</div>
+					<button type="button" class="close-btn" aria-label="Close post" onclick={clearSelectedPost}>
+						<svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+							<path d="M3 3l10 10M13 3L3 13" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+						</svg>
+					</button>
+				</div>
+
+				{#if selectedPostLoading}
+					<div class="panel-loading">
+						<div class="spinner"></div>
+						<span class="muted">Loading post...</span>
+					</div>
+				{:else if selectedPostError}
+					<div class="compose-gate">
+						<p class="error-text">{selectedPostError}</p>
+						<div class="submit-row">
+							<button
+								type="button"
+								class="btn btn-primary"
+								onclick={() => selectedPostId && loadSelectedPost(selectedPostId)}
+							>
+								Retry
+							</button>
+							<button type="button" class="btn" onclick={clearSelectedPost}>Back to map</button>
+						</div>
+					</div>
+				{:else if selectedPostDetail}
+					{@const post = selectedPostDetail}
+					<div class="post-panel-body">
+						{#if post.headerImageDataUrl}
+							<img class="post-header-image" src={post.headerImageDataUrl} alt="" />
+						{/if}
+
+						<div class="article-meta">
+							{#if post.category === 'factual'}
+								<span class="badge badge-factual">Factual</span>
+							{:else}
+								<span class="badge">Community notice</span>
+							{/if}
+							<span class="muted meta-sep">·</span>
+							{#if post.anonymous}
+								<span class="muted author">Anonymous</span>
+							{:else}
+								<a class="muted author author-link" href="/profile/{post.authorId}">{post.authorName}</a>
+							{/if}
+							<span class="muted meta-sep">·</span>
+							<time class="muted" datetime={post.createdAt}>{formatDate(post.createdAt)}</time>
+						</div>
+
+						<div class="article-body">
+							{#each post.body.split('\n') as paragraph}
+								{#if paragraph.trim()}
+									<p>{paragraph}</p>
+								{/if}
+							{/each}
+						</div>
+
+						<div class="location-panel">
+							<div class="radius-label-row">
+								<span class="field-label">Affected area</span>
+								<span class="radius-value">{formatRadius(post.impactRadiusM)}</span>
+							</div>
+							<div class="coords-row muted">
+								<span>{post.lat.toFixed(4)}°, {post.lng.toFixed(4)}°</span>
+							</div>
+						</div>
+
+						{#key post.id}
+							{#if post.category === 'factual'}
+								<CredibilityMeter {post} user={data.user} />
+								<CommunityNote note={selectedCommunityNote} />
+							{/if}
+
+							<section class="panel-section">
+								<h2 class="section-heading">Reactions</h2>
+								<ReactionBar postId={post.id} reactions={post.reactions} user={data.user} />
+							</section>
+
+							<section class="panel-section">
+								<CommentThread
+									postId={post.id}
+									comments={selectedPostComments}
+									user={data.user}
+									onCommunityNoteUpdated={(note: CommunityNoteData) => (selectedCommunityNote = note)}
+								/>
+							</section>
+						{/key}
+
+						<div class="post-actions">
+							<a class="btn" href="/post/{post.id}">Open full page</a>
+							{#if data.user}
+								<button type="button" class="report-post-btn muted" onclick={reportSelectedPost}>
+									Report this post
+								</button>
+							{/if}
+						</div>
+					</div>
+				{/if}
+			</aside>
+		{/if}
 
 		{#if composing}
 			<aside class="compose-panel card" transition:fly={{ x: 80, duration: 260 }}>
@@ -813,7 +1027,7 @@
 		{/if}
 	</main>
 
-	{#if mapReady && !composing}
+	{#if mapReady && !composing && !viewingPost}
 		<ConnectorLines
 			posts={connectorPosts}
 			{hoveredPostId}
@@ -987,6 +1201,12 @@
 		padding: 0;
 	}
 
+	.page.viewing-post .main {
+		display: block;
+		overflow: hidden;
+		padding: 0;
+	}
+
 	.map-area {
 		position: sticky;
 		top: 0;
@@ -1000,11 +1220,21 @@
 		height: 100vh;
 	}
 
+	.page.viewing-post .map-area {
+		position: absolute;
+		inset: 0;
+		height: 100vh;
+	}
+
 	.feed-scroll-space {
 		width: 100%;
 	}
 
 	.page.composing .feed-scroll-space {
+		display: none;
+	}
+
+	.page.viewing-post .feed-scroll-space {
 		display: none;
 	}
 
@@ -1104,6 +1334,126 @@
 		backdrop-filter: blur(18px);
 		border-radius: var(--radius-lg);
 		box-shadow: 0 18px 44px rgba(15, 23, 42, 0.12);
+	}
+
+	.post-panel {
+		position: absolute;
+		top: 96px;
+		left: 20px;
+		bottom: 20px;
+		z-index: 18;
+		width: min(640px, calc(46vw - 20px));
+		min-width: 420px;
+		margin: 0;
+		padding: 24px;
+		overflow-y: auto;
+		background: rgba(255, 255, 255, 0.94);
+		backdrop-filter: blur(18px);
+		border-radius: var(--radius-lg);
+		box-shadow: 0 18px 44px rgba(15, 23, 42, 0.12);
+	}
+
+	.post-panel-top {
+		display: flex;
+		align-items: flex-start;
+		justify-content: space-between;
+		gap: 16px;
+		margin-bottom: 18px;
+	}
+
+	.post-panel-body {
+		display: flex;
+		flex-direction: column;
+		gap: 20px;
+		max-width: 640px;
+		margin: 0 auto;
+	}
+
+	.panel-loading {
+		min-height: 300px;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 12px;
+	}
+
+	.post-header-image {
+		display: block;
+		width: calc(100% + 48px);
+		aspect-ratio: 20 / 9;
+		height: auto;
+		object-fit: cover;
+		margin: -24px -24px 0;
+		background: var(--surface-2);
+		border-bottom: 1px solid var(--border);
+	}
+
+	.article-meta {
+		display: flex;
+		align-items: center;
+		flex-wrap: wrap;
+		gap: 6px;
+		font-size: 13px;
+	}
+
+	.meta-sep {
+		user-select: none;
+	}
+
+	.author {
+		font-weight: 550;
+	}
+
+	.author-link:hover {
+		text-decoration: underline;
+	}
+
+	.article-body {
+		font-size: 15px;
+		line-height: 1.7;
+		color: var(--text);
+	}
+
+	.article-body p {
+		margin: 0 0 14px;
+	}
+
+	.article-body p:last-child {
+		margin-bottom: 0;
+	}
+
+	.panel-section {
+		display: flex;
+		flex-direction: column;
+		gap: 10px;
+	}
+
+	.section-heading {
+		font-size: 12px;
+		font-weight: 700;
+		text-transform: uppercase;
+		letter-spacing: 0.07em;
+		color: var(--text-3);
+	}
+
+	.post-actions {
+		display: flex;
+		align-items: center;
+		gap: 12px;
+		flex-wrap: wrap;
+		padding-bottom: 4px;
+	}
+
+	.report-post-btn {
+		border: none;
+		background: none;
+		font-size: 12px;
+		cursor: pointer;
+		padding: 0;
+	}
+
+	.report-post-btn:hover {
+		color: var(--dispute);
 	}
 
 	.compose-form,
@@ -1296,6 +1646,12 @@
 			padding: 0;
 		}
 
+		.page.viewing-post .main {
+			display: block;
+			overflow: hidden;
+			padding: 0;
+		}
+
 		.page.composing .map-area {
 			position: absolute;
 			inset: 0;
@@ -1303,7 +1659,23 @@
 			height: 100vh;
 		}
 
+		.page.viewing-post .map-area {
+			position: absolute;
+			inset: 0;
+			width: 100%;
+			height: 100vh;
+		}
+
 		.compose-panel {
+			top: 154px;
+			left: 12px;
+			right: 12px;
+			bottom: 16px;
+			width: auto;
+			min-width: 0;
+		}
+
+		.post-panel {
 			top: 154px;
 			left: 12px;
 			right: 12px;
@@ -1332,6 +1704,15 @@
 
 		.compose-panel {
 			padding: 18px;
+		}
+
+		.post-panel {
+			padding: 18px;
+		}
+
+		.post-header-image {
+			width: calc(100% + 36px);
+			margin: -18px -18px 0;
 		}
 
 		.submit-row {

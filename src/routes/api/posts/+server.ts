@@ -11,6 +11,14 @@ const DEFAULT_JITTER_MIN_M = 250;
 const DEFAULT_JITTER_MAX_M = 500;
 const METERS_PER_DEGREE_LAT = 111320;
 
+function isMissingOptionalPostColumn(err: unknown) {
+	const message = err instanceof Error ? err.message : String(err);
+	return (
+		(message.includes('anonymous') || message.includes('header_image_data_url')) &&
+		message.includes('does not exist')
+	);
+}
+
 function isDefaultRegionLocation(lng: number, lat: number) {
 	return NZ_REGIONS.some(
 		(region) =>
@@ -81,21 +89,31 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 
 	const postLocation = isDefaultRegionLocation(lng, lat) ? jitterLocation(lng, lat) : { lng, lat };
 
-	const [post] = await db
-		.insert(posts)
-		.values({
-			authorId: locals.user.id,
-			title,
-			body,
-			headerImageDataUrl,
-			category,
-			anonymous,
-			lng: postLocation.lng,
-			lat: postLocation.lat,
-			impactRadiusM,
-			regionId: regionForPoint(postLocation.lng, postLocation.lat)
-		})
-		.returning({ id: posts.id });
+	const baseValues = {
+		authorId: locals.user.id,
+		title,
+		body,
+		category,
+		lng: postLocation.lng,
+		lat: postLocation.lat,
+		impactRadiusM,
+		regionId: regionForPoint(postLocation.lng, postLocation.lat)
+	};
+
+	let post: { id: string };
+	try {
+		[post] = await db
+			.insert(posts)
+			.values({
+				...baseValues,
+				headerImageDataUrl,
+				anonymous
+			})
+			.returning({ id: posts.id });
+	} catch (err) {
+		if (!isMissingOptionalPostColumn(err)) throw err;
+		[post] = await db.insert(posts).values(baseValues).returning({ id: posts.id });
+	}
 
 	return json({ id: post.id }, { status: 201 });
 };

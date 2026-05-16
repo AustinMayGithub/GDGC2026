@@ -11,7 +11,6 @@
 	import CommunityNote from '$lib/components/CommunityNote.svelte';
 	import ReactionBar from '$lib/components/ReactionBar.svelte';
 	import CommentThread from '$lib/components/CommentThread.svelte';
-	import { goto } from '$app/navigation';
 	import logo from '$lib/data/birdseye.png';
 
 
@@ -39,12 +38,6 @@
 			hour: '2-digit',
 			minute: '2-digit'
 		});
-	}
-
-	async function deletePost() {
-		if (!confirm('Delete this post? This cannot be undone.')) return;
-		const res = await fetch(`/api/posts/${post.id}`, { method: 'DELETE' });
-		if (res.ok) await goto('/');
 	}
 
 	async function reportPost() {
@@ -113,11 +106,6 @@
 				</div>
 
 				<div class="post-actions">
-					{#if post.isOwn}
-						<button class="delete-post-btn" onclick={deletePost}>
-							Delete post
-						</button>
-					{/if}
 					{#if user}
 						<button class="report-post-btn muted" onclick={reportPost}>
 							⚑ Report this post
@@ -284,18 +272,6 @@
 		align-items: center;
 		gap: 16px;
 		margin-top: 24px;
-	}
-	.delete-post-btn {
-		border: none;
-		background: none;
-		font-size: 12px;
-		font-weight: 600;
-		cursor: pointer;
-		padding: 0;
-		color: var(--dispute);
-	}
-	.delete-post-btn:hover {
-		text-decoration: underline;
 	}
 	.report-post-btn {
 		border: none;

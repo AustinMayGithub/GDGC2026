@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { goto } from '$app/navigation';
 	import { getRegion } from '$lib/data/nz-regions';
 	import type { PostSummary } from '$lib/types';
 
@@ -8,6 +7,7 @@
 		scope: 'national' | 'local';
 		open: boolean;
 		onOpenChange: (open: boolean) => void;
+		onSelect: (id: string) => void;
 		itemEls?: Map<string, HTMLElement>;
 		onItemsChange?: () => void;
 	}
@@ -18,7 +18,7 @@
 		engagement: number;
 	};
 
-	let { entries, scope, open, onOpenChange, itemEls, onItemsChange }: Props = $props();
+	let { entries, scope, open, onOpenChange, onSelect, itemEls, onItemsChange }: Props = $props();
 
 	function timeAgo(iso: string): string {
 		const diff = Date.now() - new Date(iso).getTime();
@@ -88,7 +88,7 @@
 								type="button"
 								class="trend-item"
 								use:registerEl={item.post.id}
-								onclick={() => goto(`/post/${item.post.id}`)}
+								onclick={() => onSelect(item.post.id)}
 							>
 								<div class="trend-top">
 									<span class={item.post.category === 'factual' ? 'badge badge-factual' : 'badge'}>

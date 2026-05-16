@@ -1,5 +1,4 @@
 ﻿<script lang="ts">
-	import { goto } from '$app/navigation';
 	import { flip } from 'svelte/animate';
 	import type { PostSummary } from '$lib/types';
 	import { getRegion } from '$lib/data/nz-regions';
@@ -9,11 +8,12 @@
 		posts: PostSummary[];
 		hoveredPostId: string | null;
 		onHover: (id: string | null) => void;
+		onSelect: (id: string) => void;
 		listItemEls: Map<string, HTMLElement>;
 	}
 
 	const SIDES = ['left', 'right'] as const;
-	let { posts, hoveredPostId, onHover, listItemEls }: Props = $props();
+	let { posts, hoveredPostId, onHover, onSelect, listItemEls }: Props = $props();
 
 	function timeAgo(iso: string): string {
 		const diff = Date.now() - new Date(iso).getTime();
@@ -67,7 +67,7 @@
 							class:has-image={post.hasImage}
 							onmouseenter={() => onHover(post.id)}
 							onmouseleave={() => onHover(null)}
-							onclick={() => goto(`/post/${post.id}`)}
+							onclick={() => onSelect(post.id)}
 							aria-label={post.title}
 						>
 							{#if post.hasImage}
