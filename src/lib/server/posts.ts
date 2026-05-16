@@ -1,6 +1,6 @@
 import { and, desc, eq, isNotNull, sql } from 'drizzle-orm';
 import { db } from './db';
-import { posts, users, postVotes, comments, communityNotes, reactions } from './db/schema';
+import { posts, users, postVotes, comments, communityNotes, reactions, postImages } from './db/schema';
 import { getRegion } from '$lib/data/nz-regions';
 import { fallbackAreaLabel, nearestPlaces } from '$lib/data/geo-labels';
 import { generateAreaLabel } from './ai';
@@ -11,7 +11,8 @@ import type {
 	VoteValue,
 	ReactionTally,
 	VotePoint,
-	VoteUser
+	VoteUser,
+	PostImage
 } from '$lib/types';
 
 const iso = (d: Date) => d.toISOString();
@@ -53,6 +54,11 @@ function isMissingOptionalPostColumn(err: unknown) {
 		(message.includes('anonymous') || message.includes('header_image_data_url')) &&
 		message.includes('does not exist')
 	);
+}
+
+function isMissingPostImagesTable(err: unknown) {
+	const message = err instanceof Error ? err.message : String(err);
+	return message.includes('post_images') && message.includes('does not exist');
 }
 
 async function selectPostListRows(opts: { regionId?: string }): Promise<PostListRow[]> {
@@ -238,6 +244,29 @@ export async function getPostDetail(
 			: Promise.resolve([] as { vote: VoteValue }[])
 	]);
 
+	let imageRows: PostImage[] = [];
+	try {
+		const rows = await db
+			.select({
+				id: postImages.id,
+				dataUrl: postImages.dataUrl,
+				position: postImages.position
+			})
+			.from(postImages)
+			.where(eq(postImages.postId, id))
+			.orderBy(postImages.position);
+		imageRows = rows;
+	} catch (err) {
+		if (!isMissingPostImagesTable(err)) throw err;
+	}
+
+	const images =
+		imageRows.length > 0
+			? imageRows
+			: r.headerImageDataUrl
+				? [{ id: `${r.id}-header`, dataUrl: r.headerImageDataUrl, position: 0 }]
+				: [];
+
 	let verifyCount = 0;
 	let disputeCount = 0;
 	for (const v of voteRows) {
@@ -279,6 +308,7 @@ export async function getPostDetail(
 		title: r.title,
 		body: r.body,
 		headerImageDataUrl: r.headerImageDataUrl,
+		images,
 		category: r.category,
 		lng: r.lng,
 		lat: r.lat,
@@ -301,7 +331,7 @@ export async function getPostDetail(
 					basedOnCommentCount: note.basedOnCommentCount
 				}
 			: null,
-		hasImage: r.headerImageDataUrl !== null,
+		hasImage: images.length > 0,
 		myVote: (myVoteRows[0]?.vote as VoteValue) ?? null,
 		reactions: reactionTally
 	};

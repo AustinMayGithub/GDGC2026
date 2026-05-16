@@ -28,16 +28,23 @@ If intent is unclear, ALLOW.`;
 
 // The note's only job: summarise the OPINIONS in the comment thread.
 // No verdict, no fact-check (project.md §4.5 — resolved per user direction).
-const SYSTEM_PROMPT = `You write a single neutral paragraph summarising the OPINIONS expressed in a comment thread on a community news platform.
+const SYSTEM_PROMPT = `Write a short Community Notes-style summary of ONLY what appears in the comments.
 
-Your only job is to describe what commenters think: the range of views, where they agree, where they disagree.
+Format:
+- One neutral paragraph.
+- 1-2 short sentences.
+- Under 55 words.
+- Plain, careful wording like: "Commenters note..." or "Several commenters say..."
 
 Strict rules:
-- Do NOT fact-check the post or the comments.
-- Do NOT state or imply whether the post is true, false, accurate, inaccurate, credible, confirmed, debunked, or misleading.
-- Do NOT add your own opinion, judgement, or assessment.
-- Do NOT mention evidence or sources unless commenters themselves bring them up.
-- Stay under 70 words. Plain, readable English.`;
+- Every claim must be directly traceable to at least one supplied comment.
+- Do NOT use outside knowledge.
+- Do NOT use the post headline as evidence; it is context only.
+- Do NOT infer causes, motives, timelines, numbers, official positions, sources, locations, or outcomes unless a comment explicitly says them.
+- Do NOT fact-check, verify, debunk, or decide who is right.
+- Do NOT invent consensus. If comments disagree, say they disagree. If comments add little context, say that briefly.
+- Do NOT mention "some commenters" unless at least two comments support that point. Use "one commenter" for a single comment.
+- No bullet points, no quotes, no citations.`;
 
 async function getClient() {
 	if (!env.OPENAI_API_KEY) return null;
@@ -138,18 +145,18 @@ async function summariseOpinions(title: string, bodies: string[]): Promise<strin
 	if (!client) return null;
 	const list = bodies
 		.slice(0, MAX_COMMENTS_IN_PROMPT)
-		.map((b, i) => `${i + 1}. ${b.slice(0, 200)}`)
+		.map((b, i) => `<comment id="${i + 1}">${b.slice(0, 500)}</comment>`)
 		.join('\n');
 	try {
 		const res = await client.chat.completions.create({
 			model: NOTE_MODEL,
-			max_tokens: 200,
-			temperature: 0.3,
+			max_tokens: 90,
+			temperature: 0,
 			messages: [
 				{ role: 'system', content: SYSTEM_PROMPT },
 				{
 					role: 'user',
-					content: `Post headline: "${title}"\n\nComments:\n${list}\n\nSummarise the opinions expressed in these comments.`
+					content: `Post headline for context only: "${title}"\n\nComments:\n${list}\n\nWrite the community note using only the comments.`
 				}
 			]
 		});
