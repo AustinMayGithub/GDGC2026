@@ -37,6 +37,14 @@
 	function bubblePosts(side: (typeof SIDES)[number]) {
 		return posts.filter((_, index) => (side === 'left' ? index % 2 === 0 : index % 2 === 1));
 	}
+
+	function voteStatus(post: PostSummary) {
+		const total = post.verifyCount + post.disputeCount;
+		if (total === 0) return 'decisive';
+		const verifyRatio = post.verifyCount / total;
+		if (verifyRatio >= 0.4 && verifyRatio <= 0.6) return 'decisive';
+		return verifyRatio > 0.6 ? 'factual' : 'disputed';
+	}
 </script>
 
 {#if posts.length > 0}
@@ -97,7 +105,7 @@
 									{post.commentCount}
 								</span>
 								{#if post.category === 'factual' && post.verifyCount + post.disputeCount > 0}
-									<span class="item-votes">
+									<span class={`item-votes vote-${voteStatus(post)}`}>
 										{Math.round((post.verifyCount / (post.verifyCount + post.disputeCount)) * 100)}%
 										verified
 									</span>
@@ -249,6 +257,15 @@
 		font-size: 11px;
 		font-weight: 700;
 		color: var(--verify);
+	}
+	.item-votes.vote-factual {
+		color: #16a34a;
+	}
+	.item-votes.vote-disputed {
+		color: #dc2626;
+	}
+	.item-votes.vote-decisive {
+		color: #ca8a04;
 	}
 
 	@media (max-width: 1100px) {

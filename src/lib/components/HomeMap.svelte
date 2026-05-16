@@ -241,7 +241,7 @@
 	function popularityScale(post: PostSummary, minPopularity: number, maxPopularity: number) {
 		if (maxPopularity <= minPopularity) return 1;
 		const t = (popularityFor(post) - minPopularity) / (maxPopularity - minPopularity);
-		return 0.5 + t * 1.5;
+		return 1 + t;
 	}
 
 	function postsToFeatures(): GeoJSON.FeatureCollection<GeoJSON.Point> {
