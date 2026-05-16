@@ -1,4 +1,5 @@
 import { json, error, isHttpError } from '@sveltejs/kit';
+import { dev } from '$app/environment';
 import { db } from '$lib/server/db';
 import { posts } from '$lib/server/db/schema';
 import { NZ_REGIONS, regionForPoint } from '$lib/data/nz-regions';
@@ -17,6 +18,56 @@ function isMissingOptionalPostColumn(err: unknown) {
 		(message.includes('anonymous') || message.includes('header_image_data_url')) &&
 		message.includes('does not exist')
 	);
+}
+
+function errorMessages(err: unknown, seen = new Set<unknown>()): string[] {
+	if (!err || seen.has(err)) return [];
+	seen.add(err);
+
+	const parts: string[] = [];
+	if (err instanceof Error && err.message) {
+		parts.push(err.message);
+	} else {
+		parts.push(String(err));
+	}
+
+	const detail = err as { cause?: unknown; code?: unknown; errors?: unknown[] };
+	if (detail.code) parts.push(String(detail.code));
+	if (detail.cause) parts.push(...errorMessages(detail.cause, seen));
+	if (Array.isArray(detail.errors)) {
+		for (const nested of detail.errors) parts.push(...errorMessages(nested, seen));
+	}
+
+	return parts;
+}
+
+function errorMessage(err: unknown) {
+	return errorMessages(err).filter(Boolean).join(' ') || String(err);
+}
+
+function databaseFailureMessage(err: unknown, action: string) {
+	const message = errorMessage(err).toLowerCase();
+	if (
+		message.includes('econnrefused') ||
+		message.includes('connection terminated') ||
+		message.includes('connect econnrefused')
+	) {
+		return `Could not connect to the database while ${action}. Check that Postgres is running, then try again.`;
+	}
+
+	if (
+		(message.includes('relation') || message.includes('column') || message.includes('enum')) &&
+		(message.includes('does not exist') ||
+			message.includes('column') ||
+			message.includes('enum') ||
+			message.includes('invalid input value'))
+	) {
+		return 'The database schema is out of date. Run the database migration/push, then try publishing again.';
+	}
+
+	return dev
+		? `${action[0].toUpperCase()}${action.slice(1)} failed: ${errorMessage(err)}`
+		: 'Something went wrong while publishing. Please try again.';
 }
 
 function isDefaultRegionLocation(lng: number, lat: number) {
@@ -42,10 +93,15 @@ function jitterLocation(lng: number, lat: number) {
 }
 
 export const GET: RequestHandler = async ({ url }) => {
-	const scope = url.searchParams.get('scope');
-	const regionId = url.searchParams.get('regionId') ?? undefined;
-	const list = await listPosts({ regionId: scope === 'local' ? regionId : undefined });
-	return json({ posts: list });
+	try {
+		const scope = url.searchParams.get('scope');
+		const regionId = url.searchParams.get('regionId') ?? undefined;
+		const list = await listPosts({ regionId: scope === 'local' ? regionId : undefined });
+		return json({ posts: list });
+	} catch (err) {
+		console.error('[api/posts] list posts failed:', err);
+		return json({ message: databaseFailureMessage(err, 'loading posts'), posts: [] }, { status: 500 });
+	}
 };
 
 async function createPost({ request, locals }: Parameters<RequestHandler>[0]) {
@@ -128,9 +184,6 @@ export const POST: RequestHandler = async (event) => {
 		}
 
 		console.error('[api/posts] create post failed:', err);
-		return json(
-			{ message: 'Something went wrong while publishing. Please try again.' },
-			{ status: 500 }
-		);
+		return json({ message: databaseFailureMessage(err, 'publishing') }, { status: 500 });
 	}
 };
