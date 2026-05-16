@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { onDestroy, onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 	import UserMenu from '$lib/components/UserMenu.svelte';
 	import HomeMap from '$lib/components/HomeMap.svelte';
@@ -16,23 +16,64 @@
 	let { data }: { data: PageData } = $props();
 
 	type Scope = 'national' | 'local';
+	type CachedRegion = {
+		regionId: string;
+		timestamp: number;
+	};
+
+	const DEFAULT_REGION_ID = 'auckland';
+	const REGION_CACHE_KEY = 'birdseye:local-region';
+	const GEO_MAX_AGE_MS = 10 * 60 * 1000;
+	const orderedRegions = [
+		...NZ_REGIONS.filter((region) => region.id === DEFAULT_REGION_ID),
+		...NZ_REGIONS.filter((region) => region.id !== DEFAULT_REGION_ID)
+	];
+
 	let scope = $state<Scope>('national');
 	let posts = $state<PostSummary[]>([]);
 	let loading = $state(false);
 	let error = $state<string | null>(null);
 	let hoveredPostId = $state<string | null>(null);
 
-	let selectedRegionId = $state<string>(NZ_REGIONS[0].id);
+	let selectedRegionId = $state<string>(DEFAULT_REGION_ID);
 	let geoError = $state<string | null>(null);
 	let geoLoading = $state(false);
-	const scopeSwitching = $derived(loading || geoLoading);
 
 	let mapComponent: HomeMap | null = null;
 	let mapReady = $state(false);
 	let redrawTrigger = $state(0);
 	let listItemEls = new Map<string, HTMLElement>();
+	let activeFetchController: AbortController | null = null;
+	let fetchRequestId = 0;
+	let geoRequestId = 0;
+
+	function readCachedRegion(): string | null {
+		if (typeof localStorage === 'undefined') return null;
+		try {
+			const raw = localStorage.getItem(REGION_CACHE_KEY);
+			if (!raw) return null;
+			const parsed = JSON.parse(raw) as CachedRegion;
+			return NZ_REGIONS.some((region) => region.id === parsed.regionId) ? parsed.regionId : null;
+		} catch {
+			return null;
+		}
+	}
+
+	function writeCachedRegion(regionId: string) {
+		if (typeof localStorage === 'undefined') return;
+		try {
+			const payload: CachedRegion = { regionId, timestamp: Date.now() };
+			localStorage.setItem(REGION_CACHE_KEY, JSON.stringify(payload));
+		} catch {
+			// Ignore storage failures and keep the UI moving.
+		}
+	}
 
 	async function fetchPosts(scopeToFetch: Scope = scope, regionId = selectedRegionId) {
+		const requestId = ++fetchRequestId;
+		activeFetchController?.abort();
+		const controller = new AbortController();
+		activeFetchController = controller;
 		loading = true;
 		error = null;
 		try {
@@ -40,20 +81,27 @@
 				scopeToFetch === 'national'
 					? '/api/posts?scope=national'
 					: `/api/posts?scope=local&regionId=${regionId}`;
-			const res = await fetch(url);
+			const res = await fetch(url, { signal: controller.signal });
 			if (!res.ok) throw new Error(`HTTP ${res.status}`);
 			const json = await res.json();
+			if (requestId !== fetchRequestId) return;
 			posts = json.posts as PostSummary[];
-		} catch {
+		} catch (err) {
+			if (err instanceof DOMException && err.name === 'AbortError') return;
+			if (requestId !== fetchRequestId) return;
 			error = 'Failed to load posts. Please try again.';
 			posts = [];
 		} finally {
-			loading = false;
+			if (requestId === fetchRequestId) {
+				loading = false;
+				activeFetchController = null;
+			}
 		}
 	}
 
 	async function switchToNational() {
 		scope = 'national';
+		geoLoading = false;
 		geoError = null;
 		mapComponent?.fitToBbox(NZ_BBOX);
 		await fetchPosts('national');
@@ -61,31 +109,44 @@
 
 	async function switchToLocal() {
 		scope = 'local';
-		geoLoading = true;
 		geoError = null;
+		zoomToRegion(selectedRegionId);
+		void fetchPosts('local', selectedRegionId);
 
 		if (typeof navigator !== 'undefined' && navigator.geolocation) {
+			geoLoading = true;
+			const requestId = ++geoRequestId;
 			navigator.geolocation.getCurrentPosition(
-				async (pos) => {
+				(pos) => {
+					if (requestId !== geoRequestId || scope !== 'local') return;
 					const regionId = regionForPoint(pos.coords.longitude, pos.coords.latitude);
+					const changedRegion = regionId !== selectedRegionId;
 					selectedRegionId = regionId;
+					writeCachedRegion(regionId);
 					geoLoading = false;
+					geoError = null;
 					zoomToRegion(regionId);
-					await fetchPosts('local', regionId);
+					if (changedRegion) {
+						void fetchPosts('local', regionId);
+					}
 				},
-				async () => {
-					geoError = 'Location access denied, pick your region below.';
+				(err) => {
+					if (requestId !== geoRequestId || scope !== 'local') return;
 					geoLoading = false;
-					zoomToRegion(selectedRegionId);
-					await fetchPosts('local', selectedRegionId);
+					geoError =
+						err.code === err.PERMISSION_DENIED
+							? 'Using your selected region below.'
+							: 'Using a saved region for now.';
 				},
-				{ timeout: 8000 }
+				{
+					enableHighAccuracy: false,
+					maximumAge: GEO_MAX_AGE_MS,
+					timeout: 2500
+				}
 			);
 		} else {
-			geoError = 'Geolocation not available, pick your region below.';
 			geoLoading = false;
-			zoomToRegion(selectedRegionId);
-			await fetchPosts('local', selectedRegionId);
+			geoError = 'Geolocation not available, pick your region below.';
 		}
 	}
 
@@ -98,6 +159,7 @@
 
 	async function onRegionChange(e: Event) {
 		selectedRegionId = (e.target as HTMLSelectElement).value;
+		writeCachedRegion(selectedRegionId);
 		zoomToRegion(selectedRegionId);
 		await fetchPosts('local', selectedRegionId);
 	}
@@ -116,7 +178,15 @@
 	}
 
 	onMount(() => {
+		const cachedRegionId = readCachedRegion();
+		if (cachedRegionId) {
+			selectedRegionId = cachedRegionId;
+		}
 		fetchPosts();
+	});
+
+	onDestroy(() => {
+		activeFetchController?.abort();
 	});
 
 	$effect(() => {
@@ -143,8 +213,8 @@
 			<div
 				class="scope-toggle"
 				class:local={scope === 'local'}
-				class:switching={scopeSwitching}
-				aria-busy={scopeSwitching}
+				class:switching={loading}
+				aria-busy={loading}
 			>
 				<span class="toggle-indicator" aria-hidden="true"></span>
 				<button
@@ -152,7 +222,7 @@
 					class={scope === 'national' ? 'toggle-btn active' : 'toggle-btn'}
 					onclick={switchToNational}
 					aria-pressed={scope === 'national'}
-					disabled={scopeSwitching}
+					disabled={loading}
 				>
 					National
 				</button>
@@ -161,7 +231,7 @@
 					class={scope === 'local' ? 'toggle-btn active' : 'toggle-btn'}
 					onclick={switchToLocal}
 					aria-pressed={scope === 'local'}
-					disabled={scopeSwitching}
+					disabled={loading}
 				>
 					Local
 				</button>
@@ -176,7 +246,7 @@
 						<span class="error-text helper-text">{geoError}</span>
 					{/if}
 					<select class="input region-select" value={selectedRegionId} onchange={onRegionChange}>
-						{#each NZ_REGIONS as region (region.id)}
+						{#each orderedRegions as region (region.id)}
 							<option value={region.id}>{region.name}</option>
 						{/each}
 					</select>
