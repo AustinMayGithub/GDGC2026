@@ -15,7 +15,7 @@
 		<span class="note-icon">🤖</span>
 		<div class="note-titles">
 			<span class="note-title">Community Note</span>
-			<span class="note-subtitle muted">AI summary of the discussion — not a fact check</span>
+			<span class="note-subtitle muted">Summary of reader context — not a fact check</span>
 		</div>
 	</div>
 
