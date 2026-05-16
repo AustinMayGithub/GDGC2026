@@ -1,4 +1,4 @@
-<script lang="ts">
+﻿<script lang="ts">
 	import { goto } from '$app/navigation';
 	import { flip } from 'svelte/animate';
 	import type { PostSummary } from '$lib/types';
@@ -47,13 +47,9 @@
 					{@const region = getRegion(post.regionId)}
 					<div
 						class="headline-slot"
-						animate:flip={{ duration: 280 }}
-						out:fly={{
-							x: side === 'left' ? -72 : 72,
-							y: 0,
-							duration: 240,
-							opacity: 0
-						}}
+						animate:flip={{ duration: 320 }}
+						in:fly={{ x: side === 'left' ? -36 : 36, y: 0, duration: 340, delay: 80 }}
+						out:fly={{ x: side === 'left' ? -80 : 80, y: 0, duration: 400 }}
 					>
 						<button
 							type="button"

@@ -50,7 +50,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 	if (!Number.isFinite(lng) || !Number.isFinite(lat))
 		throw error(400, 'Pick a location on the map.');
 	if (!Number.isFinite(impactRadiusM) || impactRadiusM < 100 || impactRadiusM > 300000)
-		throw error(400, 'Set an impact radius between 100 m and 300 km.');
+		throw error(400, 'Set an affected location between 100 m and 300 km.');
 
 	const allowed = await moderateText(`${title}\n\n${body}`);
 	if (!allowed)

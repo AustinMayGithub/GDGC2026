@@ -188,7 +188,7 @@
 				<div class="map-col">
 					<div class="map-card card">
 						<div class="map-card-header">
-							<h2 class="map-heading">Location &amp; impact zone</h2>
+							<h2 class="map-heading">Location &amp; affected area</h2>
 							<p class="muted map-sub">Click the map to drop your pin.</p>
 						</div>
 
@@ -209,7 +209,7 @@
 						<!-- Radius slider -->
 						<div class="radius-field">
 							<div class="radius-label-row">
-								<label class="field-label" for="radius-slider">Impact radius</label>
+								<label class="field-label" for="radius-slider">Affected location</label>
 								<span class="radius-value gradient-text">{formatRadius(radiusM)}</span>
 							</div>
 							<input
