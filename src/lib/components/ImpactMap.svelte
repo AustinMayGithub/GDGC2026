@@ -112,15 +112,26 @@
 	}
 
 	$effect(() => {
-		// react to prop changes after mount
+		const currentLng = lng;
+		const currentLat = lat;
+		const currentRadiusM = radiusM;
+
+		// React to prop changes after mount.
 		if (!map) return;
-		updateCircle();
-		updateMarker(lng, lat);
-		const nextCoordinates: [number, number] = [lng, lat];
+		const circleSource = map.getSource('circle') as
+			| import('maplibre-gl').GeoJSONSource
+			| undefined;
+		if (circleSource) {
+			circleSource.setData(buildCircle(currentLng, currentLat, currentRadiusM));
+		}
+		updateMarker(currentLng, currentLat);
+		const nextCoordinates: [number, number] = [currentLng, currentLat];
 		const movedPin =
 			nextCoordinates[0] !== pinCoordinates[0] || nextCoordinates[1] !== pinCoordinates[1];
 		pinCoordinates = nextCoordinates;
-		fitToImpactZone(hasLoaded && movedPin ? 350 : 180, lng, lat);
+		if (movedPin) {
+			fitToImpactZone(hasLoaded ? 350 : 180, currentLng, currentLat);
+		}
 	});
 
 	onMount(async () => {
