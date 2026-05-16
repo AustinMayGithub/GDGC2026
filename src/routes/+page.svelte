@@ -10,6 +10,7 @@
 	import CategoryPicker from '$lib/components/CategoryPicker.svelte';
 	import HeaderImageCropper from '$lib/components/HeaderImageCropper.svelte';
 	import PostImageGallery from '$lib/components/PostImageGallery.svelte';
+	import LinkifiedText from '$lib/components/LinkifiedText.svelte';
 	import CredibilityMeter from '$lib/components/CredibilityMeter.svelte';
 	import CommunityNote from '$lib/components/CommunityNote.svelte';
 	import ReactionBar from '$lib/components/ReactionBar.svelte';
@@ -1536,7 +1537,7 @@
 						<div class="article-body">
 							{#each post.body.split('\n') as paragraph}
 								{#if paragraph.trim()}
-									<p>{paragraph}</p>
+									<p><LinkifiedText text={paragraph} /></p>
 								{/if}
 							{/each}
 						</div>

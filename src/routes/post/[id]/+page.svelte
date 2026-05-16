@@ -15,6 +15,7 @@
 	import ReactionBar from '$lib/components/ReactionBar.svelte';
 	import CommentThread from '$lib/components/CommentThread.svelte';
 	import PostImageGallery from '$lib/components/PostImageGallery.svelte';
+	import LinkifiedText from '$lib/components/LinkifiedText.svelte';
 	import logo from '$lib/data/birdseye.png';
 
 
@@ -126,7 +127,7 @@
 				<div class="article-body">
 					{#each post.body.split('\n') as paragraph}
 						{#if paragraph.trim()}
-							<p>{paragraph}</p>
+							<p><LinkifiedText text={paragraph} /></p>
 						{/if}
 					{/each}
 				</div>
