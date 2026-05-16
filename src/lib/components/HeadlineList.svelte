@@ -10,6 +10,8 @@
 		listItemEls: Map<string, HTMLElement>;
 	}
 
+	const MAX_BUBBLES = 8;
+
 	let { posts, hoveredPostId, onHover, listItemEls }: Props = $props();
 
 	function timeAgo(iso: string): string {
@@ -30,24 +32,20 @@
 			}
 		};
 	}
+
+	function bubblePosts(side: 'left' | 'right') {
+		return posts
+			.slice(0, MAX_BUBBLES)
+			.filter((_, index) => (side === 'left' ? index % 2 === 0 : index % 2 === 1));
+	}
 </script>
 
-<aside class="headline-panel card">
-	<div class="panel-header">
-		<span class="panel-title">Latest</span>
-		<span class="post-count muted">{posts.length} post{posts.length !== 1 ? 's' : ''}</span>
-	</div>
-
-	{#if posts.length === 0}
-		<div class="empty-panel">
-			<p class="muted">No posts here yet.</p>
-			<a href="/compose" class="btn btn-primary" style="font-size:13px;padding:8px 14px;">Be first</a>
-		</div>
-	{:else}
-		<ul class="headline-list">
-			{#each posts.slice(0, 10) as post (post.id)}
+{#if posts.length > 0}
+	<div class="bubble-stage" aria-label="Recent articles across New Zealand">
+		<div class="bubble-rail rail-left">
+			{#each bubblePosts('left') as post (post.id)}
 				<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
-				<li
+				<article
 					use:registerEl={post.id}
 					class="headline-item"
 					class:hovered={hoveredPostId === post.id}
@@ -68,12 +66,13 @@
 
 					<p class="item-title">{post.title}</p>
 
+					<div class="item-spacer"></div>
+
 					<div class="item-meta">
 						{#if getRegion(post.regionId)}
 							<span class="item-region muted">{getRegion(post.regionId)!.name}</span>
 						{/if}
 						<span class="item-comments muted">
-							<!-- comment icon -->
 							<svg width="12" height="12" viewBox="0 0 16 16" fill="none" aria-hidden="true">
 								<path
 									d="M14 1H2a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h3l2 3 2-3h5a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1z"
@@ -86,83 +85,127 @@
 						</span>
 						{#if post.category === 'factual' && (post.verifyCount + post.disputeCount) > 0}
 							<span class="item-votes">
-								<span style="color:var(--verify);font-size:11px;font-weight:600;">
-									{Math.round((post.verifyCount / (post.verifyCount + post.disputeCount)) * 100)}% verified
-								</span>
+								{Math.round((post.verifyCount / (post.verifyCount + post.disputeCount)) * 100)}%
+								verified
 							</span>
 						{/if}
 					</div>
-				</li>
+				</article>
 			{/each}
-		</ul>
-	{/if}
-</aside>
+		</div>
+
+		<div class="bubble-rail rail-right">
+			{#each bubblePosts('right') as post (post.id)}
+				<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+				<article
+					use:registerEl={post.id}
+					class="headline-item"
+					class:hovered={hoveredPostId === post.id}
+					onmouseenter={() => onHover(post.id)}
+					onmouseleave={() => onHover(null)}
+					onclick={() => goto(`/post/${post.id}`)}
+					role="button"
+					tabindex="0"
+					onkeydown={(e) => e.key === 'Enter' && goto(`/post/${post.id}`)}
+					aria-label={post.title}
+				>
+					<div class="item-top">
+						<span class={post.category === 'factual' ? 'badge badge-factual' : 'badge'}>
+							{post.category === 'factual' ? 'Factual' : 'Community'}
+						</span>
+						<span class="item-time muted">{timeAgo(post.createdAt)}</span>
+					</div>
+
+					<p class="item-title">{post.title}</p>
+
+					<div class="item-spacer"></div>
+
+					<div class="item-meta">
+						{#if getRegion(post.regionId)}
+							<span class="item-region muted">{getRegion(post.regionId)!.name}</span>
+						{/if}
+						<span class="item-comments muted">
+							<svg width="12" height="12" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+								<path
+									d="M14 1H2a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h3l2 3 2-3h5a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1z"
+									stroke="currentColor"
+									stroke-width="1.4"
+									stroke-linejoin="round"
+								/>
+							</svg>
+							{post.commentCount}
+						</span>
+						{#if post.category === 'factual' && (post.verifyCount + post.disputeCount) > 0}
+							<span class="item-votes">
+								{Math.round((post.verifyCount / (post.verifyCount + post.disputeCount)) * 100)}%
+								verified
+							</span>
+						{/if}
+					</div>
+				</article>
+			{/each}
+		</div>
+	</div>
+{/if}
 
 <style>
-	.headline-panel {
-		width: 320px;
-		flex-shrink: 0;
+	.bubble-stage {
+		position: absolute;
+		inset: 110px 18px 22px;
+		pointer-events: none;
+		z-index: 18;
+	}
+
+	.bubble-rail {
+		position: absolute;
+		top: 0;
+		bottom: 0;
+		width: clamp(128px, 12vw, 176px);
 		display: flex;
 		flex-direction: column;
-		overflow: hidden;
-		max-height: 100%;
+		justify-content: space-evenly;
+		pointer-events: none;
 	}
 
-	.panel-header {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		padding: 16px 16px 12px;
-		border-bottom: 1px solid var(--border);
-		flex-shrink: 0;
+	.rail-left {
+		left: clamp(16px, 2.2vw, 32px);
 	}
 
-	.panel-title {
-		font-size: 13px;
-		font-weight: 700;
-		letter-spacing: 0.06em;
-		text-transform: uppercase;
-		color: var(--text-3);
-	}
-
-	.post-count {
-		font-size: 12px;
-	}
-
-	.empty-panel {
-		display: flex;
-		flex-direction: column;
-		align-items: center;
-		gap: 12px;
-		padding: 32px 16px;
-		text-align: center;
-	}
-
-	.headline-list {
-		list-style: none;
-		margin: 0;
-		padding: 0;
-		overflow-y: auto;
-		flex: 1;
+	.rail-right {
+		right: clamp(16px, 2.2vw, 32px);
 	}
 
 	.headline-item {
-		padding: 12px 16px;
-		border-bottom: 1px solid var(--border);
+		width: 100%;
+		aspect-ratio: 1;
+		padding: 12px;
+		border: 1px solid rgba(255, 255, 255, 0.72);
+		border-radius: 26px;
+		background:
+			linear-gradient(180deg, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0.84)),
+			radial-gradient(circle at top, rgba(99, 102, 241, 0.08), transparent 55%);
+		box-shadow: 0 22px 60px rgba(15, 23, 42, 0.12);
+		backdrop-filter: blur(18px);
 		cursor: pointer;
-		transition: background 0.12s ease;
+		pointer-events: auto;
+		transition:
+			transform 0.18s ease,
+			box-shadow 0.18s ease,
+			border-color 0.18s ease,
+			background 0.18s ease;
 		display: flex;
 		flex-direction: column;
-		gap: 6px;
-	}
-
-	.headline-item:last-child {
-		border-bottom: none;
+		gap: 10px;
 	}
 
 	.headline-item:hover,
 	.headline-item.hovered {
-		background: var(--surface-2);
+		transform: translateY(-4px) scale(1.02);
+		border-color: rgba(99, 102, 241, 0.28);
+		background:
+			linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(250, 251, 255, 0.9)),
+			radial-gradient(circle at top, rgba(99, 102, 241, 0.14), transparent 58%);
+		box-shadow: 0 28px 80px rgba(99, 102, 241, 0.16);
 	}
 
 	.item-top {
@@ -179,25 +222,33 @@
 
 	.item-title {
 		margin: 0;
-		font-size: 13.5px;
-		font-weight: 600;
+		font-size: 16px;
+		font-weight: 650;
 		line-height: 1.4;
 		color: var(--text);
 		display: -webkit-box;
-		-webkit-line-clamp: 2;
+		line-clamp: 4;
+		-webkit-line-clamp: 4;
 		-webkit-box-orient: vertical;
 		overflow: hidden;
 	}
 
+	.item-spacer {
+		flex: 1;
+	}
+
 	.item-meta {
 		display: flex;
-		align-items: center;
-		gap: 10px;
+		align-items: flex-end;
+		gap: 8px;
 		flex-wrap: wrap;
+		margin-top: auto;
 	}
 
 	.item-region {
-		font-size: 11px;
+		font-size: 12px;
+		font-weight: 600;
+		width: 100%;
 	}
 
 	.item-comments {
@@ -210,5 +261,31 @@
 
 	.item-votes {
 		font-size: 11px;
+		font-weight: 700;
+		color: var(--verify);
+	}
+
+	@media (max-width: 1100px) {
+		.bubble-stage {
+			inset: 118px 14px 18px;
+		}
+
+		.bubble-rail {
+			width: clamp(122px, 14vw, 156px);
+		}
+
+		.headline-item {
+			padding: 11px;
+		}
+
+		.item-title {
+			font-size: 14px;
+		}
+	}
+
+	@media (max-width: 820px) {
+		.bubble-stage {
+			display: none;
+		}
 	}
 </style>

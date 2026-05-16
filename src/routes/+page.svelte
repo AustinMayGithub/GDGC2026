@@ -14,7 +14,6 @@
 
 	let { data }: { data: PageData } = $props();
 
-	// --- State ---
 	type Scope = 'national' | 'local';
 	let scope = $state<Scope>('national');
 	let posts = $state<PostSummary[]>([]);
@@ -22,19 +21,16 @@
 	let error = $state<string | null>(null);
 	let hoveredPostId = $state<string | null>(null);
 
-	// Local mode state
 	let selectedRegionId = $state<string>(NZ_REGIONS[0].id);
 	let geoError = $state<string | null>(null);
 	let geoLoading = $state(false);
 	const scopeSwitching = $derived(loading || geoLoading);
 
-	// Map & connector state
 	let mapComponent: HomeMap | null = null;
 	let mapReady = $state(false);
 	let redrawTrigger = $state(0);
 	let listItemEls = new Map<string, HTMLElement>();
 
-	// --- Data fetching ---
 	async function fetchPosts(scopeToFetch: Scope = scope, regionId = selectedRegionId) {
 		loading = true;
 		error = null;
@@ -55,7 +51,6 @@
 		}
 	}
 
-	// --- Scope toggle ---
 	async function switchToNational() {
 		scope = 'national';
 		geoError = null;
@@ -78,7 +73,7 @@
 					await fetchPosts('local', regionId);
 				},
 				async () => {
-					geoError = 'Location access denied — pick your region below.';
+					geoError = 'Location access denied, pick your region below.';
 					geoLoading = false;
 					zoomToRegion(selectedRegionId);
 					await fetchPosts('local');
@@ -86,7 +81,7 @@
 				{ timeout: 8000 }
 			);
 		} else {
-			geoError = 'Geolocation not available — pick your region below.';
+			geoError = 'Geolocation not available, pick your region below.';
 			geoLoading = false;
 			zoomToRegion(selectedRegionId);
 			await fetchPosts('local');
@@ -106,7 +101,6 @@
 		await fetchPosts('local');
 	}
 
-	// --- Map callbacks ---
 	function handleMapReady(map: unknown) {
 		mapReady = true;
 		redrawTrigger++;
@@ -120,13 +114,11 @@
 		return mapComponent?.getMarkerScreenPos(id) ?? null;
 	}
 
-	// --- Init ---
 	onMount(() => {
 		fetchPosts();
 	});
 
 	$effect(() => {
-		// When posts change or map becomes ready, trigger redraw
 		posts;
 		mapReady;
 		redrawTrigger;
@@ -134,15 +126,25 @@
 </script>
 
 <div class="page">
-	<!-- Header -->
 	<header class="header card">
-		<div class="logo" onclick={() => goto('/')} role="button" tabindex="0" onkeydown={(e) => e.key === 'Enter' && goto('/')}>
+		<div
+			class="logo"
+			onclick={() => goto('/')}
+			role="button"
+			tabindex="0"
+			onkeydown={(e) => e.key === 'Enter' && goto('/')}
+		>
 			<span class="logo-dot"></span>
 			<span class="logo-name gradient-text">BirdsEye</span>
 		</div>
 
 		<div class="header-center">
-			<div class="scope-toggle" class:local={scope === 'local'} class:switching={scopeSwitching} aria-busy={scopeSwitching}>
+			<div
+				class="scope-toggle"
+				class:local={scope === 'local'}
+				class:switching={scopeSwitching}
+				aria-busy={scopeSwitching}
+			>
 				<span class="toggle-indicator" aria-hidden="true"></span>
 				<button
 					type="button"
@@ -167,10 +169,10 @@
 			{#if scope === 'local'}
 				<div class="region-controls">
 					{#if geoLoading}
-						<span class="muted" style="font-size:12px;">Detecting location…</span>
+						<span class="muted helper-text">Detecting location...</span>
 					{/if}
 					{#if geoError}
-						<span class="error-text" style="font-size:12px;">{geoError}</span>
+						<span class="error-text helper-text">{geoError}</span>
 					{/if}
 					<select class="input region-select" value={selectedRegionId} onchange={onRegionChange}>
 						{#each NZ_REGIONS as region (region.id)}
@@ -184,7 +186,7 @@
 		<div class="header-right">
 			<a href="/compose" class="btn btn-primary new-post-btn">
 				<svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-					<path d="M8 1v14M1 8h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+					<path d="M8 1v14M1 8h14" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
 				</svg>
 				New post
 			</a>
@@ -192,15 +194,14 @@
 		</div>
 	</header>
 
-	<!-- Main content -->
 	<main class="main">
-		<!-- Map area -->
 		<div class="map-area">
 			{#if loading}
 				<div class="map-loading" aria-live="polite">
 					<div class="spinner"></div>
 				</div>
 			{/if}
+
 			<HomeMap
 				bind:this={mapComponent}
 				{posts}
@@ -208,10 +209,17 @@
 				onMapReady={handleMapReady}
 				onMarkerPositionsChange={handleMarkerPositionsChange}
 			/>
-		</div>
 
-		<!-- Headline list panel -->
-		<div class="panel-area">
+			<HeadlineList
+				{posts}
+				{hoveredPostId}
+				onHover={(id) => {
+					hoveredPostId = id;
+					redrawTrigger++;
+				}}
+				{listItemEls}
+			/>
+
 			{#if posts.length === 0 && !loading}
 				<div class="empty-state card">
 					<div class="empty-icon">📍</div>
@@ -219,28 +227,19 @@
 					<p class="muted empty-body">Be the first to share what's happening in your community.</p>
 					<a href="/compose" class="btn btn-primary">Create a post</a>
 				</div>
-			{:else}
-				<HeadlineList
-					{posts}
-					{hoveredPostId}
-					onHover={(id) => {
-						hoveredPostId = id;
-						redrawTrigger++;
-					}}
-					{listItemEls}
-				/>
 			{/if}
 
 			{#if error}
 				<div class="error-banner card">
 					<span class="error-text">{error}</span>
-					<button class="btn" onclick={() => fetchPosts()} style="font-size:12px;padding:6px 12px;">Retry</button>
+					<button class="btn" onclick={() => fetchPosts()} style="font-size:12px;padding:6px 12px;">
+						Retry
+					</button>
 				</div>
 			{/if}
 		</div>
 	</main>
 
-	<!-- Connector SVG overlay -->
 	{#if mapReady}
 		<ConnectorLines
 			{posts}
@@ -254,27 +253,28 @@
 
 <style>
 	.page {
-		display: flex;
-		flex-direction: column;
 		height: 100vh;
 		overflow: hidden;
 		background: var(--bg);
+		position: relative;
 	}
 
-	/* ---- Header ---- */
 	.header {
+		position: absolute;
+		top: 18px;
+		left: 20px;
+		right: 20px;
 		display: flex;
 		align-items: center;
 		gap: 16px;
-		padding: 0 20px;
-		height: 58px;
-		flex-shrink: 0;
-		border-radius: 0;
-		border-left: none;
-		border-right: none;
-		border-top: none;
-		z-index: 20;
-		position: relative;
+		padding: 0 16px;
+		height: 64px;
+		border-radius: 22px;
+		border: 1px solid rgba(255, 255, 255, 0.72);
+		z-index: 22;
+		background: rgba(255, 255, 255, 0.82);
+		backdrop-filter: blur(18px);
+		box-shadow: 0 18px 40px rgba(15, 23, 42, 0.08);
 	}
 
 	.logo {
@@ -312,7 +312,7 @@
 		display: grid;
 		grid-template-columns: 1fr 1fr;
 		position: relative;
-		background: var(--surface-2);
+		background: rgba(247, 247, 249, 0.8);
 		border: 1px solid var(--border);
 		border-radius: var(--radius-sm);
 		padding: 3px;
@@ -328,7 +328,7 @@
 		width: calc(50% - 4px);
 		height: calc(100% - 6px);
 		border-radius: calc(var(--radius-sm) - 2px);
-		background: var(--surface);
+		background: rgba(255, 255, 255, 0.92);
 		box-shadow: var(--shadow-sm);
 		transition: transform 0.2s ease;
 		pointer-events: none;
@@ -384,6 +384,10 @@
 		font-size: 13px;
 	}
 
+	.helper-text {
+		font-size: 12px;
+	}
+
 	.header-right {
 		display: flex;
 		align-items: center;
@@ -396,18 +400,16 @@
 		padding: 7px 14px;
 	}
 
-	/* ---- Main ---- */
 	.main {
-		flex: 1;
-		display: flex;
+		height: 100%;
 		overflow: hidden;
 		position: relative;
 	}
 
 	.map-area {
-		flex: 1;
 		position: relative;
 		overflow: hidden;
+		height: 100%;
 	}
 
 	.map-loading {
@@ -416,8 +418,9 @@
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		z-index: 10;
-		background: rgba(255, 255, 255, 0.6);
+		z-index: 20;
+		background: rgba(255, 255, 255, 0.38);
+		backdrop-filter: blur(4px);
 		pointer-events: none;
 	}
 
@@ -431,30 +434,26 @@
 	}
 
 	@keyframes spin {
-		to { transform: rotate(360deg); }
+		to {
+			transform: rotate(360deg);
+		}
 	}
 
-	.panel-area {
-		width: 320px;
-		flex-shrink: 0;
-		display: flex;
-		flex-direction: column;
-		gap: 8px;
-		padding: 12px;
-		overflow-y: auto;
-		z-index: 10;
-		background: var(--surface-2);
-		border-left: 1px solid var(--border);
-	}
-
-	/* ---- Empty state ---- */
 	.empty-state {
+		position: absolute;
+		left: 50%;
+		top: 50%;
+		transform: translate(-50%, -50%);
 		display: flex;
 		flex-direction: column;
 		align-items: center;
 		text-align: center;
 		padding: 32px 20px;
 		gap: 12px;
+		width: min(420px, calc(100vw - 40px));
+		z-index: 20;
+		background: rgba(255, 255, 255, 0.88);
+		backdrop-filter: blur(14px);
 	}
 
 	.empty-icon {
@@ -472,14 +471,45 @@
 		max-width: 220px;
 	}
 
-	/* ---- Error banner ---- */
 	.error-banner {
+		position: absolute;
+		left: 50%;
+		bottom: 20px;
+		transform: translateX(-50%);
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
 		gap: 10px;
 		padding: 10px 14px;
-		flex-shrink: 0;
+		z-index: 21;
+		background: rgba(255, 255, 255, 0.94);
+	}
+
+	@media (max-width: 980px) {
+		.header {
+			top: 12px;
+			left: 12px;
+			right: 12px;
+			height: auto;
+			padding: 12px 14px;
+			flex-wrap: wrap;
+		}
+
+		.header-center {
+			order: 3;
+			width: 100%;
+			justify-content: flex-start;
+		}
+
+		.error-banner {
+			width: calc(100vw - 24px);
+		}
+	}
+
+	@media (max-width: 720px) {
+		.header-right {
+			width: 100%;
+			justify-content: space-between;
+		}
 	}
 </style>
-

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount, onDestroy } from 'svelte';
+	import { onMount } from 'svelte';
 	import type { PostSummary } from '$lib/types';
 
 	interface Props {
@@ -35,10 +35,6 @@
 		const result: Line[] = [];
 
 		for (const post of posts) {
-			// Only draw line for hovered post (hover-only fallback approach)
-			if (hoveredPostId !== null && hoveredPostId !== post.id) continue;
-			if (hoveredPostId === null) continue;
-
 			const markerPos = getMarkerScreenPos(post.id);
 			if (!markerPos) continue;
 
@@ -46,17 +42,16 @@
 			if (!itemEl) continue;
 
 			const rect = itemEl.getBoundingClientRect();
-			// Right edge midpoint of list item
-			const x1 = rect.right;
-			const y1 = rect.top + rect.height / 2;
-
-			// Marker position is already in viewport (document) coordinates
+			const cardCenterX = rect.left + rect.width / 2;
+			const cardCenterY = rect.top + rect.height / 2;
+			const connectFromLeft = markerPos.x > cardCenterX;
+			const x1 = connectFromLeft ? rect.right : rect.left;
+			const y1 = Math.max(rect.top + 22, Math.min(markerPos.y, rect.bottom - 22));
 			const x2 = markerPos.x;
 			const y2 = markerPos.y;
-
-			// Quadratic bezier control point — pull toward horizontal centre
-			const cx = (x1 + x2) / 2;
-			const cy = (y1 + y2) / 2 - Math.abs(x2 - x1) * 0.12;
+			const horizontalPull = Math.abs(x2 - x1) * 0.18;
+			const cx = connectFromLeft ? x1 + horizontalPull : x1 - horizontalPull;
+			const cy = cardCenterY + (y2 - cardCenterY) * 0.42;
 
 			result.push({
 				id: post.id,
@@ -91,7 +86,6 @@
 	});
 
 	$effect(() => {
-		// Trigger recompute whenever any reactive input changes
 		hoveredPostId;
 		redrawTrigger;
 		posts;
@@ -109,18 +103,25 @@
 	{#each lines as line (line.id)}
 		<path
 			d="M {line.x1} {line.y1} Q {line.cx} {line.cy} {line.x2} {line.y2}"
-			stroke={line.hovered ? 'url(#connector-gradient)' : 'rgba(99,102,241,0.25)'}
-			stroke-width={line.hovered ? 2 : 1}
+			stroke={line.hovered ? 'url(#connector-gradient)' : 'rgba(71, 85, 105, 0.26)'}
+			stroke-width={line.hovered ? 2.35 : 1.2}
 			fill="none"
-			stroke-dasharray={line.hovered ? 'none' : '4 4'}
+			stroke-dasharray={line.hovered ? 'none' : '5 8'}
 			stroke-linecap="round"
+			opacity={line.hovered ? 1 : 0.92}
 		/>
-		<!-- Terminal dot at headline -->
-		{#if line.hovered}
-			<circle cx={line.x1} cy={line.y1} r="3" fill="var(--brand-1)" opacity="0.7" />
-			<!-- Terminal dot at marker -->
-			<circle cx={line.x2} cy={line.y2} r="4" fill="url(#connector-gradient)" opacity="0.9" />
-		{/if}
+		<circle
+			cx={line.x1}
+			cy={line.y1}
+			r={line.hovered ? 3.2 : 2.2}
+			fill={line.hovered ? 'var(--brand-1)' : 'rgba(71, 85, 105, 0.4)'}
+		/>
+		<circle
+			cx={line.x2}
+			cy={line.y2}
+			r={line.hovered ? 4.2 : 2.6}
+			fill={line.hovered ? 'url(#connector-gradient)' : 'rgba(99,102,241,0.34)'}
+		/>
 	{/each}
 
 	<defs>
@@ -137,7 +138,13 @@
 		top: 0;
 		left: 0;
 		pointer-events: none;
-		z-index: 30;
+		z-index: 19;
 		overflow: visible;
+	}
+
+	@media (max-width: 820px) {
+		.connector-svg {
+			display: none;
+		}
 	}
 </style>

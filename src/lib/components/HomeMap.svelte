@@ -26,11 +26,29 @@
 				type: 'raster' as const,
 				tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
 				tileSize: 256,
-				attribution: '© OpenStreetMap contributors'
+				attribution: 'OpenStreetMap contributors'
 			}
 		},
 		layers: [{ id: 'osm', type: 'raster' as const, source: 'osm' }]
 	};
+
+	function getFitOptions(bbox: [number, number, number, number]) {
+		const width = typeof window === 'undefined' ? 1440 : window.innerWidth;
+		const compact = width < 820;
+		const isNational = bbox[2] - bbox[0] > 8;
+		const sidePadding = compact ? 24 : isNational ? Math.min(360, Math.max(220, width * 0.22)) : 72;
+
+		return {
+			padding: {
+				top: 112,
+				right: sidePadding,
+				bottom: compact ? 36 : 56,
+				left: sidePadding
+			},
+			duration: 800,
+			maxZoom: isNational ? 5.15 : 8.6
+		};
+	}
 
 	function createMarkerEl(post: PostSummary, hovered: boolean): HTMLElement {
 		const el = document.createElement('div');
@@ -51,7 +69,7 @@
 					   border: 2px solid #6366f1;
 					   box-shadow: 0 0 0 1px rgba(99,102,241,0.2), 0 2px 6px rgba(99,102,241,0.2);`
 			}
-			${hovered ? 'transform: scale(1.6);' : ''}
+			${hovered ? 'transform: scale(1.6); z-index: 2;' : ''}
 		`;
 		return el;
 	}
@@ -61,7 +79,6 @@
 		const ml = maplibre as typeof import('maplibre-gl');
 		const m = map as InstanceType<typeof ml.Map>;
 
-		// Remove markers for posts no longer in the list
 		const currentIds = new Set(posts.map((p) => p.id));
 		for (const [id, { marker }] of markersMap) {
 			if (!currentIds.has(id)) {
@@ -70,10 +87,8 @@
 			}
 		}
 
-		// Add or update markers
 		for (const post of posts) {
 			if (markersMap.has(post.id)) {
-				// Update hover style
 				const { el } = markersMap.get(post.id)!;
 				const hovered = hoveredPostId === post.id;
 				el.style.transform = hovered ? 'scale(1.6)' : '';
@@ -87,13 +102,10 @@
 			} else {
 				const el = createMarkerEl(post, hoveredPostId === post.id);
 				el.addEventListener('click', () => goto(`/post/${post.id}`));
-				const marker = new ml.Marker({ element: el })
-					.setLngLat([post.lng, post.lat])
-					.addTo(m);
+				const marker = new ml.Marker({ element: el }).setLngLat([post.lng, post.lat]).addTo(m);
 				markersMap.set(post.id, { marker, el });
 			}
 		}
-
 	}
 
 	export function getMarkerScreenPos(postId: string): { x: number; y: number } | null {
@@ -103,12 +115,10 @@
 		const entry = markersMap.get(postId);
 		if (!entry) return null;
 
-		// Use the post's lng/lat from the marker
 		const marker = entry.marker as InstanceType<typeof ml.Marker>;
 		const lngLat = marker.getLngLat();
 		const point = m.project(lngLat);
-		const mapEl = container;
-		const rect = mapEl.getBoundingClientRect();
+		const rect = container.getBoundingClientRect();
 		return {
 			x: rect.left + point.x,
 			y: rect.top + point.y
@@ -124,7 +134,7 @@
 				[bbox[0], bbox[1]],
 				[bbox[2], bbox[3]]
 			],
-			{ padding: 48, duration: 800 }
+			getFitOptions(bbox)
 		);
 	}
 
@@ -135,20 +145,25 @@
 		const m = new ml.Map({
 			container,
 			style: OSM_STYLE,
-			bounds: [
-				[NZ_BBOX[0], NZ_BBOX[1]],
-				[NZ_BBOX[2], NZ_BBOX[3]]
+			center: [173.3, -41.2],
+			zoom: 4.7,
+			renderWorldCopies: false,
+			dragRotate: false,
+			touchPitch: false,
+			maxBounds: [
+				[160, -49.8],
+				[185, -31.5]
 			],
-			fitBoundsOptions: { padding: 32 },
 			attributionControl: false
 		});
 
 		m.addControl(new ml.AttributionControl({ compact: true }), 'bottom-left');
-		m.addControl(new ml.NavigationControl(), 'bottom-right');
+		m.addControl(new ml.NavigationControl({ visualizePitch: false, showCompass: false }), 'bottom-right');
 
 		map = m;
 
 		m.on('load', () => {
+			fitToBbox(NZ_BBOX);
 			syncMarkers();
 			onMarkerPositionsChange();
 			onMapReady(m);
@@ -156,6 +171,7 @@
 
 		m.on('move', onMarkerPositionsChange);
 		m.on('zoom', onMarkerPositionsChange);
+		m.on('resize', onMarkerPositionsChange);
 	});
 
 	onDestroy(() => {
@@ -166,7 +182,6 @@
 	});
 
 	$effect(() => {
-		// React to posts or hoveredPostId changes
 		posts;
 		hoveredPostId;
 		syncMarkers();
@@ -182,16 +197,51 @@
 		width: 100%;
 		height: 100%;
 		position: relative;
+		background:
+			radial-gradient(circle at top, rgba(255, 255, 255, 0.55), transparent 34%),
+			linear-gradient(180deg, #f7f8fb 0%, #eff2f7 100%);
+	}
+
+	.map-wrap::before,
+	.map-wrap::after {
+		content: '';
+		position: absolute;
+		top: 0;
+		bottom: 0;
+		width: 24%;
+		pointer-events: none;
+		z-index: 2;
+	}
+
+	.map-wrap::before {
+		left: 0;
+		background: linear-gradient(90deg, rgba(245, 247, 251, 0.92), rgba(245, 247, 251, 0));
+	}
+
+	.map-wrap::after {
+		right: 0;
+		background: linear-gradient(270deg, rgba(245, 247, 251, 0.92), rgba(245, 247, 251, 0));
 	}
 
 	.map-container {
 		width: 100%;
 		height: 100%;
-		filter: grayscale(1) contrast(1.05) brightness(1.04);
+		filter: grayscale(1) contrast(1.08) brightness(1.04);
 	}
 
-	/* Override maplibre canvas filter through global scope */
 	:global(.map-container .maplibregl-canvas) {
-		filter: none; /* parent has filter; canvas inherits */
+		filter: none;
+	}
+
+	:global(.map-container .maplibregl-ctrl-bottom-right),
+	:global(.map-container .maplibregl-ctrl-bottom-left) {
+		margin: 0 18px 18px;
+	}
+
+	:global(.map-container .maplibregl-ctrl-group) {
+		border-radius: 16px;
+		overflow: hidden;
+		box-shadow: 0 12px 30px rgba(15, 23, 42, 0.12);
+		border: 1px solid rgba(255, 255, 255, 0.7);
 	}
 </style>
