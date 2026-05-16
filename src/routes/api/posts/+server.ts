@@ -2,7 +2,12 @@ import { json, error, isHttpError } from '@sveltejs/kit';
 import { dev } from '$app/environment';
 import { db } from '$lib/server/db';
 import { posts } from '$lib/server/db/schema';
-import { NZ_REGIONS, regionForPoint } from '$lib/data/nz-regions';
+import {
+	NZ_REGIONS,
+	OUTSIDE_NZ_POST_MESSAGE,
+	isWithinNzBounds,
+	regionForPoint
+} from '$lib/data/nz-regions';
 import { listPosts } from '$lib/server/posts';
 import { moderateText } from '$lib/server/ai';
 import type { RequestHandler } from './$types';
@@ -136,6 +141,7 @@ async function createPost({ request, locals }: Parameters<RequestHandler>[0]) {
 	if (!category) throw error(400, 'Choose a post category.');
 	if (!Number.isFinite(lng) || !Number.isFinite(lat))
 		throw error(400, 'Pick a location on the map.');
+	if (!isWithinNzBounds(lng, lat)) throw error(400, OUTSIDE_NZ_POST_MESSAGE);
 	if (!Number.isFinite(impactRadiusM) || impactRadiusM < 100 || impactRadiusM > 300000)
 		throw error(400, 'Set an affected location between 100 m and 300 km.');
 

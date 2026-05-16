@@ -59,3 +59,11 @@ export function regionForPoint(lng: number, lat: number): string {
 
 /** NZ-wide bounding box, for the national map view. */
 export const NZ_BBOX: [number, number, number, number] = [166.0, -47.5, 178.8, -34.2];
+
+export const OUTSIDE_NZ_POST_MESSAGE =
+	"Looks like you're trying to make a post outside your national region. You are currently accessing this platform from within New Zealand.";
+
+export function isWithinNzBounds(lng: number, lat: number): boolean {
+	const [minLng, minLat, maxLng, maxLat] = NZ_BBOX;
+	return lng >= minLng && lng <= maxLng && lat >= minLat && lat <= maxLat;
+}

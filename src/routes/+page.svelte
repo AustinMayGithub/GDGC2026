@@ -25,7 +25,13 @@
 		VotePoint,
 		VoteUser
 	} from '$lib/types';
-	import { NZ_BBOX, NZ_REGIONS, regionForPoint } from '$lib/data/nz-regions';
+	import {
+		NZ_BBOX,
+		NZ_REGIONS,
+		OUTSIDE_NZ_POST_MESSAGE,
+		isWithinNzBounds,
+		regionForPoint
+	} from '$lib/data/nz-regions';
 	import { getLocation, prewarm, seedCoarse, GeoError } from '$lib/location';
 	import logo from '$lib/data/birdseye.png';
 
@@ -90,6 +96,8 @@
 	let selectedPostLoading = $state(false);
 	let selectedPostError = $state('');
 	let selectedPostRequestId = 0;
+	let postDeleteError = $state('');
+	let postDeleting = $state(false);
 
 	let selectedRegionId = $state<string>(DEFAULT_REGION_ID);
 	let localFocusLng = $state(174.76);
@@ -378,6 +386,8 @@
 		selectedCommunityNote = null;
 		selectedPostError = '';
 		selectedPostRequestId++;
+		postDeleteError = '';
+		postDeleting = false;
 		redrawTrigger++;
 		refreshPostsIfStale();
 	}
@@ -617,6 +627,7 @@
 			selectedVoteUsers = json.voteUsers ?? [];
 			selectedPostTab = 'discussion';
 			selectedCommunityNote = json.post.communityNote;
+			postDeleteError = '';
 			focusSelectedPost(json.post);
 		} catch {
 			if (requestId !== selectedPostRequestId) return;
@@ -645,6 +656,7 @@
 		selectedVotePoints = [];
 		selectedVoteUsers = [];
 		selectedPostTab = 'discussion';
+		postDeleteError = '';
 		composing = false;
 		const summary = visiblePosts.find((post) => post.id === id);
 		if (summary) focusSelectedPost(summary);
@@ -1072,6 +1084,12 @@
 
 	function handleComposePick(newLng: number, newLat: number) {
 		if (!data.user) return;
+		if (!isWithinNzBounds(newLng, newLat)) {
+			composeError = OUTSIDE_NZ_POST_MESSAGE;
+			window.alert(OUTSIDE_NZ_POST_MESSAGE);
+			focusComposeLocation(composeLng, composeLat);
+			return;
+		}
 		composeLng = newLng;
 		composeLat = newLat;
 		void refreshComposeAreaLabel();
@@ -1095,6 +1113,11 @@
 	async function handleComposeSubmit(e: SubmitEvent) {
 		e.preventDefault();
 		if (!canSubmitPost || composeCategory === null) return;
+		if (!isWithinNzBounds(composeLng, composeLat)) {
+			composeError = OUTSIDE_NZ_POST_MESSAGE;
+			window.alert(OUTSIDE_NZ_POST_MESSAGE);
+			return;
+		}
 
 		composeSubmitting = true;
 		composeError = '';
@@ -1144,6 +1167,30 @@
 			hoveredPostId = null;
 			lastTrendingFitKey = '';
 			redrawTrigger++;
+		}
+	}
+
+	async function deleteSelectedPost() {
+		if (!selectedPostDetail || postDeleting) return;
+		const ok = window.confirm('Delete this post? This cannot be undone.');
+		if (!ok) return;
+		postDeleting = true;
+		postDeleteError = '';
+
+		try {
+			const res = await fetch(`/api/posts/${selectedPostDetail.id}`, { method: 'DELETE' });
+			const json = await res.json().catch(() => ({}));
+			if (!res.ok) {
+				postDeleteError = json.message ?? 'Could not delete this post.';
+				return;
+			}
+			posts = posts.filter((post) => post.id !== selectedPostDetail?.id);
+			clearSelectedPost();
+			redrawTrigger++;
+		} catch {
+			postDeleteError = 'Network error. Please try again.';
+		} finally {
+			postDeleting = false;
 		}
 	}
 
@@ -1544,6 +1591,14 @@
 
 						<div class="post-actions">
 							<a class="btn" href="/post/{post.id}">Open full page</a>
+							{#if post.isOwn}
+								<button type="button" class="btn danger-btn" onclick={deleteSelectedPost} disabled={postDeleting}>
+									{postDeleting ? 'Deleting...' : 'Delete post'}
+								</button>
+							{/if}
+							{#if postDeleteError}
+								<p class="error-text error-msg">{postDeleteError}</p>
+							{/if}
 							{#if data.user}
 								<button type="button" class="report-post-btn muted" onclick={reportSelectedPost}>
 									Report this post
@@ -2988,6 +3043,16 @@
 		gap: 12px;
 		flex-wrap: wrap;
 		padding-bottom: 4px;
+	}
+
+	.danger-btn {
+		color: var(--dispute);
+		border-color: rgba(220, 38, 38, 0.28);
+	}
+
+	.danger-btn:hover {
+		background: var(--dispute-soft);
+		box-shadow: none;
 	}
 
 	.report-post-btn {
