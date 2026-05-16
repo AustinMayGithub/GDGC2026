@@ -1,10 +1,10 @@
 import { error } from '@sveltejs/kit';
-import { readPostHeaderImage } from '$lib/server/uploads';
+import { readPostPhoto } from '$lib/server/uploads';
 import type { RequestHandler } from './$types';
 
 export const GET: RequestHandler = async ({ params }) => {
-	const image = await readPostHeaderImage(params.filename);
-	if (!image) throw error(404, 'Image not found.');
+	const image = await readPostPhoto(params.filename);
+	if (!image) throw error(404, 'Photo not found.');
 
 	return new Response(image.bytes, {
 		headers: {
