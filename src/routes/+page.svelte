@@ -26,8 +26,6 @@
 	let selectedRegionId = $state<string>(NZ_REGIONS[0].id);
 	let geoError = $state<string | null>(null);
 	let geoLoading = $state(false);
-	const scopeSwitching = $derived(loading || geoLoading);
-	const scopeLabel = $derived(scope === 'national' ? 'National view' : 'Local view');
 
 	// Map & connector state
 	let mapComponent: HomeMap | null = null;
@@ -36,14 +34,14 @@
 	let listItemEls = new Map<string, HTMLElement>();
 
 	// --- Data fetching ---
-	async function fetchPosts(scopeToFetch: Scope = scope, regionId = selectedRegionId) {
+	async function fetchPosts() {
 		loading = true;
 		error = null;
 		try {
 			const url =
-				scopeToFetch === 'national'
+				scope === 'national'
 					? '/api/posts?scope=national'
-					: `/api/posts?scope=local&regionId=${regionId}`;
+					: `/api/posts?scope=local&regionId=${selectedRegionId}`;
 			const res = await fetch(url);
 			if (!res.ok) throw new Error(`HTTP ${res.status}`);
 			const json = await res.json();
@@ -61,7 +59,7 @@
 		scope = 'national';
 		geoError = null;
 		mapComponent?.fitToBbox(NZ_BBOX);
-		await fetchPosts('national');
+		await fetchPosts();
 	}
 
 	async function switchToLocal() {
@@ -76,13 +74,13 @@
 					selectedRegionId = regionId;
 					geoLoading = false;
 					zoomToRegion(regionId);
-					await fetchPosts('local', regionId);
+					await fetchPosts();
 				},
 				async () => {
 					geoError = 'Location access denied — pick your region below.';
 					geoLoading = false;
 					zoomToRegion(selectedRegionId);
-					await fetchPosts('local');
+					await fetchPosts();
 				},
 				{ timeout: 8000 }
 			);
@@ -90,7 +88,7 @@
 			geoError = 'Geolocation not available — pick your region below.';
 			geoLoading = false;
 			zoomToRegion(selectedRegionId);
-			await fetchPosts('local');
+			await fetchPosts();
 		}
 	}
 
@@ -104,7 +102,7 @@
 	async function onRegionChange(e: Event) {
 		selectedRegionId = (e.target as HTMLSelectElement).value;
 		zoomToRegion(selectedRegionId);
-		await fetchPosts('local');
+		await fetchPosts();
 	}
 
 	// --- Map callbacks ---
@@ -143,16 +141,8 @@
 		</div>
 
 		<div class="header-center">
-			<div class="scope-group">
-				<div class="scope-status" aria-live="polite">
-					<span class="scope-status-label">{scopeLabel}</span>
-					{#if scopeSwitching}
-						<span class="scope-status-meta">Updating...</span>
-					{/if}
-				</div>
-				<div class="scope-toggle" aria-busy={scopeSwitching}>
+			<div class="scope-toggle">
 				<button
-					type="button"
 					class="toggle-btn"
 					class:active={scope === 'national'}
 					onclick={switchToNational}
@@ -161,7 +151,6 @@
 					National
 				</button>
 				<button
-					type="button"
 					class="toggle-btn"
 					class:active={scope === 'local'}
 					onclick={switchToLocal}
@@ -169,7 +158,6 @@
 				>
 					Local
 				</button>
-				</div>
 			</div>
 
 			{#if scope === 'local'}
@@ -242,7 +230,7 @@
 			{#if error}
 				<div class="error-banner card">
 					<span class="error-text">{error}</span>
-					<button class="btn" onclick={() => fetchPosts()} style="font-size:12px;padding:6px 12px;">Retry</button>
+					<button class="btn" onclick={fetchPosts} style="font-size:12px;padding:6px 12px;">Retry</button>
 				</div>
 			{/if}
 		</div>
@@ -316,74 +304,30 @@
 		flex-wrap: wrap;
 	}
 
-	.scope-group {
-		display: flex;
-		flex-direction: column;
-		align-items: center;
-		gap: 6px;
-	}
-
-	.scope-status {
-		display: flex;
-		align-items: center;
-		gap: 8px;
-		min-height: 18px;
-	}
-
-	.scope-status-label {
-		font-size: 12px;
-		font-weight: 700;
-		letter-spacing: 0.05em;
-		text-transform: uppercase;
-		color: var(--text-3);
-	}
-
-	.scope-status-meta {
-		font-size: 12px;
-		color: var(--text-2);
-	}
-
 	.scope-toggle {
-		display: inline-flex;
-		align-items: center;
+		display: flex;
 		background: var(--surface-2);
 		border: 1px solid var(--border);
 		border-radius: var(--radius-sm);
 		padding: 3px;
-		gap: 4px;
+		gap: 2px;
 	}
 
 	.toggle-btn {
-		padding: 7px 18px;
+		padding: 5px 16px;
 		border-radius: calc(var(--radius-sm) - 2px);
-		border: 1px solid transparent;
+		border: none;
 		background: transparent;
 		color: var(--text-2);
 		font-size: 13px;
-		font-weight: 650;
-		transition:
-			background 0.16s ease,
-			color 0.16s ease,
-			border-color 0.16s ease,
-			box-shadow 0.16s ease,
-			transform 0.12s ease;
+		font-weight: 550;
+		transition: background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
 	}
 
 	.toggle-btn.active {
 		background: var(--surface);
 		color: var(--text);
-		border-color: var(--border);
-		font-weight: 700;
 		box-shadow: var(--shadow-sm);
-	}
-
-	.toggle-btn:hover {
-		color: var(--text);
-		background: rgba(255, 255, 255, 0.48);
-	}
-
-	.toggle-btn:active {
-		transform: translateY(1px);
 	}
 
 	.region-controls {
