@@ -381,7 +381,7 @@
 			onkeydown={(e) => e.key === 'Enter' && goto('/')}
 		>
 			<span class="logo-dot"></span>
-			<img src="/src/birdseye.png">
+			<img src="birdseye.png">
 			
 		</div>
 
