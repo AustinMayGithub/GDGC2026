@@ -1,4 +1,4 @@
-<script lang="ts">
+﻿<script lang="ts">
 	import { onDestroy, onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 	import UserMenu from '$lib/components/UserMenu.svelte';
@@ -39,6 +39,8 @@
 	const MIN_BUBBLES_PER_RAIL = 2;
 	const BUBBLE_ASPECT_RATIO = 1.32;
 	const BUBBLE_GAP_PX = 18;
+	const STABILITY_BONUS = 28;
+	const VIEWPORT_RERANK_DEBOUNCE_MS = 600;
 	const orderedRegions = [
 		...NZ_REGIONS.filter((region) => region.id === DEFAULT_REGION_ID),
 		...NZ_REGIONS.filter((region) => region.id !== DEFAULT_REGION_ID)
@@ -66,6 +68,8 @@
 	let activeFetchController: AbortController | null = null;
 	let fetchRequestId = 0;
 	let geoRequestId = 0;
+	let stablePostIds = $state<Set<string>>(new Set());
+	let viewportRerankTimer: ReturnType<typeof setTimeout> | null = null;
 
 	function clamp(min: number, value: number, max: number) {
 		return Math.min(Math.max(value, min), max);
@@ -190,16 +194,46 @@
 		return engagement * (0.7 + approval * 0.6) + freshnessBoost;
 	}
 
-	const rankedPosts = $derived.by(() =>
-		[...posts].sort((a, b) => {
+	function adjustedScore(post: PostSummary): number {
+		const base = popularityScore(post) + locationRelevanceScore(post);
+		if (!stablePostIds.has(post.id)) return base;
+		// Distance-weighted stability: far-away articles shed their bonus first
+		let bonus = STABILITY_BONUS;
+		if (mapViewport) {
+			const dist = distanceKm(mapViewport.centerLat, mapViewport.centerLng, post.lat, post.lng);
+			bonus *= Math.max(0, 1 - dist / 300);
+		}
+		return base + bonus;
+	}
+
+	function computeStableSet(incoming: PostSummary[]): Set<string> {
+		if (!incoming.length) return new Set();
+		const limit = maxHomepagePostsForViewport();
+		const scored = incoming
+			.map((p) => ({ id: p.id, score: adjustedScore(p) }))
+			.sort((a, b) => b.score - a.score);
+		return new Set(scored.slice(0, limit).map((p) => p.id));
+	}
+
+	function scheduleViewportRerank() {
+		if (viewportRerankTimer !== null) clearTimeout(viewportRerankTimer);
+		viewportRerankTimer = setTimeout(() => {
+			viewportRerankTimer = null;
+			stablePostIds = computeStableSet(posts);
+		}, VIEWPORT_RERANK_DEBOUNCE_MS);
+	}
+
+	const rankedPosts = $derived.by(() => {
+		const visible = posts.filter((p) => stablePostIds.has(p.id));
+		return visible.sort((a, b) => {
 			const diff =
 				popularityScore(b) +
 				locationRelevanceScore(b) -
 				(popularityScore(a) + locationRelevanceScore(a));
 			if (Math.abs(diff) > 0.001) return diff;
 			return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-		})
-	);
+		});
+	});
 
 	const maxHomepagePosts = $derived(maxHomepagePostsForViewport());
 	const feedCapacity = $derived(Math.min(rankedPosts.length, maxHomepagePosts));
@@ -241,12 +275,14 @@
 			const json = await res.json();
 			if (requestId !== fetchRequestId) return;
 			posts = json.posts as PostSummary[];
+			stablePostIds = computeStableSet(json.posts as PostSummary[]);
 			resetFeedVisibility();
 		} catch (err) {
 			if (err instanceof DOMException && err.name === 'AbortError') return;
 			if (requestId !== fetchRequestId) return;
 			error = 'Failed to load posts. Please try again.';
 			posts = [];
+			stablePostIds = new Set();
 			resetFeedVisibility();
 		} finally {
 			if (requestId === fetchRequestId) {
@@ -328,11 +364,13 @@
 	function handleMapReady(_map: unknown) {
 		mapReady = true;
 		mapViewport = mapComponent?.getViewportState() ?? null;
+		stablePostIds = computeStableSet(posts);
 		redrawTrigger++;
 	}
 
 	function handleMarkerPositionsChange() {
 		mapViewport = mapComponent?.getViewportState() ?? mapViewport;
+		scheduleViewportRerank();
 		redrawTrigger++;
 	}
 
@@ -362,6 +400,7 @@
 
 	onDestroy(() => {
 		activeFetchController?.abort();
+		if (viewportRerankTimer !== null) clearTimeout(viewportRerankTimer);
 	});
 
 	$effect(() => {
