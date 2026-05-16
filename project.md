@@ -66,6 +66,13 @@ simplest thing: **OTP at signup (MVP)**, **OTP at login as a toggle (nice-to-hav
 
 Email delivery: **Resend** (generous free tier, one-line API, no SMTP setup).
 
+**Anti-sock-puppet measures (MVP).** Email verification is not just a nicety —
+it is the gate that makes voting meaningful. Voting is restricted to
+email-verified accounts, enforced **server-side**. At signup, also rate-limit
+account creation per IP (e.g. max 3 per 10 minutes) and reject known
+disposable-email domains from a static blocklist. Together these kill the
+cheapest brigading paths for roughly half an hour of work. See §9.3.
+
 Sessions: signed HTTP-only cookie + a `sessions` table. Hand-rolled is fine at
 this scale; don't reach for a heavy auth library.
 
@@ -120,22 +127,54 @@ The right tab can be minimised to read the article full-width.
 
 - **Reactions:** lightweight emoji reactions on any post.
 - **Comments:** flat thread (one level of replies max — keep it simple).
-- **Votes:** Verify / Dispute, **factual posts only**, one vote per account,
-  changeable. The credibility meter is `verify / (verify + dispute)`.
+- **Votes:** Verify / Dispute, **factual posts only** (see §4.6), one vote per
+  account, changeable. The credibility meter is `verify / (verify + dispute)`.
+- Voting is gated to **email-verified accounts, enforced server-side** on the
+  vote endpoint — not a hidden button. This is the main cheap defence against
+  sock-puppet brigading; see §3 and §9.3.
 
 ### 4.5 AI Community Notes (OpenAI)
 
-- Input: the post + its comments. Output: a short neutral paragraph summarising
-  what the discussion says, what evidence is offered, and which points are
-  contested.
-- **The note does not pronounce truth.** It may flag *discussion-level* signals
-  ("no sources cited", "commenters dispute the date") but the verdict belongs to
-  the vote bar.
+- The note has **one job: summarise the opinions expressed in the comments** —
+  what readers are saying and the range of views. Nothing more.
+- Input: the post's comment thread. Output: one short, neutral paragraph.
+- **The note does not pronounce truth and does not fact-check the post.** It
+  reports the discussion, not a verdict. The crowd credibility meter is the only
+  truth signal. A UI label says so: "AI summary of the discussion — not a fact
+  check."
+- **No comments → no note.** Skip the API call when the thread is empty; show a
+  static "No discussion yet" placeholder instead.
 - **Regeneration is debounced** — not on every comment. Regenerate when ≥5 new
   comments arrive *or* 10 minutes pass since the last note. Store the note in the
-  DB with the comment-count it was based on.
-- **Moderation:** run new comments and posts through OpenAI's (free) moderation
-  endpoint before they're stored.
+  DB with the comment-count it was based on, and never block a page load on the
+  API call — return the stale note and refresh asynchronously.
+
+### 4.6 Personal vs factual posts — divergent behaviour
+
+The two categories drive different code paths, not just a label. Make this
+explicit, or users will try to "verify" a garage-sale notice.
+
+| Capability | Personal post | Factual post |
+|------------|---------------|--------------|
+| Verify / Dispute voting | ✗ | ✓ |
+| Credibility meter | ✗ | ✓ |
+| AI community note | ✗ | ✓ |
+| Comments & reactions | ✓ | ✓ |
+| Appears on the map | ✓ | ✓ |
+
+- The category is chosen at posting time. Personal posts skip the entire
+  credibility/note pipeline — cheaper, and correct, since they make no truth
+  claim.
+- When a user picks "factual", show a one-line notice: "Factual posts are
+  subject to community verification." The friction deters casual
+  miscategorisation.
+
+### 4.7 Moderation (MVP)
+
+- Every new post and comment passes through OpenAI's moderation endpoint before
+  it is stored. It is free, fast, and a hard requirement — a judge or bystander
+  posting hateful content that goes live is a demo-ending failure.
+- A **report button** on posts and comments writes to the `reports` table.
 
 ---
 
@@ -225,12 +264,21 @@ council boundaries for local mode (source: Stats NZ open data, simplified with
 outline. Result: exact minimalist aesthetic, instant theming, zero tile
 provider, zero API key, tiny payload.
 
-**The connector lines.** This is custom — no map library does it natively.
+**The connector lines.** This is custom — no map library does it natively, and
+it is the project's biggest schedule risk. Build a working spike on fake data
+**inside the first 4–6 hours** so the team can commit to the fallback early if
+it is shaky (see §9.4).
 
-- An absolutely-positioned **SVG overlay** spans the map *and* the headline list.
+- An absolutely-positioned **SVG overlay** spans the *full page*, not just the
+  map+list section. Set `pointer-events: none` on it, or it silently blocks map
+  pan/zoom on touch devices.
 - For each visible post: get its screen pixel via `map.project([lng,lat])`, get
-  the headline element's `getBoundingClientRect()`, draw a quadratic-bezier path
-  between them.
+  the headline element's `getBoundingClientRect()`, and **translate both into the
+  same coordinate space** (document-relative) before drawing. `map.project()`
+  returns canvas-space pixels and `getBoundingClientRect()` returns viewport
+  pixels — they diverge whenever the map is not flush with the viewport edge, and
+  mismatching them is a silent, hard-to-debug bug.
+- Draw a quadratic-bezier path between the two points.
 - Recompute on map `move`/`zoom`, on list `scroll`, and on window `resize`.
   Throttle with `requestAnimationFrame`.
 - **Clutter control:** cap at ~8–12 connectors, render them faint, highlight one
@@ -259,37 +307,40 @@ Ranked by how much they should change the plan.
    geography, or just rely on the % bar. **Cut the radii concept.** Heatmap is
    nice-to-have, not MVP.
 
-2. **Don't let the AI be the arbiter of truth.** *(design fix — §4.5)*
-   "AI gauges credibility" sounds great and is a trap: the model can't verify
-   facts and will confidently hallucinate. Real Community Notes are *crowd*
-   sourced. Keep roles clean — **crowd vote = verdict, AI = discussion summary.**
-   The AI may surface discussion signals ("no sources linked") but never a
-   true/false ruling. This also protects you from an awkward demo moment.
+2. **The AI only summarises comment opinions — resolved.** *(see §4.5)*
+   "AI gauges credibility" is a trap: the model can't verify facts and will
+   confidently hallucinate. The AI's job is strictly to summarise the opinions in
+   the comment thread — no verdict, no fact-check, no "discussion signals". The
+   crowd vote is the only credibility signal. Clean roles, no awkward demo moment.
 
-3. **Vote brigading.** Open truth-voting invites sock-puppets and pile-ons.
-   For 48h, accept it but mitigate cheaply: one vote per verified account,
-   account-must-be-email-verified-to-vote. *Strong optional feature that fits the
-   theme:* **proximity-weighted votes** — a voter near the impact zone counts for
-   more than someone across the country. PostGIS makes this a single distance
-   query, and it's a genuinely novel pitch point. Stretch goal.
+3. **Vote brigading — defences applied.** Open truth-voting invites sock-puppets
+   and pile-ons. Mitigations now in the MVP: one vote per account, voting gated
+   to email-verified accounts **enforced server-side** (§4.4), signup
+   rate-limiting per IP, and a disposable-email-domain blocklist at signup (§3).
+   *Strong optional feature that fits the theme:* **proximity-weighted votes** —
+   a voter near the impact zone counts for more than someone across the country.
+   PostGIS makes this a single distance query, and it's a genuinely novel pitch
+   point. Stretch goal.
 
 4. **Connector-line UI is the schedule risk.** *(see §8)* It's the signature
-   feature and the most likely thing to eat a day. **Prototype it in the first
-   few hours** with fake data. If it isn't working by hour ~20, fall back to
+   feature and the most likely thing to eat a day. **Get a working spike on fake
+   data inside the first 4–6 hours.** If it isn't solid by hour ~6, fall back to
    highlight-on-hover-only (draw a line for the hovered headline alone) — still
-   looks great, far less fragile.
+   looks great, far less fragile. Deciding the fallback early beats a broken
+   all-lines version at demo time.
 
-5. **Personal vs factual must actually behave differently.** *(design fix)*
-   The brief defines the two categories but not divergent behaviour. Make it
-   explicit: **personal posts have no vote bar and no community note.** Otherwise
-   you're asking the crowd to "verify" someone's garage-sale notice.
+5. **Personal vs factual behave differently — resolved.** *(see §4.6)*
+   Personal posts have no vote bar, no credibility meter, and no community note;
+   factual posts get the full pipeline. The category is fixed at posting time,
+   and the posting UI warns users when they pick "factual".
 
 6. **Geolocation will be denied/unavailable often.** Always ship the manual
    region picker as a first-class fallback, not an afterthought.
 
-7. **Moderation / abuse.** A platform where anyone posts "news" needs a floor.
-   Cheapest effective control: run posts + comments through OpenAI's free
-   moderation endpoint, plus a report button. Both are small. Include them.
+7. **Moderation / abuse — now MVP.** A platform where anyone posts "news" needs a
+   floor. Posts and comments run through OpenAI's free moderation endpoint before
+   storage, plus a report button (§4.7). A judge posting hateful content that
+   goes live is a demo-ending failure — this is not optional.
 
 8. **Privacy of precise location.** A personal post pinned to an exact home
    address can dox someone. Consider snapping personal-post locations to a
@@ -319,16 +370,20 @@ Ranked by how much they should change the plan.
 - Article view: article left; right tab with impact map, credibility meter, note,
   comments.
 - Posting flow: title, body, category, pin location, drag radius.
+- Personal vs factual posts behaving differently (§4.6).
 - Verify/Dispute voting on factual posts; credibility meter.
+- Anti-brigading: server-side email-verified vote gate, signup rate-limit,
+  disposable-email blocklist.
 - Comments.
-- AI community note on factual posts (debounced, cached).
-- Seeded demo data so the map looks alive.
+- AI community note (comment-opinion summary) on factual posts; debounced, cached.
+- Moderation: posts + comments through the moderation endpoint; report button.
+- Seeded demo data — a first-class deliverable: 15–20 realistic NZ posts across
+  regions, varied credibility meters, ≥1 full comment thread.
 
 **Nice-to-have:**
 - Local mode with geolocation + region fallback.
 - OTP at login (the "2FA toggle").
 - Marker clustering.
-- OpenAI moderation + report button.
 - Reactions.
 - Docker Compose deployment.
 
@@ -350,26 +405,30 @@ Ranked by how much they should change the plan.
   overlay, national/local toggle.
 - **B — Frontend / Product:** article view, posting panel, comments UI, the
   design system (minimalist white + gradient).
-- **C — Backend:** schema + migrations, auth + OTP, posts/votes/comments
-  endpoints, region/geo queries.
-- **D — AI + Infra:** OpenAI note service + moderation, Resend wiring, Docker
-  Compose, seed data, deployment.
+- **C — Backend:** schema + migrations, auth + OTP, anti-brigading gates
+  (server-side vote gate, signup rate-limit, disposable-email blocklist),
+  posts/votes/comments endpoints, region/geo queries.
+- **D — AI + Infra:** OpenAI note service, moderation on the write path (MVP),
+  Resend wiring, Docker Compose, deployment. Seeded demo data is a separate
+  first-class task at hour 38 with its own named owner — not bundled here.
 
 **Timeline**
-- **0–4h** — Repo, SvelteKit + Drizzle + PostGIS up, schema agreed, design
-  tokens, NZ GeoJSON sourced & simplified. A spikes the connector lines with
-  fake data *now*.
-- **4–16h** — Parallel build: A map + lines · B article/posting shells ·
-  C auth + posts/votes APIs · D OpenAI note service + Docker skeleton.
-- **16–30h** — Integration: real data through the map, posting writes to DB,
-  voting updates the meter, comments thread live.
-- **30–40h** — AI notes wired in and debounced, moderation, local mode,
-  polish pass on visuals.
-- **40–46h** — Seed realistic NZ data, deploy, end-to-end rehearsal, bug bash.
-- **46–48h** — Buffer + pitch/demo script.
+- **0–6h** — Repo, SvelteKit + Drizzle + PostGIS up, schema agreed, design
+  tokens, NZ GeoJSON sourced & simplified. A spikes the connector lines on fake
+  data — this must be working by hour 6 (see decision gate below).
+- **6–16h** — Parallel build: A map + lines · B article/posting shells ·
+  C auth + posts/votes APIs + anti-brigading gates · D OpenAI note service +
+  moderation + Docker skeleton.
+- **16–28h** — Integration: real data through the map, posting writes to DB,
+  voting updates the meter, comments thread live, moderation on the write path.
+- **28–38h** — AI notes wired in and debounced, local mode, polish pass.
+- **38–44h** — **Seeded demo data as a first-class task** (2–3 dedicated hours,
+  one named owner): 15–20 realistic NZ posts across regions, varied credibility
+  meters, ≥1 full comment thread with a generated note. Then deploy.
+- **44–48h** — End-to-end rehearsal, bug bash, buffer, pitch/demo script.
 
-**Decision gate at hour 20:** if connector lines aren't solid, drop to
-hover-only lines (§9.4) and move on.
+**Decision gate at hour 6:** if the connector lines aren't solid, drop to
+hover-only lines (§9.4) and move on. Deciding early beats a broken demo.
 
 ---
 
