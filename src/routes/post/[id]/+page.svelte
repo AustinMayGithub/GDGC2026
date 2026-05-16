@@ -112,7 +112,7 @@
 				<div class="panel-inner">
 					<!-- 1. Impact Map -->
 					<section class="panel-section map-section">
-						<h2 class="section-heading">Impact zone</h2>
+						<h2 class="section-heading">Affected area</h2>
 						<div class="map-wrapper">
 							<ImpactMap lng={post.lng} lat={post.lat} radiusM={post.impactRadiusM} />
 						</div>
