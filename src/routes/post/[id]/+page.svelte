@@ -11,6 +11,7 @@
 	import CommunityNote from '$lib/components/CommunityNote.svelte';
 	import ReactionBar from '$lib/components/ReactionBar.svelte';
 	import CommentThread from '$lib/components/CommentThread.svelte';
+	import { goto } from '$app/navigation';
 	import logo from '$lib/data/birdseye.png';
 
 

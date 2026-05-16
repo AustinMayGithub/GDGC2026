@@ -222,7 +222,33 @@
 		};
 	}
 
+	function voteStatus(post: PostSummary) {
+		const total = post.verifyCount + post.disputeCount;
+		if (total === 0) return 'decisive';
+		const verifyRatio = post.verifyCount / total;
+		if (verifyRatio >= 0.4 && verifyRatio <= 0.6) return 'decisive';
+		return verifyRatio > 0.6 ? 'factual' : 'disputed';
+	}
+
+	function popularityFor(post: PostSummary) {
+		return (
+			post.commentCount * 4 +
+			post.reactionCount * 3 +
+			(post.verifyCount + post.disputeCount) * 2
+		);
+	}
+
+	function popularityScale(post: PostSummary, minPopularity: number, maxPopularity: number) {
+		if (maxPopularity <= minPopularity) return 1;
+		const t = (popularityFor(post) - minPopularity) / (maxPopularity - minPopularity);
+		return 0.5 + t * 1.5;
+	}
+
 	function postsToFeatures(): GeoJSON.FeatureCollection<GeoJSON.Point> {
+		const popularityScores = posts.map(popularityFor);
+		const minPopularity = Math.min(...popularityScores, 0);
+		const maxPopularity = Math.max(...popularityScores, 0);
+
 		return {
 			type: 'FeatureCollection',
 			features: posts.map((post) => ({
@@ -231,7 +257,9 @@
 				properties: {
 					id: post.id,
 					selected: post.id === selectedPostId,
-					hovered: post.id === hoveredPostId
+					hovered: post.id === hoveredPostId,
+					status: voteStatus(post),
+					scale: popularityScale(post, minPopularity, maxPopularity)
 				}
 			}))
 		};
@@ -521,17 +549,26 @@
 				source: 'posts',
 				paint: {
 					'circle-radius': [
-						'case',
-						['==', ['get', 'selected'], true],
-						9,
-						['==', ['get', 'hovered'], true],
-						8,
-						6
+						'*',
+						[
+							'case',
+							['==', ['get', 'selected'], true],
+							9,
+							['==', ['get', 'hovered'], true],
+							8,
+							6
+						],
+						['coalesce', ['get', 'scale'], 1]
 					],
 					'circle-color': [
-						'case',
-						['==', ['get', 'selected'], true],
-						'#4f46e5',
+						'match',
+						['get', 'status'],
+						'factual',
+						'#16a34a',
+						'disputed',
+						'#dc2626',
+						'decisive',
+						'#eab308',
 						'#111827'
 					],
 					'circle-opacity': 0.95,

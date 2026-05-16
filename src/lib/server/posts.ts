@@ -26,6 +26,22 @@ type PostListRow = {
 	hasImage: boolean;
 };
 
+type PostDetailRow = {
+	id: string;
+	title: string;
+	body: string;
+	headerImageDataUrl: string | null;
+	category: PostDetail['category'];
+	lng: number;
+	lat: number;
+	impactRadiusM: number;
+	regionId: string;
+	createdAt: Date;
+	authorId: string;
+	authorName: string;
+	anonymous: boolean;
+};
+
 function isMissingOptionalPostColumn(err: unknown) {
 	const message = err instanceof Error ? err.message : String(err);
 	return (
@@ -86,6 +102,60 @@ async function selectPostListRows(opts: { regionId?: string }): Promise<PostList
 	}
 }
 
+async function selectPostDetailRow(id: string): Promise<PostDetailRow | null> {
+	try {
+		const [row] = await db
+			.select({
+				id: posts.id,
+				title: posts.title,
+				body: posts.body,
+				headerImageDataUrl: posts.headerImageDataUrl,
+				category: posts.category,
+				lng: posts.lng,
+				lat: posts.lat,
+				impactRadiusM: posts.impactRadiusM,
+				regionId: posts.regionId,
+				createdAt: posts.createdAt,
+				authorId: posts.authorId,
+				authorName: users.displayName,
+				anonymous: posts.anonymous
+			})
+			.from(posts)
+			.innerJoin(users, eq(posts.authorId, users.id))
+			.where(eq(posts.id, id));
+
+		return row ?? null;
+	} catch (err) {
+		if (!isMissingOptionalPostColumn(err)) throw err;
+
+		const [row] = await db
+			.select({
+				id: posts.id,
+				title: posts.title,
+				body: posts.body,
+				category: posts.category,
+				lng: posts.lng,
+				lat: posts.lat,
+				impactRadiusM: posts.impactRadiusM,
+				regionId: posts.regionId,
+				createdAt: posts.createdAt,
+				authorId: posts.authorId,
+				authorName: users.displayName
+			})
+			.from(posts)
+			.innerJoin(users, eq(posts.authorId, users.id))
+			.where(eq(posts.id, id));
+
+		return row
+			? {
+					...row,
+					headerImageDataUrl: null,
+					anonymous: false
+				}
+			: null;
+	}
+}
+
 export async function listPosts(opts: { regionId?: string } = {}): Promise<PostSummary[]> {
 	const rows = await selectPostListRows(opts);
 
@@ -136,25 +206,7 @@ export async function getPostDetail(
 	id: string,
 	viewerId: string | null
 ): Promise<PostDetail | null> {
-	const [r] = await db
-		.select({
-			id: posts.id,
-			title: posts.title,
-			body: posts.body,
-			headerImageDataUrl: posts.headerImageDataUrl,
-			category: posts.category,
-			lng: posts.lng,
-			lat: posts.lat,
-			impactRadiusM: posts.impactRadiusM,
-			regionId: posts.regionId,
-			createdAt: posts.createdAt,
-			authorId: posts.authorId,
-			authorName: users.displayName,
-			anonymous: posts.anonymous
-		})
-		.from(posts)
-		.innerJoin(users, eq(posts.authorId, users.id))
-		.where(eq(posts.id, id));
+	const r = await selectPostDetailRow(id);
 	if (!r) return null;
 
 	const [voteRows, commentCountRows, noteRows, reactionRows, myVoteRows] = await Promise.all([
