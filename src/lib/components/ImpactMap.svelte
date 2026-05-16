@@ -313,14 +313,16 @@
 						'heatmap-weight': 1,
 						'heatmap-intensity': heatIntensity as never,
 						'heatmap-radius': heatRadius as never,
-						'heatmap-opacity': 0.75,
+						'heatmap-opacity': 0.64,
 						'heatmap-color': [
 							'interpolate', ['linear'], ['heatmap-density'],
 							0, 'rgba(34,197,94,0)',
-							0.2, 'rgba(134,239,172,0.55)',
-							0.5, 'rgba(34,197,94,0.7)',
-							0.8, 'rgba(22,163,74,0.85)',
-							1, 'rgba(21,128,61,0.95)'
+							0.18, 'rgba(220,252,231,0.18)',
+							0.4, 'rgba(187,247,208,0.34)',
+							0.62, 'rgba(134,239,172,0.5)',
+							0.82, 'rgba(74,222,128,0.62)',
+							0.94, 'rgba(34,197,94,0.72)',
+							1, 'rgba(21,128,61,0.8)'
 						] as never
 					}
 				});
@@ -332,14 +334,16 @@
 						'heatmap-weight': 1,
 						'heatmap-intensity': heatIntensity as never,
 						'heatmap-radius': heatRadius as never,
-						'heatmap-opacity': 0.75,
+						'heatmap-opacity': 0.64,
 						'heatmap-color': [
 							'interpolate', ['linear'], ['heatmap-density'],
 							0, 'rgba(239,68,68,0)',
-							0.2, 'rgba(252,165,165,0.55)',
-							0.5, 'rgba(239,68,68,0.7)',
-							0.8, 'rgba(220,38,38,0.85)',
-							1, 'rgba(185,28,28,0.95)'
+							0.18, 'rgba(254,242,242,0.18)',
+							0.4, 'rgba(254,202,202,0.34)',
+							0.62, 'rgba(252,165,165,0.5)',
+							0.82, 'rgba(248,113,113,0.62)',
+							0.94, 'rgba(239,68,68,0.72)',
+							1, 'rgba(185,28,28,0.8)'
 						] as never
 					}
 				});
