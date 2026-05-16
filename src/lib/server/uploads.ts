@@ -1,85 +1,85 @@
 import { access, mkdir, readFile, unlink, writeFile } from 'node:fs/promises';
-import { extname, join, resolve } from 'node:path';
+import { join, resolve } from 'node:path';
 
 const UPLOAD_ROOT = resolve(process.env.UPLOAD_DIR ?? 'data/uploads');
-const HEADER_DIR = join(UPLOAD_ROOT, 'post-headers');
-const HEADER_URL_PREFIX = '/uploads/post-headers/';
-const MAX_HEADER_IMAGE_BYTES = 1_500_000;
-const ALLOWED_HEADER_IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
+const PHOTO_DIR = join(UPLOAD_ROOT, 'post-photos');
+const PHOTO_URL_PREFIX = '/uploads/post-photos/';
+const MAX_PHOTO_BYTES = 1_500_000;
+const MAX_PHOTOS_PER_POST = 10;
+const ALLOWED_PHOTO_TYPES = new Set(['image/jpeg']);
 
-const EXTENSIONS_BY_TYPE: Record<string, string> = {
-	'image/jpeg': '.jpg',
-	'image/png': '.png',
-	'image/webp': '.webp'
-};
-
-export function isValidPostHeaderImageUrl(value: string): boolean {
-	return value.startsWith(HEADER_URL_PREFIX) && !value.includes('..') && !value.includes('\\');
+function isValidPostId(postId: string): boolean {
+	return /^[a-f0-9-]{36}$/i.test(postId);
 }
 
-export async function savePostHeaderImage(file: File, postId: string): Promise<string> {
-	if (!/^[a-f0-9-]{36}$/i.test(postId)) {
+export async function savePostPhotos(files: File[], postId: string): Promise<string[]> {
+	if (!isValidPostId(postId)) {
 		throw new Error('Post ID is invalid.');
 	}
-
-	if (!ALLOWED_HEADER_IMAGE_TYPES.has(file.type)) {
-		throw new Error('Header image must be a JPEG, PNG, or WebP image.');
+	if (files.length > MAX_PHOTOS_PER_POST) {
+		throw new Error(`Posts can include up to ${MAX_PHOTOS_PER_POST} photos.`);
 	}
+	if (files.length === 0) return [];
 
-	if (file.size <= 0 || file.size > MAX_HEADER_IMAGE_BYTES) {
-		throw new Error('Header image must be under 1.5 MB.');
-	}
-
-	await mkdir(HEADER_DIR, { recursive: true });
-
-	const extension = EXTENSIONS_BY_TYPE[file.type] ?? extname(file.name).toLowerCase();
-	await Promise.all(
-		Object.values(EXTENSIONS_BY_TYPE).map((ext) =>
-			unlink(join(HEADER_DIR, `${postId}${ext}`)).catch(() => undefined)
-		)
-	);
-
-	const filename = `${postId}${extension}`;
-	const bytes = new Uint8Array(await file.arrayBuffer());
-	await writeFile(join(HEADER_DIR, filename), bytes);
-
-	return `${HEADER_URL_PREFIX}${filename}`;
-}
-
-export async function getPostHeaderImageUrl(postId: string): Promise<string | null> {
-	if (!/^[a-f0-9-]{36}$/i.test(postId)) return null;
-
-	for (const extension of Object.values(EXTENSIONS_BY_TYPE)) {
-		const filename = `${postId}${extension}`;
-		const path = join(HEADER_DIR, filename);
-		if (!resolve(path).startsWith(resolve(HEADER_DIR))) continue;
-
-		try {
-			await access(path);
-			return `${HEADER_URL_PREFIX}${filename}`;
-		} catch {
-			// Try the next supported extension.
+	for (const file of files) {
+		if (!ALLOWED_PHOTO_TYPES.has(file.type)) {
+			throw new Error('Photos must be uploaded as cropped JPEG images.');
+		}
+		if (file.size <= 0 || file.size > MAX_PHOTO_BYTES) {
+			throw new Error('Each photo must be under 1.5 MB.');
 		}
 	}
 
-	return null;
+	await mkdir(PHOTO_DIR, { recursive: true });
+	await Promise.all(
+		Array.from({ length: MAX_PHOTOS_PER_POST }, (_, index) =>
+			unlink(join(PHOTO_DIR, `${postId}-${index + 1}.jpg`)).catch(() => undefined)
+		)
+	);
+
+	const urls: string[] = [];
+	for (const [index, file] of files.entries()) {
+		const filename = `${postId}-${index + 1}.jpg`;
+		const bytes = new Uint8Array(await file.arrayBuffer());
+		await writeFile(join(PHOTO_DIR, filename), bytes);
+		urls.push(`${PHOTO_URL_PREFIX}${filename}`);
+	}
+
+	return urls;
 }
 
-export async function readPostHeaderImage(filename: string): Promise<{
+export async function getPostPhotoUrls(postId: string): Promise<string[]> {
+	if (!isValidPostId(postId)) return [];
+
+	const urls: string[] = [];
+	for (let index = 1; index <= MAX_PHOTOS_PER_POST; index++) {
+		const filename = `${postId}-${index}.jpg`;
+		const path = join(PHOTO_DIR, filename);
+		if (!resolve(path).startsWith(resolve(PHOTO_DIR))) continue;
+
+		try {
+			await access(path);
+			urls.push(`${PHOTO_URL_PREFIX}${filename}`);
+		} catch {
+			break;
+		}
+	}
+
+	return urls;
+}
+
+export async function readPostPhoto(filename: string): Promise<{
 	bytes: Uint8Array;
 	contentType: string;
 } | null> {
-	if (!/^[a-f0-9-]+\.(jpg|png|webp)$/i.test(filename)) return null;
+	if (!/^[a-f0-9-]{36}-(?:[1-9]|10)\.jpg$/i.test(filename)) return null;
 
-	const path = join(HEADER_DIR, filename);
-	if (!resolve(path).startsWith(resolve(HEADER_DIR))) return null;
+	const path = join(PHOTO_DIR, filename);
+	if (!resolve(path).startsWith(resolve(PHOTO_DIR))) return null;
 
 	try {
 		const bytes = await readFile(path);
-		const ext = extname(filename).toLowerCase();
-		const contentType =
-			ext === '.png' ? 'image/png' : ext === '.webp' ? 'image/webp' : 'image/jpeg';
-		return { bytes, contentType };
+		return { bytes, contentType: 'image/jpeg' };
 	} catch {
 		return null;
 	}
