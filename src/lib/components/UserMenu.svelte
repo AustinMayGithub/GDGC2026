@@ -3,10 +3,12 @@
 
 	let {
 		user,
+		hasUnreadNotifications = false,
 		onProfileSelect,
 		onLoginSelect
 	}: {
 		user: SessionUser | null;
+		hasUnreadNotifications?: boolean;
 		onProfileSelect?: (id: string) => void;
 		onLoginSelect?: () => void;
 	} = $props();
@@ -41,6 +43,9 @@
 			onclick={(e) => handleProfileClick(e, user.id)}
 		>
 			{initials(user.displayName)}
+			{#if hasUnreadNotifications}
+				<span class="notification-dot" aria-label="New comments"></span>
+			{/if}
 		</a>
 	</div>
 {:else}
@@ -63,5 +68,17 @@
 		display: flex;
 		align-items: center;
 		justify-content: center;
+		position: relative;
+	}
+	.notification-dot {
+		position: absolute;
+		top: 1px;
+		right: 1px;
+		width: 10px;
+		height: 10px;
+		border: 2px solid var(--surface);
+		border-radius: 50%;
+		background: #dc2626;
+		box-shadow: 0 0 0 1px rgba(220, 38, 38, 0.2);
 	}
 </style>

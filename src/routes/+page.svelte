@@ -38,9 +38,11 @@
 	interface PageData {
 		user: SessionUser | null;
 		coarseLocation: { lng: number; lat: number } | null;
+		hasUnreadNotifications: boolean;
 	}
 
 	let { data }: { data: PageData } = $props();
+	let hasUnreadNotifications = $state(false);
 
 	type Scope = 'national' | 'local';
 	type TrendMode = 'new' | 'trending' | 'rising';
@@ -80,6 +82,10 @@
 		...NZ_REGIONS.filter((region) => region.id === DEFAULT_REGION_ID),
 		...NZ_REGIONS.filter((region) => region.id !== DEFAULT_REGION_ID)
 	];
+
+	$effect(() => {
+		hasUnreadNotifications = data.hasUnreadNotifications;
+	});
 
 	let scope = $state<Scope>('national');
 	let posts = $state<PostSummary[]>([]);
@@ -423,6 +429,7 @@
 			const json = (await res.json()) as { profile: UserProfile; isOwn: boolean };
 			profileDetail = json.profile;
 			profileIsOwn = json.isOwn;
+			if (json.isOwn) hasUnreadNotifications = false;
 			if (!json.isOwn) profileEditing = false;
 		} catch {
 			if (requestId !== profileRequestId) return;
@@ -1344,7 +1351,12 @@
 				</svg>
 				New post
 			</button>
-			<UserMenu user={data.user} onProfileSelect={openProfile} onLoginSelect={openAccountPanel} />
+			<UserMenu
+				user={data.user}
+				{hasUnreadNotifications}
+				onProfileSelect={openProfile}
+				onLoginSelect={openAccountPanel}
+			/>
 		</div>
 	</header>
 
@@ -1923,6 +1935,33 @@
 								{/if}
 							</div>
 						</section>
+
+						{#if profileIsOwn && profile.newComments.length > 0}
+							<section class="profile-notifications">
+								<div class="radius-label-row">
+									<span class="field-label">New comments</span>
+									<span class="radius-value">{profile.newComments.length}</span>
+								</div>
+								<div class="profile-notification-list">
+									{#each profile.newComments as item}
+										<article class="profile-notification-item">
+											<div class="profile-post-top">
+												<strong>{item.authorName}</strong>
+												<span class="muted">{timeAgo(item.createdAt)}</span>
+											</div>
+											<p>{item.body}</p>
+											<button
+												type="button"
+												class="btn profile-post-open"
+												onclick={() => openProfilePost(item.postId)}
+											>
+												{item.postTitle}
+											</button>
+										</article>
+									{/each}
+								</div>
+							</section>
+						{/if}
 
 						<section class="profile-reputation">
 							<div class="radius-label-row">
@@ -2570,6 +2609,7 @@
 	}
 
 	.profile-summary,
+	.profile-notifications,
 	.profile-reputation,
 	.profile-posts,
 	.login-card {
@@ -2837,6 +2877,36 @@
 	.profile-empty {
 		margin: 0;
 		font-size: 13px;
+	}
+
+	.profile-notification-list {
+		display: flex;
+		flex-direction: column;
+		gap: 10px;
+		margin-top: 12px;
+	}
+
+	.profile-notification-item {
+		display: flex;
+		flex-direction: column;
+		gap: 8px;
+		min-width: 0;
+		padding: 14px;
+		border: 1px solid rgba(220, 38, 38, 0.18);
+		border-radius: var(--radius-sm);
+		background: #fff7f7;
+	}
+
+	.profile-notification-item p {
+		margin: 0;
+		color: var(--text-2);
+		font-size: 13px;
+		line-height: 1.45;
+		line-clamp: 3;
+		display: -webkit-box;
+		-webkit-line-clamp: 3;
+		-webkit-box-orient: vertical;
+		overflow: hidden;
 	}
 
 	.profile-post-grid {

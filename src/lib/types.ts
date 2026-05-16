@@ -47,6 +47,17 @@ export interface UserProfile {
 		postCount: number;
 	};
 	posts: PostSummary[];
+	newComments: CommentNotification[];
+}
+
+export interface CommentNotification {
+	id: string;
+	postId: string;
+	postTitle: string;
+	commentId: string;
+	authorName: string;
+	body: string;
+	createdAt: string;
 }
 
 export interface CommunityNote {
