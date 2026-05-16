@@ -56,6 +56,16 @@
 		};
 	}
 
+	function bboxForRadius(
+		lng: number,
+		lat: number,
+		radiusKm: number
+	): [number, number, number, number] {
+		const latDelta = radiusKm / 111.32;
+		const lngDelta = radiusKm / (111.32 * Math.max(Math.cos((lat * Math.PI) / 180), 0.2));
+		return [lng - lngDelta, lat - latDelta, lng + lngDelta, lat + latDelta];
+	}
+
 	function createMarkerEl(post: PostSummary, hovered: boolean): HTMLElement {
 		const el = document.createElement('div');
 		el.className = post.category === 'factual' ? 'marker-factual' : 'marker-personal';
@@ -156,6 +166,10 @@
 		}
 
 		m.fitBounds(bounds, options);
+	}
+
+	export function focusOnLocation(lng: number, lat: number, radiusKm = 20) {
+		fitToBbox(bboxForRadius(lng, lat, radiusKm));
 	}
 
 	onMount(async () => {

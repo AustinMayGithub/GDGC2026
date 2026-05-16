@@ -24,6 +24,7 @@
 	const DEFAULT_REGION_ID = 'auckland';
 	const REGION_CACHE_KEY = 'birdseye:local-region';
 	const GEO_MAX_AGE_MS = 10 * 60 * 1000;
+	const LOCAL_FOCUS_RADIUS_KM = 20;
 	const orderedRegions = [
 		...NZ_REGIONS.filter((region) => region.id === DEFAULT_REGION_ID),
 		...NZ_REGIONS.filter((region) => region.id !== DEFAULT_REGION_ID)
@@ -125,7 +126,11 @@
 					writeCachedRegion(regionId);
 					geoLoading = false;
 					geoError = null;
-					zoomToRegion(regionId);
+					mapComponent?.focusOnLocation(
+						pos.coords.longitude,
+						pos.coords.latitude,
+						LOCAL_FOCUS_RADIUS_KM
+					);
 					if (changedRegion) {
 						void fetchPosts('local', regionId);
 					}
