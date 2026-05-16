@@ -26,6 +26,7 @@
 	let selectedRegionId = $state<string>(NZ_REGIONS[0].id);
 	let geoError = $state<string | null>(null);
 	let geoLoading = $state(false);
+	const scopeSwitching = $derived(loading || geoLoading);
 
 	// Map & connector state
 	let mapComponent: HomeMap | null = null;
@@ -141,12 +142,14 @@
 		</div>
 
 		<div class="header-center">
-			<div class="scope-toggle">
+			<div class="scope-toggle" class:local={scope === 'local'} class:switching={scopeSwitching} aria-busy={scopeSwitching}>
+				<span class="toggle-indicator" aria-hidden="true"></span>
 				<button
 					type="button"
 					class={scope === 'national' ? 'toggle-btn active' : 'toggle-btn'}
 					onclick={switchToNational}
 					aria-pressed={scope === 'national'}
+					disabled={scopeSwitching}
 				>
 					National
 				</button>
@@ -155,6 +158,7 @@
 					class={scope === 'local' ? 'toggle-btn active' : 'toggle-btn'}
 					onclick={switchToLocal}
 					aria-pressed={scope === 'local'}
+					disabled={scopeSwitching}
 				>
 					Local
 				</button>
@@ -305,12 +309,37 @@
 	}
 
 	.scope-toggle {
-		display: flex;
+		display: grid;
+		grid-template-columns: 1fr 1fr;
+		position: relative;
 		background: var(--surface-2);
 		border: 1px solid var(--border);
 		border-radius: var(--radius-sm);
 		padding: 3px;
 		gap: 2px;
+		min-width: 194px;
+		overflow: hidden;
+	}
+
+	.toggle-indicator {
+		position: absolute;
+		top: 3px;
+		left: 3px;
+		width: calc(50% - 4px);
+		height: calc(100% - 6px);
+		border-radius: calc(var(--radius-sm) - 2px);
+		background: var(--surface);
+		box-shadow: var(--shadow-sm);
+		transition: transform 0.2s ease;
+		pointer-events: none;
+	}
+
+	.scope-toggle.local .toggle-indicator {
+		transform: translateX(calc(100% + 2px));
+	}
+
+	.scope-toggle.switching {
+		opacity: 0.86;
 	}
 
 	.toggle-btn {
@@ -321,13 +350,26 @@
 		color: var(--text-2);
 		font-size: 13px;
 		font-weight: 550;
-		transition: background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+		transition: color 0.15s ease, transform 0.15s ease;
+		position: relative;
+		z-index: 1;
 	}
 
 	.toggle-btn.active {
-		background: var(--surface);
 		color: var(--text);
-		box-shadow: var(--shadow-sm);
+		font-weight: 700;
+	}
+
+	.toggle-btn:not(.active):hover:enabled {
+		color: var(--text);
+	}
+
+	.toggle-btn:enabled:active {
+		transform: translateY(1px);
+	}
+
+	.toggle-btn:disabled {
+		cursor: wait;
 	}
 
 	.region-controls {
@@ -440,3 +482,4 @@
 		flex-shrink: 0;
 	}
 </style>
+

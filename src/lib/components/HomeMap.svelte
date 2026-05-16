@@ -94,7 +94,6 @@
 			}
 		}
 
-		onMarkerPositionsChange();
 	}
 
 	export function getMarkerScreenPos(postId: string): { x: number; y: number } | null {
@@ -151,6 +150,7 @@
 
 		m.on('load', () => {
 			syncMarkers();
+			onMarkerPositionsChange();
 			onMapReady(m);
 		});
 
