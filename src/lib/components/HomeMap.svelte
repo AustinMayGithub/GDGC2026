@@ -48,7 +48,7 @@
 		composing = false,
 		composeLng = 174.76,
 		composeLat = -36.85,
-		composeRadiusM = 2000,
+		composeRadiusM = 1000,
 		onComposePick
 	}: Props = $props();
 
@@ -467,7 +467,12 @@
 		m.fitBounds(bounds, options);
 	}
 
-	export function focusOnLocation(lng: number, lat: number, radiusKm = 5) {
+	export function focusOnLocation(
+		lng: number,
+		lat: number,
+		radiusKm = 5,
+		offset: [number, number] = [0, 0]
+	) {
 		if (!map || !maplibre) return;
 		const ml = maplibre as typeof import('maplibre-gl');
 		const m = map as InstanceType<typeof ml.Map>;
@@ -475,6 +480,7 @@
 		m.easeTo({
 			center: [lng, lat],
 			zoom: radiusKm <= 5 ? 12 : 10,
+			offset,
 			duration: 450
 		});
 		onMarkerPositionsChange();

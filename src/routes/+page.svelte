@@ -40,11 +40,14 @@
 	const REGION_CACHE_KEY = 'birdseye:local-region';
 	const GEO_MAX_AGE_MS = 15 * 60 * 1000;
 	const GEO_TIMEOUT_MS = 900;
-	const LOCAL_FOCUS_RADIUS_KM = 5;
+	const LOCAL_FOCUS_RADIUS_KM = 2.5;
 	const LOCAL_TRENDING_RADIUS_KM = 10;
 	const LOCAL_AUTO_NATIONAL_ZOOM = 6.4;
 	const LOCAL_AUTO_NATIONAL_GRACE_MS = 1400;
 	const LOCAL_ZOOM_OUT_EPSILON = 0.05;
+	const RADIUS_MIN_M = 100;
+	const RADIUS_MAX_M = 50000;
+	const RADIUS_SLIDER_MAX = 1000;
 	const orderedRegions = [
 		...NZ_REGIONS.filter((region) => region.id === DEFAULT_REGION_ID),
 		...NZ_REGIONS.filter((region) => region.id !== DEFAULT_REGION_ID)
@@ -81,7 +84,7 @@
 	let composeCategory = $state<PostCategory | null>(null);
 	let composeLng = $state(174.76);
 	let composeLat = $state(-36.85);
-	let composeRadiusM = $state(2000);
+	let composeRadiusM = $state(1000);
 	let composeAnonymous = $state(false);
 	let composeSubmitting = $state(false);
 	let composeError = $state('');
@@ -134,7 +137,11 @@
 
 		if (focusMap && scope === 'local') {
 			pauseLocalAutoNational();
-			mapComponent?.focusOnLocation(lng, lat, LOCAL_FOCUS_RADIUS_KM);
+			if (composing) {
+				focusComposeLocation(lng, lat);
+			} else {
+				mapComponent?.focusOnLocation(lng, lat, LOCAL_FOCUS_RADIUS_KM);
+			}
 		}
 	}
 
@@ -166,7 +173,11 @@
 					const [fallbackLng, fallbackLat] = regionCenter(selectedRegionId);
 					setLocalFocus(fallbackLng, fallbackLat);
 					pauseLocalAutoNational();
-					mapComponent?.focusOnLocation(fallbackLng, fallbackLat, LOCAL_FOCUS_RADIUS_KM);
+					if (composing) {
+						focusComposeLocation(fallbackLng, fallbackLat);
+					} else {
+						mapComponent?.focusOnLocation(fallbackLng, fallbackLat, LOCAL_FOCUS_RADIUS_KM);
+					}
 				}
 			},
 			{
@@ -395,10 +406,33 @@
 		return `${m} m`;
 	}
 
+	function sliderToRadius(value: number): number {
+		const t = Math.min(Math.max(value, 0), RADIUS_SLIDER_MAX) / RADIUS_SLIDER_MAX;
+		const raw = RADIUS_MIN_M * Math.pow(RADIUS_MAX_M / RADIUS_MIN_M, t);
+		const step = raw < 1000 ? 25 : raw < 10000 ? 100 : 500;
+		return Math.min(RADIUS_MAX_M, Math.max(RADIUS_MIN_M, Math.round(raw / step) * step));
+	}
+
+	function radiusToSlider(radiusM: number): number {
+		const clamped = Math.min(Math.max(radiusM, RADIUS_MIN_M), RADIUS_MAX_M);
+		const t = Math.log(clamped / RADIUS_MIN_M) / Math.log(RADIUS_MAX_M / RADIUS_MIN_M);
+		return Math.round(t * RADIUS_SLIDER_MAX);
+	}
+
 	async function resizeMapAfterLayout() {
 		await tick();
 		mapComponent?.triggerResize();
 		setTimeout(() => mapComponent?.triggerResize(), 320);
+	}
+
+	function composeMapOffset(): [number, number] {
+		if (typeof window === 'undefined' || window.innerWidth <= 980) return [0, 0];
+		const panelWidth = Math.max(520, Math.min(760, window.innerWidth * 0.58 - 20));
+		return [-(panelWidth + 20) / 2, 0];
+	}
+
+	function focusComposeLocation(lng: number, lat: number) {
+		mapComponent?.focusOnLocation(lng, lat, LOCAL_FOCUS_RADIUS_KM, composeMapOffset());
 	}
 
 	function openCompose() {
@@ -416,8 +450,8 @@
 		pauseLocalAutoNational();
 		scrollHost?.scrollTo({ top: 0, behavior: 'auto' });
 		composing = true;
-		mapComponent?.focusOnLocation(target.lng, target.lat, LOCAL_FOCUS_RADIUS_KM);
 		void resizeMapAfterLayout();
+		void tick().then(() => focusComposeLocation(target.lng, target.lat));
 	}
 
 	function closeCompose() {
@@ -430,11 +464,11 @@
 	function handleComposePick(newLng: number, newLat: number) {
 		composeLng = newLng;
 		composeLat = newLat;
-		mapComponent?.focusOnLocation(newLng, newLat, LOCAL_FOCUS_RADIUS_KM);
+		focusComposeLocation(newLng, newLat);
 	}
 
 	function handleRadiusInput(e: Event) {
-		composeRadiusM = Number((e.currentTarget as HTMLInputElement).value);
+		composeRadiusM = sliderToRadius(Number((e.currentTarget as HTMLInputElement).value));
 	}
 
 	function handleComposeCategory(cat: PostCategory) {
@@ -749,10 +783,10 @@
 								id="radius-slider"
 								type="range"
 								class="radius-slider"
-								min={100}
-								max={50000}
-								step={100}
-								value={composeRadiusM}
+								min={0}
+								max={RADIUS_SLIDER_MAX}
+								step={1}
+								value={radiusToSlider(composeRadiusM)}
 								oninput={handleRadiusInput}
 							/>
 							<div class="radius-hints muted">

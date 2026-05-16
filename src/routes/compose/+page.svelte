@@ -21,10 +21,14 @@
 	let category = $state<PostCategory | null>(null);
 	let lng = $state(174.76); // Default: Auckland
 	let lat = $state(-36.85);
-	let radiusM = $state(2000);
+	let radiusM = $state(1000);
 	let anonymous = $state(false);
 	let submitting = $state(false);
 	let error = $state('');
+
+	const RADIUS_MIN_M = 100;
+	const RADIUS_MAX_M = 50000;
+	const RADIUS_SLIDER_MAX = 1000;
 
 	const canSubmit = $derived(
 		title.trim().length > 0 &&
@@ -38,13 +42,26 @@
 		return `${m} m`;
 	}
 
+	function sliderToRadius(value: number): number {
+		const t = Math.min(Math.max(value, 0), RADIUS_SLIDER_MAX) / RADIUS_SLIDER_MAX;
+		const raw = RADIUS_MIN_M * Math.pow(RADIUS_MAX_M / RADIUS_MIN_M, t);
+		const step = raw < 1000 ? 25 : raw < 10000 ? 100 : 500;
+		return Math.min(RADIUS_MAX_M, Math.max(RADIUS_MIN_M, Math.round(raw / step) * step));
+	}
+
+	function radiusToSlider(radiusM: number): number {
+		const clamped = Math.min(Math.max(radiusM, RADIUS_MIN_M), RADIUS_MAX_M);
+		const t = Math.log(clamped / RADIUS_MIN_M) / Math.log(RADIUS_MAX_M / RADIUS_MIN_M);
+		return Math.round(t * RADIUS_SLIDER_MAX);
+	}
+
 	function handlePick(newLng: number, newLat: number) {
 		lng = newLng;
 		lat = newLat;
 	}
 
 	function handleRadiusInput(e: Event) {
-		radiusM = Number((e.currentTarget as HTMLInputElement).value);
+		radiusM = sliderToRadius(Number((e.currentTarget as HTMLInputElement).value));
 	}
 
 	function handleCategory(cat: PostCategory) {
@@ -227,10 +244,10 @@
 								id="radius-slider"
 								type="range"
 								class="radius-slider"
-								min={100}
-								max={50000}
-								step={100}
-								value={radiusM}
+								min={0}
+								max={RADIUS_SLIDER_MAX}
+								step={1}
+								value={radiusToSlider(radiusM)}
 								oninput={handleRadiusInput}
 							/>
 							<div class="radius-hints muted">
