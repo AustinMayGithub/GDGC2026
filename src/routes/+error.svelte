@@ -9,7 +9,7 @@
 	<a class="logo" href="/">
 		<span class="logo-dot"></span>
 		<span class="gradient-text">BirdsEye</span>
-		<img src={logo}>
+		<img alt="logo" src={logo}>
 	</a>
 	<div class="error-card card">
 		<div class="status gradient-text">{$page.status}</div>
