@@ -18,6 +18,13 @@
 		duration?: number;
 	};
 
+	type MapViewportState = {
+		centerLng: number;
+		centerLat: number;
+		zoom: number;
+		bounds: [number, number, number, number];
+	};
+
 	let { posts, hoveredPostId, onMapReady, onMarkerPositionsChange }: Props = $props();
 
 	let container: HTMLDivElement;
@@ -165,6 +172,21 @@
 		return {
 			x: rect.left + point.x,
 			y: rect.top + point.y
+		};
+	}
+
+	export function getViewportState(): MapViewportState | null {
+		if (!map || !maplibre) return null;
+		const ml = maplibre as typeof import('maplibre-gl');
+		const m = map as InstanceType<typeof ml.Map>;
+		const center = m.getCenter();
+		const bounds = m.getBounds();
+
+		return {
+			centerLng: center.lng,
+			centerLat: center.lat,
+			zoom: m.getZoom(),
+			bounds: [bounds.getWest(), bounds.getSouth(), bounds.getEast(), bounds.getNorth()]
 		};
 	}
 

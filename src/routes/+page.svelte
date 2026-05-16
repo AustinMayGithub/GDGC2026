@@ -20,6 +20,12 @@
 		regionId: string;
 		timestamp: number;
 	};
+	type MapViewportState = {
+		centerLng: number;
+		centerLat: number;
+		zoom: number;
+		bounds: [number, number, number, number];
+	};
 
 	const DEFAULT_REGION_ID = 'auckland';
 	const REGION_CACHE_KEY = 'birdseye:local-region';
@@ -53,6 +59,7 @@
 	let mapComponent: HomeMap | null = null;
 	let mapReady = $state(false);
 	let redrawTrigger = $state(0);
+	let mapViewport = $state<MapViewportState | null>(null);
 	let viewportWidth = $state(1440);
 	let viewportHeight = $state(900);
 	let listItemEls = new Map<string, HTMLElement>();
@@ -62,6 +69,67 @@
 
 	function clamp(min: number, value: number, max: number) {
 		return Math.min(Math.max(value, min), max);
+	}
+
+	function toRadians(value: number) {
+		return (value * Math.PI) / 180;
+	}
+
+	function distanceKm(aLat: number, aLng: number, bLat: number, bLng: number) {
+		const earthRadiusKm = 6371;
+		const latDelta = toRadians(bLat - aLat);
+		const lngDelta = toRadians(bLng - aLng);
+		const lat1 = toRadians(aLat);
+		const lat2 = toRadians(bLat);
+		const sinLat = Math.sin(latDelta / 2);
+		const sinLng = Math.sin(lngDelta / 2);
+		const haversine =
+			sinLat * sinLat + Math.cos(lat1) * Math.cos(lat2) * sinLng * sinLng;
+		return earthRadiusKm * 2 * Math.atan2(Math.sqrt(haversine), Math.sqrt(1 - haversine));
+	}
+
+	function isLngWithinBounds(lng: number, west: number, east: number) {
+		if (west <= east) return lng >= west && lng <= east;
+		return lng >= west || lng <= east;
+	}
+
+	function isPostInViewport(post: PostSummary, view: MapViewportState) {
+		const [west, south, east, north] = view.bounds;
+		return (
+			post.lat >= south &&
+			post.lat <= north &&
+			isLngWithinBounds(post.lng, west, east)
+		);
+	}
+
+	function locationRelevanceScore(post: PostSummary): number {
+		if (!mapViewport) return 0;
+
+		const distanceFromCenterKm = distanceKm(
+			mapViewport.centerLat,
+			mapViewport.centerLng,
+			post.lat,
+			post.lng
+		);
+		const zoomDistanceKm =
+			mapViewport.zoom >= 11
+				? 10
+				: mapViewport.zoom >= 9
+					? 24
+					: mapViewport.zoom >= 7
+						? 60
+						: mapViewport.zoom >= 5.5
+							? 140
+							: 280;
+		const centeredBoost = Math.max(0, 1 - distanceFromCenterKm / zoomDistanceKm) * 28;
+		const viewportBoost = isPostInViewport(post, mapViewport)
+			? mapViewport.zoom >= 9
+				? 40
+				: 28
+			: 0;
+		const scopeBoost = scope === 'local' ? 8 : 0;
+
+		return centeredBoost + viewportBoost + scopeBoost;
 	}
 
 	function currentBubbleRailWidth() {
@@ -124,7 +192,10 @@
 
 	const rankedPosts = $derived.by(() =>
 		[...posts].sort((a, b) => {
-			const diff = popularityScore(b) - popularityScore(a);
+			const diff =
+				popularityScore(b) +
+				locationRelevanceScore(b) -
+				(popularityScore(a) + locationRelevanceScore(a));
 			if (Math.abs(diff) > 0.001) return diff;
 			return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
 		})
@@ -256,10 +327,12 @@
 
 	function handleMapReady(_map: unknown) {
 		mapReady = true;
+		mapViewport = mapComponent?.getViewportState() ?? null;
 		redrawTrigger++;
 	}
 
 	function handleMarkerPositionsChange() {
+		mapViewport = mapComponent?.getViewportState() ?? mapViewport;
 		redrawTrigger++;
 	}
 
