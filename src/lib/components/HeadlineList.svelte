@@ -56,11 +56,20 @@
 							use:registerEl={post.id}
 							class="headline-item"
 							class:hovered={hoveredPostId === post.id}
+							class:has-image={post.hasImage}
 							onmouseenter={() => onHover(post.id)}
 							onmouseleave={() => onHover(null)}
 							onclick={() => goto(`/post/${post.id}`)}
 							aria-label={post.title}
 						>
+							{#if post.hasImage}
+								<img
+									class="item-thumb"
+									src="/api/posts/{post.id}/image"
+									alt=""
+									loading="lazy"
+								/>
+							{/if}
 							<div class="item-top">
 								<span class={post.category === 'factual' ? 'badge badge-factual' : 'badge'}>
 									{post.category === 'factual' ? 'Factual' : 'Community'}
@@ -129,9 +138,20 @@
 		right: clamp(16px, 2.2vw, 32px);
 	}
 
+	.item-thumb {
+		display: block;
+		width: calc(100% + 24px);
+		height: 72px;
+		object-fit: cover;
+		margin: -12px -12px 2px;
+		border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+		flex-shrink: 0;
+	}
+
 	.headline-item {
 		width: 100%;
 		aspect-ratio: 1.32;
+		overflow: hidden;
 		padding: 12px;
 		border: 1px solid rgba(255, 255, 255, 0.72);
 		border-radius: var(--radius-lg);
@@ -192,6 +212,11 @@
 		-webkit-line-clamp: 4;
 		-webkit-box-orient: vertical;
 		overflow: hidden;
+	}
+
+	.headline-item.has-image .item-title {
+		line-clamp: 2;
+		-webkit-line-clamp: 2;
 	}
 
 	.item-spacer {

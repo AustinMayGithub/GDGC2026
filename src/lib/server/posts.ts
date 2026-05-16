@@ -22,7 +22,8 @@ export async function listPosts(opts: { regionId?: string } = {}): Promise<PostS
 			impactRadiusM: posts.impactRadiusM,
 			regionId: posts.regionId,
 			createdAt: posts.createdAt,
-			authorName: users.displayName
+			authorName: users.displayName,
+			hasImage: sql<boolean>`(${posts.headerImageDataUrl} IS NOT NULL)`
 		})
 		.from(posts)
 		.innerJoin(users, eq(posts.authorId, users.id))
@@ -66,7 +67,8 @@ export async function listPosts(opts: { regionId?: string } = {}): Promise<PostS
 		commentCount: cmt.get(r.id) ?? 0,
 		reactionCount: reactionCount.get(r.id) ?? 0,
 		verifyCount: verify.get(r.id) ?? 0,
-		disputeCount: dispute.get(r.id) ?? 0
+		disputeCount: dispute.get(r.id) ?? 0,
+		hasImage: Boolean(r.hasImage)
 	}));
 }
 

@@ -26,6 +26,7 @@ export interface PostSummary {
 	reactionCount: number;
 	verifyCount: number;
 	disputeCount: number;
+	hasImage: boolean;
 }
 
 export interface CommunityNote {
