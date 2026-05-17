@@ -141,7 +141,7 @@
 	let composeError = $state('');
 	let composeAreaLabel = $state('Local Auckland area');
 	let areaLabelRequestId = 0;
-	let trendingOpen = $state(true);
+	let trendingOpen = $state(false);
 	let trendMode = $state<TrendMode>('trending');
 	let lastTrendingFitKey = '';
 	let suppressTrendingFitUntil = 0;
@@ -607,7 +607,6 @@
 			await resizeMapAfterLayout();
 		}
 		scope = 'national';
-		trendingOpen = true;
 		lastTrendingFitKey = '';
 		geoLoading = false;
 		geoError = null;
@@ -624,7 +623,6 @@
 			await resizeMapAfterLayout();
 		}
 		scope = 'region';
-		trendingOpen = true;
 		lastTrendingFitKey = '';
 		geoLoading = false;
 		geoError = null;
@@ -641,7 +639,6 @@
 			await resizeMapAfterLayout();
 		}
 		scope = 'local';
-		trendingOpen = true;
 		lastTrendingFitKey = '';
 		geoError = null;
 
