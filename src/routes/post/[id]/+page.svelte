@@ -92,6 +92,10 @@
 					/>
 				{/if}
 
+				{#if post.images.length === 0 && !post.headerImageDataUrl}
+					<h1 class="article-title article-title-top">{post.title}</h1>
+				{/if}
+
 				<div class="article-back-row">
 					<a class="back-link btn" href="/">
 						Back
@@ -113,7 +117,9 @@
 					<time class="muted" datetime={post.createdAt}>{formatDate(post.createdAt)}</time>
 				</div>
 
-				<h1 class="article-title">{post.title}</h1>
+				{#if post.images.length > 0 || post.headerImageDataUrl}
+					<h1 class="article-title">{post.title}</h1>
+				{/if}
 
 				<div class="article-body">
 					{#each post.body.split('\n') as paragraph}
@@ -281,6 +287,9 @@
 		letter-spacing: -0.02em;
 		margin-bottom: 24px;
 		color: var(--text);
+	}
+	.article-title-top {
+		margin-top: 0;
 	}
 
 	.article-body {

@@ -1627,13 +1627,6 @@
 
 		{#if viewingPost}
 			<aside class="post-panel card" transition:fly={{ x: -80, duration: 260 }}>
-				<div class="post-panel-top">
-					<div></div>
-					<button type="button" class="close-btn" aria-label="Back" onclick={clearSelectedPost}>
-						Back
-					</button>
-				</div>
-
 				{#if selectedPostLoading}
 					<div class="panel-loading">
 						<div class="spinner"></div>
@@ -1666,9 +1659,20 @@
 							/>
 						{/if}
 
-						<h1 class="article-title">{post.title}</h1>
+						{#if post.images.length === 0 && !post.headerImageDataUrl}
+                            <h1 class="article-title article-title-top">{post.title}</h1>
+                        {/if}
+						<div class="post-panel-back-row">
+							<button type="button" class="close-btn" aria-label="Back" onclick={clearSelectedPost}>
+								Back
+							</button>
+						</div>
 
-						<div class="article-meta">
+                        {#if post.images.length > 0 || post.headerImageDataUrl}
+                            <h1 class="article-title">{post.title}</h1>
+                        {/if}
+
+                        <div class="article-meta">
 							<span class="badge" class:badge-factual={post.category === 'news'}>
 								{postCategoryLabel(post.category)}
 							</span>
@@ -2901,13 +2905,17 @@
 		min-height: 44px;
 		flex: 0 0 auto;
 	}
-
 	.post-panel-body {
 		display: flex;
 		flex-direction: column;
 		gap: 20px;
 		max-width: 760px;
 		margin: 0 auto;
+	}
+
+	.post-panel-back-row {
+		display: flex;
+		margin-top: -6px;
 	}
 
 	.profile-panel-body {
@@ -3353,6 +3361,10 @@
 		align-items: center;
 		justify-content: center;
 		gap: 12px;
+	}
+
+	.article-title-top {
+		margin-top: 0;
 	}
 
 	.article-meta {
