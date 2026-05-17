@@ -13,6 +13,14 @@
 		onLoginSelect?: () => void;
 	} = $props();
 
+	let avatarFailed = $state(false);
+
+	$effect(() => {
+		user?.id;
+		user?.hasAvatar;
+		avatarFailed = false;
+	});
+
 	function initials(name: string): string {
 		return name
 			.split(/\s+/)
@@ -42,7 +50,16 @@
 			aria-label="Open account panel"
 			onclick={(e) => handleProfileClick(e, user.id)}
 		>
-			{initials(user.displayName)}
+			{#if user.hasAvatar && !avatarFailed}
+				<img
+					class="avatar-img"
+					src="/api/users/{user.id}/avatar"
+					alt=""
+					onerror={() => (avatarFailed = true)}
+				/>
+			{:else}
+				{initials(user.displayName)}
+			{/if}
 			{#if hasUnreadNotifications}
 				<span class="notification-dot" aria-label="New comments"></span>
 			{/if}
@@ -69,6 +86,13 @@
 		align-items: center;
 		justify-content: center;
 		position: relative;
+		overflow: hidden;
+	}
+	.avatar-img {
+		width: 100%;
+		height: 100%;
+		display: block;
+		object-fit: cover;
 	}
 	.notification-dot {
 		position: absolute;

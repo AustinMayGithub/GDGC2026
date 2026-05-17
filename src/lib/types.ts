@@ -9,6 +9,7 @@ export interface SessionUser {
 	email: string;
 	displayName: string;
 	emailVerified: boolean;
+	hasAvatar: boolean;
 }
 
 /** A post as shown on the map / headline list. */

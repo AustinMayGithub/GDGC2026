@@ -129,21 +129,21 @@
 		</span>
 	</div>
 
-	<div class="bar-track" aria-label="Credibility: {verifyPct}% verified">
+	<div class="bar-track" style="--verify-pct: {verifyPct}%;" aria-label="Credibility: {verifyPct}% verified">
 		{#if total === 0}
 			<div class="bar-empty">No votes yet</div>
 		{:else}
 			<div class="bar-verify" style="width: {verifyPct}%"></div>
+			{#if verifyPct > 0 && verifyPct < 100}
+				<div class="bar-slice" aria-hidden="true"></div>
+			{/if}
 			<div class="bar-dispute" style="width: {disputePct}%"></div>
+			<div class="bar-labels" aria-hidden="true">
+				<span>{verifyPct}% verified</span>
+				<span>{disputePct}% disputed</span>
+			</div>
 		{/if}
 	</div>
-
-	{#if total > 0}
-		<div class="pct-row">
-			<span class="pct-verify">{verifyPct}% verified</span>
-			<span class="pct-dispute">{disputePct}% disputed</span>
-		</div>
-	{/if}
 
 	{#if !user}
 		<p class="prompt muted">
@@ -207,18 +207,22 @@
 		font-size: 12px;
 	}
 	.bar-track {
+		position: relative;
 		display: flex;
-		height: 8px;
-		border-radius: 999px;
+		height: 54px;
+		border-radius: 6px;
 		overflow: hidden;
 		background: var(--surface-3);
+		border: 1px solid rgba(15, 23, 42, 0.1);
+		box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.18);
 	}
 	.bar-empty {
 		width: 100%;
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		font-size: 11px;
+		font-size: 13px;
+		font-weight: 750;
 		color: var(--text-3);
 	}
 	.bar-verify {
@@ -229,14 +233,40 @@
 		background: var(--dispute);
 		transition: width 0.4s ease;
 	}
-	.pct-row {
+	.bar-slice {
+		position: absolute;
+		top: -8px;
+		bottom: -8px;
+		left: var(--verify-pct);
+		width: 16px;
+		background: var(--surface);
+		transform: translateX(-50%) skewX(-18deg);
+		box-shadow:
+			-1px 0 0 rgba(255, 255, 255, 0.45),
+			1px 0 0 rgba(15, 23, 42, 0.08);
+		z-index: 1;
+		pointer-events: none;
+	}
+	.bar-labels {
+		position: absolute;
+		inset: 0;
 		display: flex;
 		justify-content: space-between;
-		font-size: 12px;
-		font-weight: 600;
+		align-items: center;
+		gap: 12px;
+		padding: 0 14px;
+		color: #ffffff;
+		font-size: 14px;
+		font-weight: 850;
+		line-height: 1;
+		text-shadow: 0 1px 2px rgba(15, 23, 42, 0.35);
+		z-index: 2;
+		pointer-events: none;
 	}
-	.pct-verify { color: var(--verify); }
-	.pct-dispute { color: var(--dispute); }
+	.bar-labels span {
+		min-width: 0;
+		white-space: nowrap;
+	}
 	.vote-row {
 		display: flex;
 		gap: 8px;

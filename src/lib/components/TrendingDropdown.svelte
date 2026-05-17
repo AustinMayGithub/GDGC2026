@@ -5,12 +5,14 @@
 
 	interface Props {
 		entries: RankedPost[];
-		scope: 'national' | 'local';
+		scope: 'national' | 'region' | 'local';
 		mode: TrendMode;
 		open: boolean;
+		hoveredPostId?: string | null;
 		onOpenChange: (open: boolean) => void;
 		onModeChange: (mode: TrendMode) => void;
 		onSelect: (id: string) => void;
+		onHover?: (id: string | null) => void;
 		itemEls?: Map<string, HTMLElement>;
 		onItemsChange?: () => void;
 	}
@@ -34,9 +36,11 @@
 		scope,
 		mode,
 		open,
+		hoveredPostId = null,
 		onOpenChange,
 		onModeChange,
 		onSelect,
+		onHover,
 		itemEls,
 		onItemsChange
 	}: Props = $props();
@@ -46,11 +50,19 @@
 	}
 
 	const scopeCopy = $derived(
-		scope === 'local' ? 'In your area' : 'Across New Zealand'
+		scope === 'local'
+			? 'In your area'
+			: scope === 'region'
+				? 'In this region'
+				: 'Across New Zealand'
 	);
 
 	function setOpen(nextOpen: boolean) {
 		onOpenChange(nextOpen);
+	}
+
+	function setHovered(id: string | null) {
+		onHover?.(id);
 	}
 
 	function registerEl(el: HTMLElement, postId: string) {
@@ -119,7 +131,12 @@
 							<button
 								type="button"
 								class="trend-item"
+								class:hovered={hoveredPostId === item.post.id}
 								use:registerEl={item.post.id}
+								onmouseenter={() => setHovered(item.post.id)}
+								onmouseleave={() => setHovered(null)}
+								onfocus={() => setHovered(item.post.id)}
+								onblur={() => setHovered(null)}
 								onclick={() => onSelect(item.post.id)}
 							>
 								<div class="trend-top">
@@ -280,7 +297,8 @@
 		transition: background 0.14s ease;
 	}
 
-	.trend-item:hover {
+	.trend-item:hover,
+	.trend-item.hovered {
 		background: var(--surface-2);
 	}
 
