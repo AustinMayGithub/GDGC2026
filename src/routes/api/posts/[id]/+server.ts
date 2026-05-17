@@ -11,8 +11,8 @@ export const GET: RequestHandler = async ({ params, locals }) => {
 
 	const [comments, votePoints, voteUsers] = await Promise.all([
 		getComments(params.id),
-		post.category === 'factual' ? getVotePoints(params.id) : Promise.resolve([]),
-		post.category === 'factual' ? getVoteUsers(params.id) : Promise.resolve([])
+		post.category === 'news' ? getVotePoints(params.id) : Promise.resolve([]),
+		post.category === 'news' ? getVoteUsers(params.id) : Promise.resolve([])
 	]);
 	return json({ post, comments, votePoints, voteUsers });
 };

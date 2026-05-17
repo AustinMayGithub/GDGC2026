@@ -349,7 +349,7 @@
 		const engagement = engagementFor(post);
 		const voteTotal = post.verifyCount + post.disputeCount;
 		const conversation = post.commentCount * 5 + post.reactionCount * 2 + voteTotal * 2;
-		const credibilitySignal = post.category === 'factual' ? Math.min(voteTotal, 12) * 1.5 : 0;
+		const credibilitySignal = post.category === 'news' ? Math.min(voteTotal, 12) * 1.5 : 0;
 		const ageHours = ageHoursFor(post);
 		const ageDecay = 1 / Math.pow(ageHours + 12, 0.35);
 		return Math.round((engagement * 8 + conversation + credibilitySignal) * ageDecay * 100);
@@ -1680,7 +1680,7 @@
 						{/if}
 
 						<div class="article-meta">
-							{#if post.category === 'personal'}
+							{#if post.category === 'community'}
 								<span class="badge">Community notice</span>
 								<span class="muted meta-sep">·</span>
 							{/if}
@@ -1721,7 +1721,7 @@
 							</div>
 
 						{#key post.id}
-							{#if post.category === 'factual'}
+							{#if post.category === 'news'}
 								<CredibilityMeter
 									{post}
 									user={data.user}
@@ -1730,7 +1730,7 @@
 								<CommunityNote note={selectedCommunityNote} />
 							{/if}
 
-							{#if post.category === 'factual'}
+							{#if post.category === 'news'}
 								<div class="panel-tabs" role="tablist" aria-label="Post panel views">
 									<button
 										type="button"
@@ -1754,7 +1754,7 @@
 								</div>
 							{/if}
 
-							{#if selectedPostTab === 'voters' && post.category === 'factual'}
+							{#if selectedPostTab === 'voters' && post.category === 'news'}
 								<section class="panel-section">
 									<h2 class="section-heading">Community ratings</h2>
 									{#if selectedVoteUsers.length === 0}
@@ -2245,7 +2245,7 @@
 										{@const totalVotes = profilePost.verifyCount + profilePost.disputeCount}
 										<article class="profile-post-item">
 											<div class="profile-post-top">
-												{#if profilePost.category === 'personal'}
+												{#if profilePost.category === 'community'}
 													<span class="badge">Community</span>
 												{/if}
 												<span class="muted">{timeAgo(profilePost.createdAt)}</span>
@@ -2255,7 +2255,7 @@
 												{#if regionName(profilePost.regionId)}
 													<span>{regionName(profilePost.regionId)}</span>
 												{/if}
-												{#if profilePost.category === 'factual' && totalVotes > 0}
+												{#if profilePost.category === 'news' && totalVotes > 0}
 													<span>{Math.round((profilePost.verifyCount / totalVotes) * 100)}% reliable</span>
 												{/if}
 												<span>{profilePost.commentCount} comments</span>

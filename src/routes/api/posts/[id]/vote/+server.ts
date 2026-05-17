@@ -29,7 +29,7 @@ export const POST: RequestHandler = async ({ request, params, locals }) => {
 		.from(posts)
 		.where(eq(posts.id, params.id));
 	if (!post) throw error(404, 'Post not found.');
-	if (post.category !== 'factual')
+	if (post.category !== 'news')
 		throw error(400, 'Only reliability-rated reports can be rated.');
 
 	// Location gate: a rater must be inside the post's impact zone.

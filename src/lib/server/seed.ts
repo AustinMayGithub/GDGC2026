@@ -130,7 +130,7 @@ async function main() {
 			authorId: liam.id,
 			title: 'SH1 Northbound Closed at Newmarket - Major Delays Expected',
 			body: `State Highway 1 northbound through Newmarket is closed from 6 am today following a multi-vehicle crash near the Gillies Ave on-ramp. Emergency services are on scene and the closure is expected to last several hours.\n\nDrivers are advised to use Khyber Pass Road or Great South Road as alternatives. Auckland Transport has deployed additional traffic management staff at key intersections. Expect delays of up to 45 minutes during peak hour.`,
-			category: 'factual',
+			category: 'news',
 			lng: 174.779,
 			lat: -36.877,
 			impactRadiusM: 8000,
@@ -141,7 +141,7 @@ async function main() {
 			authorId: priya.id,
 			title: 'Water Main Burst in Ponsonby - Roads Closed on Franklin Road',
 			body: `Watercare crews are responding to a burst 300mm main on Franklin Road, Ponsonby. The road is closed between Collingwood and Richmond Road while repairs are carried out.\n\nResidents in surrounding streets may experience low pressure or discoloured water. Watercare expects to restore supply by early afternoon. Parking restrictions are in effect for the length of the repair works.`,
-			category: 'factual',
+			category: 'news',
 			lng: 174.745,
 			lat: -36.861,
 			impactRadiusM: 3000,
@@ -152,7 +152,7 @@ async function main() {
 			authorId: mike.id,
 			title: 'Storm Damage Closes Mt Eden Road After Overnight Winds',
 			body: `A large pohutukawa fell across Mt Eden Road in the early hours of Sunday morning, following winds gusting to 95 km/h overnight. The tree has brought down a power line and Auckland Transport has confirmed the road will be closed until at least midday.\n\nVector crews are working to make the line safe before the tree can be removed. Neighbouring streets - Balmoral Road and Dominion Road - are handling diverted traffic with significant queuing reported.`,
-			category: 'factual',
+			category: 'news',
 			lng: 174.757,
 			lat: -36.889,
 			impactRadiusM: 4000,
@@ -163,7 +163,7 @@ async function main() {
 			authorId: sarah.id,
 			title: 'Free Community BBQ This Saturday - Grey Lynn Park',
 			body: `The Grey Lynn Community Association is hosting a free family BBQ this Saturday from noon to 3 pm at Grey Lynn Park. All welcome - bring a blanket and lawn games if you have them.\n\nSausages, veggie patties and juice provided. There will be a brief slot for locals to share ideas about the upcoming park redevelopment consultation. Dogs on leads are welcome.`,
-			category: 'personal',
+			category: 'community',
 			lng: 174.743,
 			lat: -36.866,
 			impactRadiusM: 2000,
@@ -174,7 +174,7 @@ async function main() {
 			authorId: aroha.id,
 			title: 'Lost Cat - Orange Tabby, Kingsland',
 			body: `Our cat Biscuit has been missing since Thursday evening. He is a large orange tabby, neutered, no collar but microchipped. Last seen near the railway line on New North Road, Kingsland.\n\nIf you spot him please don't try to grab him - he's nervous with strangers. Call or text Aroha on 021 555 0194. There is a reward.`,
-			category: 'personal',
+			category: 'community',
 			lng: 174.748,
 			lat: -36.875,
 			impactRadiusM: 1500,
@@ -185,7 +185,7 @@ async function main() {
 			authorId: liam.id,
 			title: 'Auckland Council Approves $2.4M Upgrade for New Lynn Town Centre',
 			body: `Auckland Council's Waitākere Ranges Local Board has approved a $2.4 million streetscape upgrade for New Lynn town centre, including new paving, seating, cycleways connections and improved lighting along Clark Street.\n\nWorks are scheduled to begin in February, with completion expected by July. Businesses along the strip have been consulted and temporary loading zone changes will be communicated via letter before works start. Some councillors raised concerns about the project timeline given recent delays on similar contracts.`,
-			category: 'factual',
+			category: 'news',
 			lng: 174.686,
 			lat: -36.909,
 			impactRadiusM: 12000,
@@ -198,7 +198,7 @@ async function main() {
 			authorId: brendan.id,
 			title: 'Hutt Road Slip Causes Commuter Chaos on Monday Morning',
 			body: `A slip on Hutt Road between Ngauranga and Petone has reduced the road to a single lane in both directions after heavy overnight rain. NZTA says full clearance is unlikely before Tuesday.\n\nWellington's commuter rail lines are running normally, and KiwiRail has confirmed it can handle increased patronage. Bus services on the Hutt Valley corridor are experiencing significant delays. Travellers are encouraged to use Transmission Gully as an alternative where possible.`,
-			category: 'factual',
+			category: 'news',
 			lng: 174.877,
 			lat: -41.228,
 			impactRadiusM: 20000,
@@ -209,7 +209,7 @@ async function main() {
 			authorId: priya.id,
 			title: 'Wellington City Council Votes to Close Courtenay Place to Traffic on Friday Nights',
 			body: `Wellington City Council last night voted 9–5 to trial a pedestrianisation of Courtenay Place between Tory and Blair streets on Friday nights from 10 pm to 4 am, starting from March.\n\nThe trial is for six months and will be reviewed. Supporters say it will reduce alcohol-fuelled incidents and create space for street performers. Opponents - including several bar owners who appeared before the committee - argue it will harm late-night logistics for deliveries and taxis.`,
-			category: 'factual',
+			category: 'news',
 			lng: 174.778,
 			lat: -41.295,
 			impactRadiusM: 5000,
@@ -220,7 +220,7 @@ async function main() {
 			authorId: sarah.id,
 			title: 'Garage Sale - Newtown, Sunday 9am',
 			body: `Moving overseas so everything must go. Furniture, kitchenware, books, vinyl records, kids toys and a very good sofa bed. Sunday 9 am–1 pm, 44 Rintoul Street, Newtown.\n\nCash only please. Everything priced to sell - first in first served. No early birds please, the gate won't be open before 9.`,
-			category: 'personal',
+			category: 'community',
 			lng: 174.782,
 			lat: -41.314,
 			impactRadiusM: 2500,
@@ -231,7 +231,7 @@ async function main() {
 			authorId: mike.id,
 			title: 'Miramar Peninsula Flood Warning After 80mm Rainfall in 6 Hours',
 			body: `MetService has issued a heavy rain warning for the Wellington region after 80mm fell in the Miramar area in just six hours on Tuesday. Several low-lying streets have surface flooding and the Rongotai roundabout is partially submerged.\n\nWellington City Council is monitoring the situation. The airport access road is passable but slow. Residents near Shelly Bay Road are being asked to monitor the drains and report blockages to the council's 24-hour line.`,
-			category: 'factual',
+			category: 'news',
 			lng: 174.813,
 			lat: -41.330,
 			impactRadiusM: 7000,
@@ -244,7 +244,7 @@ async function main() {
 			authorId: odw.id,
 			title: 'Christchurch City Council Defers Decision on Proposed Memorial Park Extension',
 			body: `Christchurch City Council has deferred a vote on the proposed extension to Roto Kohatu Reserve after a submission from the Canterbury Biodiversity Trust raised concerns about the impact on a nearby mahoe restoration area.\n\nThe item will return to the council's environment and infrastructure committee next month with an updated ecological assessment. Community groups who submitted in favour of the extension expressed frustration at the delay, noting the project has already been through two rounds of consultation.`,
-			category: 'factual',
+			category: 'news',
 			lng: 172.558,
 			lat: -43.524,
 			impactRadiusM: 25000,
@@ -255,7 +255,7 @@ async function main() {
 			authorId: liam.id,
 			title: 'Nor\'west Arch Brings Record Heat to Christchurch - 38°C Forecast',
 			body: `A strong nor'west arch is forecast to bring temperatures up to 38°C to the Canterbury Plains on Thursday, according to MetService. This would equal the hottest day recorded in Christchurch since 2009.\n\nFire and Emergency NZ has issued an open-air burn ban for the Canterbury region. Residents are advised to check on elderly neighbours, keep pets inside during the hottest part of the day (noon–4pm), and avoid strenuous outdoor activity.`,
-			category: 'factual',
+			category: 'news',
 			lng: 172.636,
 			lat: -43.531,
 			impactRadiusM: 60000,
@@ -268,7 +268,7 @@ async function main() {
 			authorId: odw.id,
 			title: 'Dunedin Hospital Construction Crane Collapse - No Injuries Reported',
 			body: `A construction crane at the new Dunedin Hospital site on Castle Street partially collapsed this morning after a structural failure during the lift of a steel beam. No workers were injured and the site has been cleared.\n\nWorksafe NZ inspectors are on-site. Hospital construction manager Downer Group said the incident occurred before workers had moved into the immediate area. Castle Street is closed between Hanover and St David streets and is expected to remain closed overnight.`,
-			category: 'factual',
+			category: 'news',
 			lng: 170.503,
 			lat: -45.872,
 			impactRadiusM: 6000,
@@ -279,7 +279,7 @@ async function main() {
 			authorId: brendan.id,
 			title: 'Queenstown Skifield Road Closed - Ice and Fresh Snow Overnight',
 			body: `The Remarkables ski area access road is closed this morning after 25cm of new snow fell overnight and freezing temperatures created significant ice on the upper section. The Coronet Peak road is open but chains are required beyond the carpark.\n\nQueenstown Lakes District Council's roading team is treating the Remarkables road and expects to re-open it by late morning, conditions permitting. Visitors heading to the Remarkables are advised to check the NZSki website before departing.`,
-			category: 'factual',
+			category: 'news',
 			lng: 168.768,
 			lat: -45.031,
 			impactRadiusM: 15000,
@@ -290,7 +290,7 @@ async function main() {
 			authorId: aroha.id,
 			title: 'Otago Farmers Market Celebrates 20 Years This Weekend',
 			body: `The Otago Farmers Market at the Dunedin Railway Station marks its 20th anniversary this Saturday with a special celebration stall, live music from the Dunedin Sinfonia String Quartet and free tastings from long-running stallholders.\n\nThe market runs 8am–12:30pm every Saturday as always. The anniversary event will also include a small exhibition of archive photos from the market's early days.`,
-			category: 'personal',
+			category: 'community',
 			lng: 170.503,
 			lat: -45.876,
 			impactRadiusM: 5000,
@@ -303,7 +303,7 @@ async function main() {
 			authorId: mike.id,
 			title: 'Hamilton East Bridge Repair Work to Begin - 12-Week Closure',
 			body: `The Riverlea Road bridge over the Waikato River in Hamilton East will close to all traffic from Monday for a 12-week repair programme. Hamilton City Council says the bridge deck has significant deterioration requiring full replacement.\n\nResidents in Hamilton East will need to use the Victoria Bridge or the Claudelands Road bridge as alternatives. A dedicated contra-flow lane for cyclists and pedestrians will be maintained at Victoria Bridge during the works.`,
-			category: 'factual',
+			category: 'news',
 			lng: 175.293,
 			lat: -37.784,
 			impactRadiusM: 18000,
@@ -316,7 +316,7 @@ async function main() {
 			authorId: priya.id,
 			title: 'Rotorua Sulphur Smell - Council Investigates Increase in Geothermal Activity',
 			body: `Rotorua Lakes Council is investigating an increase in hydrogen sulphide odour reported by residents across the central city and Ohinemutu over the past 48 hours. The smell, while unpleasant, is not at levels considered dangerous.\n\nGeothermal monitoring equipment at several reference sites has recorded increased ground temperatures and gas output. GNS Science has been notified and says the activity is consistent with seasonal variation but is being monitored. Residents with respiratory conditions are advised to keep windows closed during periods of strong smell.`,
-			category: 'factual',
+			category: 'news',
 			lng: 176.249,
 			lat: -38.137,
 			impactRadiusM: 10000,
@@ -329,7 +329,7 @@ async function main() {
 			authorId: brendan.id,
 			title: 'Kaipara Harbour Ferry Service Suspended After Vessel Damage',
 			body: `The Kaipara Harbour passenger ferry connecting Dargaville to Pouto Point has been suspended indefinitely after the vessel sustained propeller damage in shallow water near the Pouto bar on Friday.\n\nNorthland Regional Council, which funds the service, says a replacement vessel has been sourced and is expected to resume the route within two weeks. Residents on the Pouto Peninsula who rely on the ferry for medical and school transport are being assisted with road-based alternatives.`,
-			category: 'factual',
+			category: 'news',
 			lng: 173.857,
 			lat: -36.098,
 			impactRadiusM: 35000,
@@ -342,7 +342,7 @@ async function main() {
 			authorId: sarah.id,
 			title: 'Napier Port Expansion Consent Granted After Two-Year Process',
 			body: `Port of Napier has received resource consent from the Hawke's Bay Regional Council to proceed with a major wharf expansion, ending a two-year consent process that attracted 47 submissions.\n\nThe $80 million project will add a second container berth and deepen the channel to allow larger vessels. Consent conditions include a reef monitoring programme and restrictions on night dredging to protect shorebird habitat. Construction is expected to begin mid-year and take 30 months.`,
-			category: 'factual',
+			category: 'news',
 			lng: 176.916,
 			lat: -39.481,
 			impactRadiusM: 40000,
@@ -355,7 +355,7 @@ async function main() {
 			authorId: aroha.id,
 			title: 'Palmerston North Cycleway Extension Opens This Week',
 			body: `A new 3.2km shared path connecting the Palmerston North city centre to Massey University's main campus opened this Wednesday, part of the broader Te Ahu a Turanga cycle network.\n\nHorizons Regional Council contributed $1.2M toward the project. The path is sealed and lit, and connects to existing off-road sections at Summerhill Drive. Cyclists and pedestrians using the old footpath route along University Avenue are encouraged to switch to the new facility.`,
-			category: 'factual',
+			category: 'news',
 			lng: 175.607,
 			lat: -40.356,
 			impactRadiusM: 8000,
@@ -389,7 +389,7 @@ async function main() {
 	const pNapier = byTitle('Napier Port Expansion Consent Granted After Two-Year Process');
 	const pCycleway = byTitle('Palmerston North Cycleway Extension Opens This Week');
 
-	// ── 4. Votes (factual posts only) ─────────────────────────────────────
+	// ── 4. Votes (news posts only) ─────────────────────────────────────
 	console.log('  Inserting votes…');
 
 	type VoteInsert = typeof schema.postVotes.$inferInsert;
@@ -750,7 +750,7 @@ async function main() {
 		}
 	];
 
-	// Personal post comments (Grey Lynn BBQ)
+	// Community post comments (Grey Lynn BBQ)
 	const pBbq = insertedPosts.find((p) => p.title.includes('Free Community BBQ'))!;
 	const bbqComments: CommentInsert[] = [
 		{
@@ -830,7 +830,7 @@ async function main() {
 		{ postId: pCrane.id, userId: liam.id, emoji: '😟' },
 		{ postId: pCrane.id, userId: brendan.id, emoji: '😮' },
 		{ postId: pCrane.id, userId: priya.id, emoji: '😟' },
-		// Grey Lynn BBQ (personal)
+		// Grey Lynn BBQ (community)
 		{ postId: pBbq.id, userId: liam.id, emoji: '❤️' },
 		{ postId: pBbq.id, userId: aroha.id, emoji: '👍' },
 		{ postId: pBbq.id, userId: mike.id, emoji: '❤️' },
@@ -840,7 +840,7 @@ async function main() {
 		// Ski road
 		{ postId: pSkifield.id, userId: odw.id, emoji: '😮' },
 		{ postId: pSkifield.id, userId: priya.id, emoji: '😟' },
-		// Farmers market (personal)
+		// Farmers market (community)
 		{ postId: pFarmers.id, userId: liam.id, emoji: '❤️' },
 		{ postId: pFarmers.id, userId: sarah.id, emoji: '👍' }
 	];

@@ -171,7 +171,7 @@ async function summariseOpinions(title: string, bodies: string[]): Promise<strin
 }
 
 /**
- * Regenerates the community note for a factual post.
+ * Regenerates the community note for a news post.
  * Safe to call after every comment - never throws.
  */
 export async function maybeRegenerateNote(postId: string): Promise<CommunityNote | null> {
@@ -180,7 +180,7 @@ export async function maybeRegenerateNote(postId: string): Promise<CommunityNote
 			.select({ title: posts.title, category: posts.category })
 			.from(posts)
 			.where(eq(posts.id, postId));
-		if (!post || post.category !== 'factual') return null;
+		if (!post || post.category !== 'news') return null;
 
 		const recent = await db
 			.select({ body: comments.body })

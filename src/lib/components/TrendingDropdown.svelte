@@ -140,7 +140,7 @@
 								onclick={() => onSelect(item.post.id)}
 							>
 								<div class="trend-top">
-									{#if item.post.category === 'personal'}
+									{#if item.post.category === 'community'}
 										<span class="badge">Community</span>
 									{/if}
 									<span class="trend-time muted">{timeAgo(item.post.createdAt)}</span>

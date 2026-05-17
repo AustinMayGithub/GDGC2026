@@ -1,4 +1,4 @@
-﻿<script lang="ts">
+<script lang="ts">
 	import { flip } from 'svelte/animate';
 	import type { PostSummary } from '$lib/types';
 	import { getRegion } from '$lib/data/nz-regions';
@@ -70,7 +70,7 @@
 								/>
 							{/if}
 							<div class="item-top">
-								{#if post.category === 'personal'}
+								{#if post.category === 'community'}
 									<span class="badge">Community</span>
 								{/if}
 								<span class="item-time muted">{timeAgo(post.createdAt)}</span>
@@ -95,7 +95,7 @@
 									</svg>
 									{post.commentCount}
 								</span>
-								{#if post.category === 'factual' && post.verifyCount + post.disputeCount > 0}
+								{#if post.category === 'news' && post.verifyCount + post.disputeCount > 0}
 									<span class={`item-votes vote-${voteStatus(post)}`}>
 										{Math.round((post.verifyCount / (post.verifyCount + post.disputeCount)) * 100)}%
 										reliable

@@ -344,7 +344,7 @@
 						{@const totalVotes = post.verifyCount + post.disputeCount}
 						<article class="post-item card">
 							<div class="post-top">
-								{#if post.category === 'personal'}
+								{#if post.category === 'community'}
 									<span class="badge">Community</span>
 								{/if}
 								{#if post.anonymous}
@@ -355,7 +355,7 @@
 							<p class="post-title">{post.title}</p>
 							<div class="post-meta muted">
 								{#if region}<span>{region.name}</span>{/if}
-								{#if post.category === 'factual' && totalVotes > 0}
+								{#if post.category === 'news' && totalVotes > 0}
 									<span
 										class="vote-pct"
 										style="color: {post.verifyCount > post.disputeCount
