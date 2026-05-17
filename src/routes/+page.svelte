@@ -1503,6 +1503,29 @@
 				onComposePick={handleComposePick}
 			/>
 
+			{#if composing && data.user}
+				<div class="compose-radius-overlay">
+					<div class="radius-label-row">
+						<label class="field-label" for="compose-radius-slider">Affected location</label>
+						<span class="radius-value">{formatRadius(composeRadiusM)}</span>
+					</div>
+					<input
+						id="compose-radius-slider"
+						type="range"
+						class="radius-slider"
+						min={0}
+						max={RADIUS_SLIDER_MAX}
+						step={1}
+						value={radiusToSlider(composeRadiusM)}
+						oninput={handleRadiusInput}
+					/>
+					<div class="radius-hints muted">
+						<span>100 m</span>
+						<span>50 km</span>
+					</div>
+				</div>
+			{/if}
+
 			{#if !composing && !viewingPost && !viewingProfile}
 				<div class="trending-overlay">
 					<TrendingDropdown
@@ -2284,30 +2307,6 @@
 								<span class="field-hint muted">your name will not be shown publicly</span>
 							</span>
 						</label>
-
-						<div class="location-panel">
-							<div class="radius-label-row">
-								<label class="field-label" for="radius-slider">Affected location</label>
-								<span class="radius-value">{formatRadius(composeRadiusM)}</span>
-							</div>
-							<input
-								id="radius-slider"
-								type="range"
-								class="radius-slider"
-								min={0}
-								max={RADIUS_SLIDER_MAX}
-								step={1}
-								value={radiusToSlider(composeRadiusM)}
-								oninput={handleRadiusInput}
-							/>
-							<div class="radius-hints muted">
-								<span>100 m</span>
-								<span>50 km</span>
-							</div>
-							<div class="area-label-row muted">
-								<span>{composeAreaLabel}</span>
-							</div>
-						</div>
 
 						{#if composeError}
 							<p class="error-text error-msg">{composeError}</p>
@@ -3539,6 +3538,29 @@
 		background: var(--surface-2);
 	}
 
+	.compose-radius-overlay {
+		position: absolute;
+		left: 16px;
+		bottom: 10px;
+		z-index: 21;
+		width: min(320px, calc(100vw - 32px));
+		display: flex;
+		flex-direction: column;
+		gap: 4px;
+		padding: 0;
+		text-shadow: 0 1px 2px rgba(255, 255, 255, 0.9);
+	}
+
+	.compose-radius-overlay .field-label,
+	.compose-radius-overlay .radius-value,
+	.compose-radius-overlay .radius-hints {
+		color: var(--text);
+	}
+
+	.compose-radius-overlay .radius-slider {
+		height: 18px;
+	}
+
 	.radius-label-row,
 	.radius-hints {
 		display: flex;
@@ -3665,6 +3687,13 @@
 			bottom: 16px;
 			width: auto;
 			min-width: 0;
+			padding-bottom: 156px;
+		}
+
+		.compose-radius-overlay {
+			left: 12px;
+			bottom: 8px;
+			width: min(320px, calc(100vw - 24px));
 		}
 
 		.post-panel {
@@ -3721,6 +3750,7 @@
 
 		.compose-panel {
 			padding: 18px;
+			padding-bottom: 156px;
 		}
 
 		.post-panel {
