@@ -75,9 +75,6 @@
 <div class="page" class:right-open={rightOpen}>
 	<!-- Top bar -->
 	<header class="topbar">
-		<a class="back-link btn" href="/">
-			Back
-		</a>
 		<span class="topbar-title gradient-text"><img alt="logo" src={logo} height="24px"></span>
 		<UserMenu {user} {hasUnreadNotifications} />
 	</header>
@@ -95,6 +92,16 @@
 					/>
 				{/if}
 
+				<div
+					class="article-heading-row"
+					class:hasMedia={post.images.length > 0 || post.headerImageDataUrl}
+				>
+					<h1 class="article-title">{post.title}</h1>
+					<a class="back-link btn" href="/">
+						Back
+					</a>
+				</div>
+
 				<!-- Category + meta row -->
 				<div class="article-meta">
 					<span class="badge" class:badge-factual={post.category === 'news'}>
@@ -109,8 +116,6 @@
 					<span class="muted meta-sep">&middot;</span>
 					<time class="muted" datetime={post.createdAt}>{formatDate(post.createdAt)}</time>
 				</div>
-
-				<h1 class="article-title">{post.title}</h1>
 
 				<div class="article-body">
 					{#each post.body.split('\n') as paragraph}
@@ -226,6 +231,16 @@
 		padding: 7px 14px;
 		white-space: nowrap;
 	}
+	.article-heading-row {
+		display: flex;
+		align-items: flex-start;
+		justify-content: space-between;
+		gap: 16px;
+		margin: 0 0 18px;
+	}
+	.article-heading-row.hasMedia {
+		margin-top: -16px;
+	}
 	.topbar-title {
 		font-size: 18px;
 		font-weight: 800;
@@ -274,6 +289,14 @@
 		letter-spacing: -0.02em;
 		margin-bottom: 24px;
 		color: var(--text);
+	}
+	.article-heading-row .article-title {
+		margin: 0;
+		flex: 1;
+		min-width: 0;
+	}
+	.article-heading-row .back-link {
+		flex: 0 0 auto;
 	}
 
 	.article-body {
@@ -383,6 +406,12 @@
 		}
 		.article-col {
 			padding: 20px 16px;
+		}
+		.article-heading-row {
+			margin-bottom: 16px;
+		}
+		.article-heading-row.hasMedia {
+			margin-top: -8px;
 		}
 		.right-panel {
 			width: 100%;
