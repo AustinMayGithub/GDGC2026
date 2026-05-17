@@ -6,7 +6,7 @@ export type MapScope = 'national' | 'local';
 export type CommentReactionValue = 'like' | 'dislike';
 
 export function postCategoryLabel(category: PostCategory): string {
-	return category === 'factual' ? 'News' : 'Community post';
+	return category === 'news' ? 'News' : 'Community post';
 }
 
 export interface SessionUser {
