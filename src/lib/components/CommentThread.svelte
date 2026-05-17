@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { untrack } from 'svelte';
 	import { timeAgo } from '$lib/time';
 	import type {
 		CommentItem,
@@ -89,7 +90,7 @@
 				body: JSON.stringify({ body: sentBody, parentId })
 			});
 			const data = await res.json().catch(() => ({}));
-			if (res.ok) {
+			if (res.ok && data.comment) {
 				comments = comments.map((comment) =>
 					comment.id === optimistic.id ? data.comment : comment
 				);
@@ -182,12 +183,17 @@
 		failedAvatars = new Set([...failedAvatars, authorId]);
 	}
 
+	// Re-sync from the prop only when the post itself changes. Reading
+	// `initialComments` untracked keeps a parent re-render from wiping
+	// locally-posted (optimistic) comments back to a stale snapshot.
 	$effect(() => {
 		postId;
-		comments = [...initialComments];
-		replyingToId = null;
-		replyDrafts = {};
-		submitError = '';
+		untrack(() => {
+			comments = [...initialComments];
+			replyingToId = null;
+			replyDrafts = {};
+			submitError = '';
+		});
 	});
 </script>
 
