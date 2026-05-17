@@ -97,7 +97,7 @@
 				id: 'land',
 				type: 'background' as const,
 				paint: {
-					'background-color': '#c7ffab'
+					'background-color': '#b8eda1'
 				}
 			},
 			{
@@ -112,7 +112,7 @@
 					['==', 'subclass', 'recreation_ground']
 				],
 				paint: {
-					'fill-color': '#bdf29f',
+					'fill-color': '#a9df8f',
 					'fill-opacity': 0.42
 				}
 			},
@@ -123,7 +123,7 @@
 				'source-layer': 'park',
 				minzoom: 6,
 				paint: {
-					'fill-color': '#b9f59c',
+					'fill-color': '#a4e388',
 					'fill-opacity': 0.48
 				}
 			},

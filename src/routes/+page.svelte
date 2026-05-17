@@ -89,7 +89,7 @@
 		hasUnreadNotifications = data.hasUnreadNotifications;
 	});
 
-	let scope = $state<Scope>('national');
+	let scope = $state<Scope>('region');
 	let posts = $state<PostSummary[]>([]);
 	let loading = $state(false);
 	let error = $state<string | null>(null);
@@ -141,7 +141,7 @@
 	let composeError = $state('');
 	let composeAreaLabel = $state('Local Auckland area');
 	let areaLabelRequestId = 0;
-	let trendingOpen = $state(false);
+	let trendingOpen = $state(true);
 	let trendMode = $state<TrendMode>('trending');
 	let lastTrendingFitKey = '';
 	let localAutoNationalEnabledAt = 0;
@@ -219,7 +219,9 @@
 			composeLat = lat;
 		}
 
-		if (focusMap && scope === 'local') {
+		if (focusMap && scope === 'region') {
+			zoomToRegion(regionId);
+		} else if (focusMap && scope === 'local') {
 			pauseLocalAutoNational();
 			if (composing) {
 				focusComposeLocation(lng, lat);
@@ -251,7 +253,9 @@
 						? 'Using your selected region below.'
 						: 'Using a saved region for now.';
 
-				if (focusMap && scope === 'local') {
+				if (focusMap && scope === 'region') {
+					zoomToRegion(selectedRegionId);
+				} else if (focusMap && scope === 'local') {
 					const [fallbackLng, fallbackLat] = regionCenter(selectedRegionId);
 					setLocalFocus(fallbackLng, fallbackLat);
 					pauseLocalAutoNational();
@@ -571,6 +575,8 @@
 			await resizeMapAfterLayout();
 		}
 		scope = 'national';
+		trendingOpen = true;
+		lastTrendingFitKey = '';
 		geoLoading = false;
 		geoError = null;
 		mapComponent?.fitToBbox(NZ_BBOX);
@@ -585,6 +591,8 @@
 			await resizeMapAfterLayout();
 		}
 		scope = 'region';
+		trendingOpen = true;
+		lastTrendingFitKey = '';
 		geoLoading = false;
 		geoError = null;
 		zoomToRegion(selectedRegionId);
@@ -599,6 +607,8 @@
 			await resizeMapAfterLayout();
 		}
 		scope = 'local';
+		trendingOpen = true;
+		lastTrendingFitKey = '';
 		geoError = null;
 
 		if (userLocation) {
@@ -631,6 +641,7 @@
 	function handleMapReady(_map: unknown) {
 		mapReady = true;
 		mapViewport = mapComponent?.getViewportState() ?? null;
+		if (scope === 'region') zoomToRegion(selectedRegionId);
 		redrawTrigger++;
 	}
 
@@ -1323,7 +1334,7 @@
 		}
 		// Warm the precise GPS fix in the background so the first vote/post is instant.
 		prewarm();
-		requestUserLocation(false);
+		requestUserLocation(true);
 		fetchPosts();
 
 		const refreshWhenVisible = () => {
@@ -2527,84 +2538,58 @@
 		transform: translateY(-50%);
 		display: flex;
 		align-items: center;
-		gap: 10px;
+		gap: 8px;
 		white-space: nowrap;
-	}
-
-	.region-controls::before {
-		content: 'Region';
-		display: inline-flex;
-		align-items: center;
-		height: 24px;
-		padding: 0 9px;
-		border: 1px solid rgba(15, 23, 42, 0.08);
-		border-radius: 999px;
-		background: rgba(255, 255, 255, 0.72);
-		color: var(--text-3);
-		font-size: 10px;
-		font-weight: 850;
-		letter-spacing: 0.06em;
-		text-transform: uppercase;
-		box-shadow: 0 6px 18px rgba(15, 23, 42, 0.06);
 	}
 
 	.region-picker {
 		position: relative;
 		display: inline-flex;
 		align-items: center;
-		height: 38px;
-		min-width: 188px;
-		border: 1px solid rgba(15, 23, 42, 0.1);
-		border-radius: 999px;
-		background:
-			linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(247, 248, 250, 0.92));
-		box-shadow: 0 12px 30px rgba(15, 23, 42, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.92);
+		height: 36px;
+		min-width: 174px;
+		border: 1px solid rgba(15, 23, 42, 0.12);
+		border-radius: var(--radius-sm);
+		background: rgba(255, 255, 255, 0.92);
+		box-shadow: 0 8px 22px rgba(15, 23, 42, 0.07);
 		color: var(--text);
-		overflow: hidden;
-		transition:
-			border-color 0.15s ease,
-			box-shadow 0.15s ease,
-			background 0.15s ease,
-			transform 0.15s ease;
+		transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
 	}
 
 	.region-picker:hover {
-		border-color: rgba(15, 23, 42, 0.2);
+		border-color: rgba(15, 23, 42, 0.22);
 		background: #ffffff;
-		box-shadow: 0 16px 34px rgba(15, 23, 42, 0.14), inset 0 1px 0 rgba(255, 255, 255, 0.96);
-		transform: translateY(-1px);
+		box-shadow: 0 10px 28px rgba(15, 23, 42, 0.1);
 	}
 
 	.region-picker:focus-within {
 		border-color: var(--accent);
-		box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15), 0 16px 34px rgba(15, 23, 42, 0.12);
+		box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.16);
 	}
 
 	.region-picker-icon {
 		position: absolute;
-		left: 10px;
+		left: 11px;
 		display: inline-flex;
 		align-items: center;
 		justify-content: center;
-		width: 22px;
-		height: 22px;
-		border-radius: 50%;
-		background: rgba(99, 102, 241, 0.1);
-		color: #4f46e5;
+		width: 18px;
+		height: 18px;
+		color: var(--accent);
 		pointer-events: none;
 	}
 
 	.region-select {
 		width: 100%;
 		height: 100%;
-		padding: 0 38px 0 40px;
+		padding: 0 34px 0 36px;
 		border: 0;
 		border-radius: inherit;
 		appearance: none;
 		background: transparent;
 		color: var(--text);
 		font-size: 13px;
-		font-weight: 800;
+		font-weight: 750;
 		cursor: pointer;
 	}
 
@@ -2612,29 +2597,15 @@
 		outline: none;
 	}
 
-	.region-select option {
-		background: #ffffff;
-		color: var(--text);
-		font-size: 13px;
-		font-weight: 650;
-	}
-
 	.region-picker-chevron {
 		position: absolute;
-		right: 14px;
-		width: 7px;
-		height: 7px;
+		right: 13px;
+		width: 8px;
+		height: 8px;
 		border-right: 2px solid var(--text-3);
 		border-bottom: 2px solid var(--text-3);
 		transform: translateY(-2px) rotate(45deg);
 		pointer-events: none;
-		transition: border-color 0.15s ease, transform 0.15s ease;
-	}
-
-	.region-picker:hover .region-picker-chevron,
-	.region-picker:focus-within .region-picker-chevron {
-		border-color: var(--text);
-		transform: translateY(0) rotate(45deg);
 	}
 
 	.helper-text {

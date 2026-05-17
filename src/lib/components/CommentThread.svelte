@@ -113,52 +113,58 @@
 	{:else}
 		<div class="comment-list">
 			{#each comments as comment (comment.id)}
-				<div class="comment">
-					<div class="comment-meta">
+				<article class="comment">
+					<div class="comment-rail">
 						<span class="avatar-circle">{comment.authorName[0]?.toUpperCase() ?? '?'}</span>
-						<span class="author-name">{comment.authorName}</span>
-						<span class="time muted">{timeAgo(comment.createdAt)}</span>
-						{#if user}
-							<button
-								class="report-trigger muted"
-								onclick={() => {
-									reportingId = reportingId === comment.id ? null : comment.id;
-									reportReason = '';
-									reportError = '';
-								}}
-							>
-								Report
-							</button>
+					</div>
+					<div class="comment-main">
+						<div class="comment-meta">
+							<div class="comment-author-block">
+								<span class="author-name">{comment.authorName}</span>
+								<span class="time muted">{timeAgo(comment.createdAt)}</span>
+							</div>
+							{#if user}
+								<button
+									class="report-trigger muted"
+									onclick={() => {
+										reportingId = reportingId === comment.id ? null : comment.id;
+										reportReason = '';
+										reportError = '';
+									}}
+								>
+									Report
+								</button>
+							{/if}
+						</div>
+						<p class="comment-body">{comment.body}</p>
+
+						{#if reportingId === comment.id}
+							<div class="report-panel">
+								<textarea
+									class="input report-input"
+									placeholder="Why are you reporting this comment?"
+									bind:value={reportReason}
+									rows={2}
+								></textarea>
+								{#if reportError}
+									<p class="error-text">{reportError}</p>
+								{/if}
+								<div class="report-actions">
+									<button
+										class="btn btn-primary"
+										onclick={() => submitReport(comment.id)}
+										disabled={reportSubmitting || !reportReason.trim()}
+									>
+										Submit
+									</button>
+									<button class="btn" onclick={() => { reportingId = null; reportReason = ''; }}>
+										Cancel
+									</button>
+								</div>
+							</div>
 						{/if}
 					</div>
-					<p class="comment-body">{comment.body}</p>
-
-					{#if reportingId === comment.id}
-						<div class="report-panel">
-							<textarea
-								class="input report-input"
-								placeholder="Why are you reporting this comment?"
-								bind:value={reportReason}
-								rows={2}
-							></textarea>
-							{#if reportError}
-								<p class="error-text">{reportError}</p>
-							{/if}
-							<div class="report-actions">
-								<button
-									class="btn btn-primary"
-									onclick={() => submitReport(comment.id)}
-									disabled={reportSubmitting || !reportReason.trim()}
-								>
-									Submit
-								</button>
-								<button class="btn" onclick={() => { reportingId = null; reportReason = ''; }}>
-									Cancel
-								</button>
-							</div>
-						</div>
-					{/if}
-				</div>
+				</article>
 			{/each}
 		</div>
 	{/if}
@@ -203,20 +209,24 @@
 	.thread {
 		display: flex;
 		flex-direction: column;
-		gap: 16px;
+		gap: 12px;
 	}
 	.thread-heading {
-		font-size: 14px;
-		font-weight: 650;
 		display: flex;
 		align-items: center;
 		gap: 8px;
+		font-size: 12px;
+		font-weight: 750;
+		letter-spacing: 0.07em;
+		text-transform: uppercase;
+		color: var(--text-3);
 	}
 	.count-badge {
 		display: inline-flex;
 		align-items: center;
 		justify-content: center;
-		background: var(--surface-3);
+		background: var(--surface);
+		border: 1px solid var(--border);
 		color: var(--text-2);
 		font-size: 11px;
 		font-weight: 700;
@@ -228,77 +238,128 @@
 	.comment-list {
 		display: flex;
 		flex-direction: column;
-		gap: 14px;
+		gap: 0;
+		border: 1px solid var(--border);
+		border-radius: var(--radius);
+		background: rgba(255, 255, 255, 0.72);
+		overflow: hidden;
 	}
 	.comment {
-		display: flex;
-		flex-direction: column;
-		gap: 6px;
-		padding-bottom: 14px;
+		display: grid;
+		grid-template-columns: 32px minmax(0, 1fr);
+		gap: 10px;
+		padding: 14px;
 		border-bottom: 1px solid var(--border);
+		background: var(--surface);
 	}
 	.comment:last-child {
 		border-bottom: none;
-		padding-bottom: 0;
+	}
+	.comment-rail {
+		position: relative;
+		display: flex;
+		justify-content: center;
+		padding-top: 2px;
+	}
+	.comment:not(:last-child) .comment-rail::after {
+		content: '';
+		position: absolute;
+		top: 34px;
+		bottom: -16px;
+		left: 50%;
+		width: 1px;
+		background: var(--border);
+		transform: translateX(-50%);
+	}
+	.comment-main {
+		min-width: 0;
+		display: flex;
+		flex-direction: column;
+		gap: 7px;
 	}
 	.comment-meta {
 		display: flex;
-		align-items: center;
-		gap: 8px;
+		align-items: flex-start;
+		justify-content: space-between;
+		gap: 10px;
 	}
 	.avatar-circle {
-		width: 26px;
-		height: 26px;
+		position: relative;
+		z-index: 1;
+		width: 30px;
+		height: 30px;
 		border-radius: 50%;
-		background: var(--gradient);
-		color: #fff;
+		background: var(--surface);
+		border: 1px solid var(--border-strong);
+		color: var(--text);
 		font-size: 11px;
-		font-weight: 700;
+		font-weight: 800;
 		display: inline-flex;
 		align-items: center;
 		justify-content: center;
 		flex-shrink: 0;
+		box-shadow: var(--shadow-sm);
 	}
 	.avatar-circle.own {
-		background: var(--gradient);
+		background: var(--text);
+		border-color: var(--text);
+		color: #fff;
+	}
+	.comment-author-block {
+		min-width: 0;
+		display: flex;
+		align-items: baseline;
+		flex-wrap: wrap;
+		gap: 6px;
 	}
 	.author-name {
-		font-weight: 650;
+		min-width: 0;
+		font-weight: 750;
 		font-size: 13px;
+		line-height: 1.25;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
 	}
 	.time {
-		font-size: 12px;
-		margin-left: auto;
+		font-size: 11px;
+		line-height: 1.25;
 	}
 	.report-trigger {
-		border: none;
-		background: none;
-		padding: 0;
-		font-size: 12px;
+		flex: 0 0 auto;
+		border: 1px solid transparent;
+		border-radius: var(--radius-sm);
+		background: transparent;
+		padding: 3px 6px;
+		font-size: 11px;
+		font-weight: 650;
 		cursor: pointer;
-		margin-left: 4px;
 	}
 	.report-trigger:hover {
+		border-color: rgba(220, 38, 38, 0.18);
+		background: #fff7f7;
 		color: var(--dispute);
 	}
 	.comment-body {
 		margin: 0;
 		font-size: 14px;
-		line-height: 1.6;
-		padding-left: 34px;
+		line-height: 1.55;
+		color: var(--text);
+		overflow-wrap: anywhere;
 	}
 	.report-panel {
-		margin-left: 34px;
 		display: flex;
 		flex-direction: column;
 		gap: 8px;
+		margin-top: 4px;
 		padding: 10px;
-		background: var(--surface-2);
+		background: #fffafa;
 		border-radius: var(--radius-sm);
-		border: 1px solid var(--border);
+		border: 1px solid rgba(220, 38, 38, 0.18);
 	}
 	.report-input {
 		resize: vertical;
+		min-height: 72px;
 	}
 	.report-actions {
 		display: flex;
@@ -307,11 +368,12 @@
 	.compose-box {
 		display: flex;
 		flex-direction: column;
-		gap: 10px;
+		gap: 12px;
 		padding: 14px;
-		background: var(--surface-2);
+		background: rgba(255, 255, 255, 0.72);
 		border-radius: var(--radius);
 		border: 1px solid var(--border);
+		box-shadow: var(--shadow-sm);
 	}
 	.compose-header {
 		display: flex;
@@ -319,11 +381,14 @@
 		gap: 8px;
 	}
 	.compose-name {
-		font-weight: 650;
+		font-weight: 750;
 		font-size: 13px;
 	}
 	.comment-input {
 		resize: vertical;
+		min-height: 92px;
+		line-height: 1.5;
+		background: var(--surface);
 	}
 	.compose-footer {
 		display: flex;
@@ -332,6 +397,7 @@
 	.sign-in-card {
 		padding: 16px;
 		text-align: center;
+		background: rgba(255, 255, 255, 0.72);
 	}
 	.link {
 		color: var(--accent);
@@ -340,5 +406,19 @@
 	.empty {
 		font-size: 14px;
 		margin: 0;
+		padding: 14px;
+		border: 1px solid var(--border);
+		border-radius: var(--radius);
+		background: rgba(255, 255, 255, 0.72);
+	}
+
+	@media (max-width: 560px) {
+		.comment {
+			grid-template-columns: 30px minmax(0, 1fr);
+			padding: 12px;
+		}
+		.report-trigger {
+			padding-right: 0;
+		}
 	}
 </style>
