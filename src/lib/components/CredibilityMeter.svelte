@@ -32,6 +32,7 @@
 	const total = $derived(verifyCount + disputeCount);
 	const verifyPct = $derived(total === 0 ? 50 : Math.round((verifyCount / total) * 100));
 	const disputePct = $derived(100 - verifyPct);
+	const canVote = $derived(Boolean(user) && !loading && !locating);
 
 	// Warm the location provider as soon as the meter is on screen, so the
 	// voter isn't waiting on a cold GPS fix the moment they click Verify.
@@ -129,20 +130,40 @@
 		</span>
 	</div>
 
-	<div class="bar-track" style="--verify-pct: {verifyPct}%;" aria-label="Credibility: {verifyPct}% verified">
-		{#if total === 0}
-			<div class="bar-empty">No votes yet</div>
-		{:else}
-			<div class="bar-verify" style="width: {verifyPct}%"></div>
-			{#if verifyPct > 0 && verifyPct < 100}
-				<div class="bar-slice" aria-hidden="true"></div>
-			{/if}
-			<div class="bar-dispute" style="width: {disputePct}%"></div>
-			<div class="bar-labels" aria-hidden="true">
-				<span>{verifyPct}% verified</span>
-				<span>{disputePct}% disputed</span>
-			</div>
-		{/if}
+	<div
+		class="bar-track"
+		class:no-votes={total === 0}
+		style="--verify-pct: {verifyPct}%; --dispute-pct: {disputePct}%;"
+		aria-label="Credibility: {verifyPct}% verified, {disputePct}% disputed"
+	>
+		<div
+			class="bar-fill bar-verify"
+			class:active={myVote === 'verify'}
+			style="width: {verifyPct === 0 ? '0%' : `calc(${verifyPct}% + 10px)`}"
+		></div>
+		<div
+			class="bar-fill bar-dispute"
+			class:active={myVote === 'dispute'}
+			style="width: {disputePct === 0 ? '0%' : `calc(${disputePct}% + 10px)`}"
+		></div>
+		<div class="bar-labels" aria-hidden="true">
+			<span>{total === 0 ? 'Verify' : `${verifyPct}% verified`}</span>
+			<span>{total === 0 ? 'Dispute' : `${disputePct}% disputed`}</span>
+		</div>
+		<button
+			type="button"
+			class="bar-hit bar-hit-verify"
+			aria-label="Verify this post"
+			onclick={() => vote('verify')}
+			disabled={!canVote}
+		></button>
+		<button
+			type="button"
+			class="bar-hit bar-hit-dispute"
+			aria-label="Dispute this post"
+			onclick={() => vote('dispute')}
+			disabled={!canVote}
+		></button>
 	</div>
 
 	{#if !user}
@@ -150,7 +171,7 @@
 			<a href="/auth/login" class="link">Sign in</a> to verify or dispute this post.
 		</p>
 	{:else}
-		<div class="vote-row">
+		<div class="vote-row" hidden>
 			<button
 				class="btn vote-btn verify-btn"
 				class:active={myVote === 'verify'}
@@ -208,7 +229,6 @@
 	}
 	.bar-track {
 		position: relative;
-		display: flex;
 		height: 54px;
 		border-radius: 6px;
 		overflow: hidden;
@@ -216,36 +236,27 @@
 		border: 1px solid rgba(15, 23, 42, 0.1);
 		box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.18);
 	}
-	.bar-empty {
-		width: 100%;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		font-size: 13px;
-		font-weight: 750;
-		color: var(--text-3);
+	.bar-fill {
+		position: absolute;
+		top: 0;
+		bottom: 0;
+		transition: width 0.4s ease, filter 0.16s ease;
 	}
 	.bar-verify {
+		left: 0;
 		background: var(--verify);
-		transition: width 0.4s ease;
+		clip-path: polygon(0 0, calc(100% - 18px) 0, 100% 100%, 0 100%);
 	}
 	.bar-dispute {
+		right: 0;
 		background: var(--dispute);
-		transition: width 0.4s ease;
+		clip-path: polygon(18px 0, 100% 0, 100% 100%, 0 100%);
 	}
-	.bar-slice {
-		position: absolute;
-		top: -8px;
-		bottom: -8px;
-		left: var(--verify-pct);
-		width: 16px;
-		background: var(--surface);
-		transform: translateX(-50%) skewX(-18deg);
-		box-shadow:
-			-1px 0 0 rgba(255, 255, 255, 0.45),
-			1px 0 0 rgba(15, 23, 42, 0.08);
-		z-index: 1;
-		pointer-events: none;
+	.bar-track.no-votes .bar-fill {
+		filter: saturate(0.72) opacity(0.92);
+	}
+	.bar-fill.active {
+		filter: brightness(0.9) saturate(1.16);
 	}
 	.bar-labels {
 		position: absolute;
@@ -260,16 +271,37 @@
 		font-weight: 850;
 		line-height: 1;
 		text-shadow: 0 1px 2px rgba(15, 23, 42, 0.35);
-		z-index: 2;
+		z-index: 3;
 		pointer-events: none;
 	}
 	.bar-labels span {
 		min-width: 0;
 		white-space: nowrap;
 	}
+	.bar-hit {
+		position: absolute;
+		top: 0;
+		bottom: 0;
+		width: 50%;
+		border: 0;
+		background: transparent;
+		z-index: 4;
+		cursor: pointer;
+	}
+	.bar-hit:disabled {
+		cursor: not-allowed;
+	}
+	.bar-hit-verify {
+		left: 0;
+	}
+	.bar-hit-dispute {
+		right: 0;
+	}
+	.bar-track:has(.bar-hit:not(:disabled):hover) .bar-fill {
+		filter: brightness(1.04);
+	}
 	.vote-row {
-		display: flex;
-		gap: 8px;
+		display: none;
 	}
 	.vote-btn {
 		flex: 1;
