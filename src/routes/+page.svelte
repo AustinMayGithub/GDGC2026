@@ -141,7 +141,7 @@
 	let composeError = $state('');
 	let composeAreaLabel = $state('Local Auckland area');
 	let areaLabelRequestId = 0;
-	let trendingOpen = $state(false);
+	let trendingOpen = $state(true);
 	let trendMode = $state<TrendMode>('trending');
 	let lastTrendingFitKey = '';
 	let localAutoNationalEnabledAt = 0;
@@ -571,6 +571,8 @@
 			await resizeMapAfterLayout();
 		}
 		scope = 'national';
+		trendingOpen = true;
+		lastTrendingFitKey = '';
 		geoLoading = false;
 		geoError = null;
 		mapComponent?.fitToBbox(NZ_BBOX);
@@ -585,6 +587,8 @@
 			await resizeMapAfterLayout();
 		}
 		scope = 'region';
+		trendingOpen = true;
+		lastTrendingFitKey = '';
 		geoLoading = false;
 		geoError = null;
 		zoomToRegion(selectedRegionId);
@@ -599,6 +603,8 @@
 			await resizeMapAfterLayout();
 		}
 		scope = 'local';
+		trendingOpen = true;
+		lastTrendingFitKey = '';
 		geoError = null;
 
 		if (userLocation) {
