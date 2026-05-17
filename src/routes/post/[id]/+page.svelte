@@ -100,13 +100,13 @@
 					<span class="badge" class:badge-factual={post.category === 'news'}>
 						{postCategoryLabel(post.category)}
 					</span>
-					<span class="muted meta-sep">·</span>
+					<span class="muted meta-sep">&middot;</span>
 					{#if post.anonymous}
 						<span class="muted author">Anonymous</span>
 					{:else}
 						<a class="muted author author-link" href="/profile/{post.authorId}">{post.authorName}</a>
 					{/if}
-					<span class="muted meta-sep">·</span>
+					<span class="muted meta-sep">&middot;</span>
 					<time class="muted" datetime={post.createdAt}>{formatDate(post.createdAt)}</time>
 				</div>
 

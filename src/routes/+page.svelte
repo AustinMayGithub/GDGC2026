@@ -712,6 +712,7 @@
 	function toggleMapThreeD(e: Event) {
 		mapThreeD = (e.currentTarget as HTMLInputElement).checked;
 		redrawTrigger++;
+		void resizeMapAfterLayout();
 	}
 
 	function getMarkerScreenPos(id: string): { x: number; y: number } | null {
@@ -1672,7 +1673,7 @@
 							<span class="badge" class:badge-factual={post.category === 'news'}>
 								{postCategoryLabel(post.category)}
 							</span>
-							<span class="muted meta-sep">·</span>
+							<span class="muted meta-sep">&middot;</span>
 							{#if post.anonymous}
 								<span class="muted author">Anonymous</span>
 							{:else}
@@ -1687,7 +1688,7 @@
 									{post.authorName}
 								</a>
 							{/if}
-							<span class="muted meta-sep">Â·</span>
+							<span class="muted meta-sep">&middot;</span>
 							<time class="muted" datetime={post.createdAt}>{formatDate(post.createdAt)}</time>
 						</div>
 
@@ -3342,8 +3343,9 @@
 		margin-top: 0;
 	}
 
-	.profile-post-delete {
+	.profile-post-actions .btn {
 		font-size: 12px;
+		min-width: 104px;
 		padding: 7px 10px;
 	}
 
