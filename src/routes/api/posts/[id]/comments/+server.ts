@@ -62,7 +62,14 @@ export const POST: RequestHandler = async ({ request, params, locals }) => {
 		throw err;
 	}
 
-	await notifyPreviousCommenters(params.id, c.id, locals.user.id);
+	// The comment is already committed. Side-effect failures (notifications,
+	// note regeneration) must not turn into an error response, or the client
+	// rolls back an optimistic comment that actually persisted.
+	try {
+		await notifyPreviousCommenters(params.id, c.id, locals.user.id);
+	} catch (err) {
+		console.error('[comments] notifyPreviousCommenters failed:', err);
+	}
 
 	const communityNote = await maybeRegenerateNote(params.id);
 
