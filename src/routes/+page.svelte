@@ -2924,6 +2924,7 @@
 
 	.post-panel-heading-row .close-btn {
 		flex: 0 0 auto;
+		margin-top: 4px;
 	}
 
 	.profile-panel-body {
