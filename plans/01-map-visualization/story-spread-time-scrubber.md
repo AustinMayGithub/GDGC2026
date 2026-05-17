@@ -13,19 +13,19 @@ time-lapse of the country's news, ending at "now".
 
 ## Why it fits BirdsEye
 project.md §9 "Ideas worth adding if time allows" lists this directly:
-*"Time scrubber — replay how a story spread across the map. Great demo
+*"Time scrubber - replay how a story spread across the map. Great demo
 moment; pure frontend if data has timestamps. Stretch."* Every post already
 carries `createdAt` (`schema.ts:75`, surfaced on `PostSummary`
 `src/lib/types.ts:25`), so the data exists. It is the strongest "wow"
 visualisation for the pitch and reinforces §1's blast-radius theme over time.
 
 ## User value
-- A memorable, narrative demo moment — the country's news unfolding live.
+- A memorable, narrative demo moment - the country's news unfolding live.
 - Lets a viewer understand the *sequence* of events, not just the snapshot.
 - Makes a small seeded dataset (15–20 posts, §10) feel dynamic.
 
 ## Data model changes
-None for MVP — `createdAt` per post is sufficient.
+None for MVP - `createdAt` per post is sufficient.
 Optional future enrichment: a `post_events` table
 `(id, post_id, kind[created|comment|vote|reaction], created_at)` so the
 scrubber can also replay engagement accumulation, not just post appearance.
@@ -33,7 +33,7 @@ Comments/votes/reactions already have `createdAt` columns
 (`schema.ts:96,115,133`) and could be unioned instead of a new table.
 
 ## API / server changes
-- MVP: none — `GET /api/posts` already returns `createdAt`; the scrubber
+- MVP: none - `GET /api/posts` already returns `createdAt`; the scrubber
   filters client-side.
 - Optional (engagement replay): a `GET /api/posts/timeline` endpoint, or
   extend `getPostDetail`/`listPosts` in `src/lib/server/posts.ts` to return
@@ -55,22 +55,22 @@ Comments/votes/reactions already have `createdAt` columns
     !viewingPost`.
 - `src/lib/components/HomeMap.svelte`:
   - Markers already re-render from the `posts` prop via `syncPostLayers()`
-    (line 314) — feeding fewer posts replays appearance for free.
+    (line 314) - feeding fewer posts replays appearance for free.
   - Add a CSS/expression fade-in: give each feature an `ageAtTime` property
     and drive `circle-opacity` so a just-appeared marker eases in over
     ~400ms rather than popping. Optionally drive a brief radius "ripple".
   - Guard `fitToPosts`/auto-fit so the camera does not jump every frame
-    while the scrubber runs — freeze the viewport during playback.
+    while the scrubber runs - freeze the viewport during playback.
 
 ## Dependencies & risks
 - No new libraries (pure frontend, per §9).
 - **Schedule risk: XL.** This interacts with the connector lines (§8, the
-  named biggest schedule risk) — markers appearing/disappearing every frame
+  named biggest schedule risk) - markers appearing/disappearing every frame
   forces `ConnectorLines.svelte` recomputes via `redrawTrigger`
   (`+page.svelte:91`). Throttle scrubber-driven updates to ~10 fps, not
   every rAF, to keep connector recomputation affordable.
 - Gotcha: do not let the scrubber fight the National/Local toggle, trending
-  dropdown, or post selection — disable or reset the scrubber when any of
+  dropdown, or post selection - disable or reset the scrubber when any of
   those activate.
 - Gotcha: the auto "zoom out → national" behaviour
   (`+page.svelte:397-410`) must be suspended during playback.
@@ -103,7 +103,7 @@ Comments/votes/reactions already have `createdAt` columns
 - Confirm leaving and re-entering the scrubber resets cleanly.
 
 ## Out of scope / future
-- Engagement-accumulation replay (comments/votes over time) — needs the
+- Engagement-accumulation replay (comments/votes over time) - needs the
   optional timeline endpoint.
 - Per-story spread animation on the article-view `ImpactMap`.
 - Exporting the replay as a shareable video/GIF.

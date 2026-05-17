@@ -1,4 +1,4 @@
-# BirdsEye — Feature & Improvement Plans
+# BirdsEye - Feature & Improvement Plans
 
 33 proposed features and improvements, researched against the live codebase and
 `project.md`. Each file is a self-contained, implementation-ready plan (summary,
@@ -45,7 +45,7 @@ Pick the ones you want and assign an implementation agent per plan file.
 
 ## 04 · AI & content intelligence
 
-> Every AI plan respects `project.md` §4.5 — the AI never declares truth; the crowd vote is the only credibility signal.
+> Every AI plan respects `project.md` §4.5 - the AI never declares truth; the crowd vote is the only credibility signal.
 
 | Feature | Cx | Plan |
 |---|---|---|
@@ -73,14 +73,14 @@ Pick the ones you want and assign an implementation agent per plan file.
 
 ## Cross-cutting findings (worth reading before assigning work)
 
-- **`reports` table is write-only.** `report/+server.ts` inserts rows but nothing reads them — closing this loop is an MVP gap per §4.7. See *moderation-triage-dashboard* and *ai-report-triage*.
-- **Rate-limiting covers only signup** (`signup/+page.server.ts:45-58`). The vote and comment write paths — the brigading-sensitive ones — are unthrottled. See *production-hardening-observability* and *vote-velocity-brigading-detection*.
+- **`reports` table is write-only.** `report/+server.ts` inserts rows but nothing reads them - closing this loop is an MVP gap per §4.7. See *moderation-triage-dashboard* and *ai-report-triage*.
+- **Rate-limiting covers only signup** (`signup/+page.server.ts:45-58`). The vote and comment write paths - the brigading-sensitive ones - are unthrottled. See *production-hardening-observability* and *vote-velocity-brigading-detection*.
 - **Images are base64 data URLs in Postgres** (`schema.ts:27,68`), and `headerImageDataUrl` is never moderated. See *object-storage-image-pipeline* and *image-captioning-alttext-moderation*.
-- **No region polygon geometry exists** — `nz-regions.ts` ships only centroids/bboxes. *national-density-choropleth* depends on adding simplified Stats NZ GeoJSON.
-- **Connector lines are the recurring schedule risk** (`ConnectorLines.svelte`) — *marker-clustering* and *story-spread-time-scrubber* both touch marker projection.
-- **Reusable patterns already in the codebase:** the toggle endpoint (`react/+server.ts:28-32`), the never-throws AI contract (`ai.ts`), and the `isMissingOptionalPostColumn` migration-tolerance fallback (`posts.ts:46`) — most plans build on these.
-- **`isOwn` is already computed** server-side (`posts.ts:270`) but unused — *post-edit-delete-policy* is partly pre-wired.
-- **Shared ranking math is duplicated** (`+page.svelte:231-242`) — several plans suggest lifting it into `lib/ranking.ts`.
+- **No region polygon geometry exists** - `nz-regions.ts` ships only centroids/bboxes. *national-density-choropleth* depends on adding simplified Stats NZ GeoJSON.
+- **Connector lines are the recurring schedule risk** (`ConnectorLines.svelte`) - *marker-clustering* and *story-spread-time-scrubber* both touch marker projection.
+- **Reusable patterns already in the codebase:** the toggle endpoint (`react/+server.ts:28-32`), the never-throws AI contract (`ai.ts`), and the `isMissingOptionalPostColumn` migration-tolerance fallback (`posts.ts:46`) - most plans build on these.
+- **`isOwn` is already computed** server-side (`posts.ts:270`) but unused - *post-edit-delete-policy* is partly pre-wired.
+- **Shared ranking math is duplicated** (`+page.svelte:231-242`) - several plans suggest lifting it into `lib/ranking.ts`.
 
 ## Suggested quick wins (low effort, high value)
 `code-split-maplibre-bundle` (S) · `map-filters` (S) · `comment-helpful-voting` (S) ·

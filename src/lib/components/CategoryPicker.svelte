@@ -20,7 +20,7 @@
 		<span class="picker-icon">📋</span>
 		<div class="picker-text">
 			<strong>Something happened</strong>
-			<span class="picker-sub">A factual claim — an event, incident, or news item.</span>
+			<span class="picker-sub">A report people can rate for community reliability.</span>
 		</div>
 		{#if value === 'factual'}
 			<span class="check">✓</span>
@@ -37,7 +37,7 @@
 		<span class="picker-icon">📣</span>
 		<div class="picker-text">
 			<strong>Community notice / opinion</strong>
-			<span class="picker-sub">An event, discussion, or personal view — no truth claim.</span>
+			<span class="picker-sub">A discussion or personal view that does not need reliability ratings.</span>
 		</div>
 		{#if value === 'personal'}
 			<span class="check">✓</span>
@@ -47,7 +47,7 @@
 	{#if value === 'factual'}
 		<div class="factual-notice">
 			<span class="notice-icon">⚠️</span>
-			Factual posts are subject to community verification.
+			These posts receive a community reliability rating.
 		</div>
 	{/if}
 </div>

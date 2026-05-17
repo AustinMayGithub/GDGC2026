@@ -27,7 +27,7 @@ ALLOW everything else, including:
 If intent is unclear, ALLOW.`;
 
 // The note's only job: summarise the OPINIONS in the comment thread.
-// No verdict, no fact-check (project.md §4.5 — resolved per user direction).
+// No verdict, no fact-check (project.md §4.5 - resolved per user direction).
 const SYSTEM_PROMPT = `Write a short Community Notes-style note that relates directly to the post and helps readers judge whether the post's claim is correct, incomplete, or disputed, using ONLY the supplied comments as evidence.
 
 Format:
@@ -172,7 +172,7 @@ async function summariseOpinions(title: string, bodies: string[]): Promise<strin
 
 /**
  * Regenerates the community note for a factual post.
- * Safe to call after every comment — never throws.
+ * Safe to call after every comment - never throws.
  */
 export async function maybeRegenerateNote(postId: string): Promise<CommunityNote | null> {
 	try {

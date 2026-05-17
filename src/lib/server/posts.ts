@@ -339,7 +339,7 @@ export async function getPostDetail(
 
 /**
  * Located votes for a post, for the article-view heatmap. Only votes that
- * recorded a voter location are returned, and no user identity is attached —
+ * recorded a voter location are returned, and no user identity is attached -
  * the heatmap shows where votes came from, never who cast them.
  */
 export async function getVotePoints(postId: string): Promise<VotePoint[]> {
@@ -390,7 +390,9 @@ export async function getComments(postId: string): Promise<CommentItem[]> {
 			id: comments.id,
 			body: comments.body,
 			createdAt: comments.createdAt,
-			authorName: users.displayName
+			authorId: users.id,
+			authorName: users.displayName,
+			authorHasAvatar: sql<boolean>`(${users.avatarDataUrl} IS NOT NULL)`
 		})
 		.from(comments)
 		.innerJoin(users, eq(comments.authorId, users.id))
@@ -398,7 +400,9 @@ export async function getComments(postId: string): Promise<CommentItem[]> {
 		.orderBy(comments.createdAt);
 	return rows.map((r) => ({
 		id: r.id,
+		authorId: r.authorId,
 		authorName: r.authorName,
+		authorHasAvatar: Boolean(r.authorHasAvatar),
 		body: r.body,
 		createdAt: iso(r.createdAt)
 	}));

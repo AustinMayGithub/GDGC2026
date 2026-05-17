@@ -9,7 +9,7 @@ A cross-cutting infrastructure track that makes BirdsEye observable and
 abuse-resistant in production. Today logging is ad-hoc `console.warn`/
 `console.error` (`hooks.server.ts:9`, `ai.ts:43/77/132`, `posts.ts` fallbacks),
 there is no error monitoring, and rate-limiting exists **only** for signup
-(`signup/+page.server.ts:45-58`) — the vote, comment, reaction, report, post,
+(`signup/+page.server.ts:45-58`) - the vote, comment, reaction, report, post,
 upload and login endpoints are all unthrottled. This plan introduces: (1) a
 structured request logger in `hooks.server.ts`, (2) a central server error
 handler with optional Sentry, and (3) a reusable rate-limiter applied across the
@@ -17,11 +17,11 @@ write endpoints.
 
 ## Why it fits BirdsEye
 project.md §3 and §9.3 build the whole anti-brigading story on "cheap defences"
-— but only signup is currently rate-limited, leaving the **vote and comment**
+- but only signup is currently rate-limited, leaving the **vote and comment**
 write paths (the brigading-sensitive ones) open to a scripted client even
 though the email-verified gate stands. §4.7 calls an abusive demo moment
 "demo-ending"; you cannot diagnose one without logs. §6's architecture diagram
-shows OpenAI and Resend as external calls — when they fail you need structured,
+shows OpenAI and Resend as external calls - when they fail you need structured,
 correlatable logs, not stray `console.error`. This is the "infrastructure"
 backbone of the domain.
 
@@ -45,58 +45,58 @@ export const rateLimitEvents = pgTable('rate_limit_events', {
 ```
 
 Migrate the signup path onto it (or keep `signup_attempts` and add the generic
-table — the former is cleaner). Alternative: an in-process in-memory limiter
-(a `Map` of sliding windows) — no schema change, but state is lost on restart
+table - the former is cleaner). Alternative: an in-process in-memory limiter
+(a `Map` of sliding windows) - no schema change, but state is lost on restart
 and not shared across replicas. For a single-container hackathon deploy the
 in-memory limiter is acceptable; the DB table is the "proper" option. Recommend
 in-memory for the 48h build, DB-backed as the documented upgrade.
 
 ## API / server changes
-- New `src/lib/server/logger.ts` — a tiny structured logger emitting JSON
+- New `src/lib/server/logger.ts` - a tiny structured logger emitting JSON
   lines (`{ ts, level, msg, requestId, ...fields }`). No dependency needed;
   optionally `pino` if a richer logger is wanted.
-- `src/hooks.server.ts` — extend the existing `handle` (currently only
+- `src/hooks.server.ts` - extend the existing `handle` (currently only
   validates the session):
   - Generate a `requestId` per request, attach to `event.locals`.
   - Log method, path, status, duration, `requestId`, `userId` after `resolve`.
   - Replace the bare `console.warn` at line 9 with `logger.warn`.
-  - Add a `handleError` export — SvelteKit's server error hook — to log
+  - Add a `handleError` export - SvelteKit's server error hook - to log
     unhandled errors with the `requestId` and (optionally) forward to Sentry.
-- New `src/lib/server/rate-limit.ts` — `checkRateLimit(bucket, key, limit,
+- New `src/lib/server/rate-limit.ts` - `checkRateLimit(bucket, key, limit,
   windowMs)` returning allow/deny + retry-after. Sliding-window over either the
   in-memory map or `rate_limit_events`.
 - Apply `checkRateLimit` in the write endpoints, keyed by `locals.user.id`
   (fallback `getClientAddress()`):
-  - `src/routes/api/posts/[id]/vote/+server.ts` — e.g. 30 votes / 10 min.
-  - `src/routes/api/posts/[id]/comments/+server.ts` (`POST`) — e.g. 20 / 10 min.
-  - `src/routes/api/posts/[id]/react/+server.ts` — e.g. 60 / 10 min.
-  - `src/routes/api/posts/[id]/report/+server.ts` — e.g. 10 / 10 min.
-  - `src/routes/api/posts/+server.ts` (`POST`) — e.g. 10 posts / 10 min.
+  - `src/routes/api/posts/[id]/vote/+server.ts` - e.g. 30 votes / 10 min.
+  - `src/routes/api/posts/[id]/comments/+server.ts` (`POST`) - e.g. 20 / 10 min.
+  - `src/routes/api/posts/[id]/react/+server.ts` - e.g. 60 / 10 min.
+  - `src/routes/api/posts/[id]/report/+server.ts` - e.g. 10 / 10 min.
+  - `src/routes/api/posts/+server.ts` (`POST`) - e.g. 10 posts / 10 min.
   - `src/routes/api/uploads` (if the object-storage plan lands).
-  - `src/routes/auth/login/+page.server.ts` — throttle failed logins per IP.
+  - `src/routes/auth/login/+page.server.ts` - throttle failed logins per IP.
   - Refactor `signup/+page.server.ts:45-58` to call the shared limiter.
   - On deny, `throw error(429, ...)`.
-- `src/app.d.ts` — add `requestId: string` to `App.Locals`.
-- `docker-compose.yml` / `.env.example` — add `SENTRY_DSN` (optional) and a
+- `src/app.d.ts` - add `requestId: string` to `App.Locals`.
+- `docker-compose.yml` / `.env.example` - add `SENTRY_DSN` (optional) and a
   `LOG_LEVEL` env var.
 
 ## UI / component changes
 - Minimal. Confirm 429 responses surface as a friendly message: the compose
   flow already shows `json.message` (`+page.svelte:596`); ensure vote/comment/
   reaction/report components do the same rather than failing silently.
-- `src/routes/+error.svelte` — confirm it renders a clean message for 429/500
+- `src/routes/+error.svelte` - confirm it renders a clean message for 429/500
   without leaking internals.
 
 ## Dependencies & risks
 - No dependency required for the logger or in-memory limiter. Optional:
   `pino` (logging) and `@sentry/sveltekit` (monitoring).
-- Risk: a global limiter blocking the seeded-data script or the demo itself —
+- Risk: a global limiter blocking the seeded-data script or the demo itself -
   make limits generous and per-user, and exempt server-side seeding.
 - Risk: in-memory limiter resets on container restart and is not multi-replica
-  safe — documented; the DB table is the fix.
-- Risk: logging PII — never log full request bodies, OTP codes, passwords, or
+  safe - documented; the DB table is the fix.
+- Risk: logging PII - never log full request bodies, OTP codes, passwords, or
   email addresses at info level.
-- Risk: scope — this touches many files; sequence it so logging lands first
+- Risk: scope - this touches many files; sequence it so logging lands first
   (low risk), then rate-limiting per endpoint, then optional Sentry.
 
 ## Implementation steps

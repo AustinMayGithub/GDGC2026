@@ -7,7 +7,7 @@ import { NZ_BBOX } from '$lib/data/nz-regions';
  *
  * Major hosts (Cloudflare, Vercel, Netlify, Fastly) attach the visitor's
  * approximate lat/lng to every request. Reading them is zero-latency and needs
- * no API key or external lookup — the perfect source for the *initial* map view
+ * no API key or external lookup - the perfect source for the *initial* map view
  * so it renders correctly before the browser geolocation prompt is answered.
  * Returns null when no header is present (e.g. local dev, plain Node host).
  */
@@ -39,7 +39,7 @@ function coarseLocationFromHeaders(headers: Headers): { lng: number; lat: number
 			const lat = Number(decoded.latitude);
 			if (Number.isFinite(lng) && Number.isFinite(lat)) return { lng, lat };
 		} catch {
-			// Malformed header — fall through to null.
+			// Malformed header - fall through to null.
 		}
 	}
 

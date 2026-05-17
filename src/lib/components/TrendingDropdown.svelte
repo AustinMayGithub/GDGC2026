@@ -140,9 +140,9 @@
 								onclick={() => onSelect(item.post.id)}
 							>
 								<div class="trend-top">
-									<span class={item.post.category === 'factual' ? 'badge badge-factual' : 'badge'}>
-										{item.post.category === 'factual' ? 'Factual' : 'Community'}
-									</span>
+									{#if item.post.category === 'personal'}
+										<span class="badge">Community</span>
+									{/if}
 									<span class="trend-time muted">{timeAgo(item.post.createdAt)}</span>
 								</div>
 								<p class="trend-title">{item.post.title}</p>
@@ -317,6 +317,7 @@
 
 	.trend-time {
 		font-size: 11px;
+		margin-left: auto;
 	}
 
 	.trend-title {

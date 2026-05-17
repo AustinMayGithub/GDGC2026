@@ -33,8 +33,8 @@
 		const total = post.verifyCount + post.disputeCount;
 		if (total === 0) return 'untouched';
 		const verifyRatio = post.verifyCount / total;
-		if (verifyRatio >= 0.4 && verifyRatio <= 0.6) return 'decisive';
-		return verifyRatio > 0.6 ? 'factual' : 'disputed';
+		if (verifyRatio >= 0.4 && verifyRatio <= 0.6) return 'mixed';
+		return verifyRatio > 0.6 ? 'reliable' : 'needs-review';
 	}
 </script>
 
@@ -70,9 +70,9 @@
 								/>
 							{/if}
 							<div class="item-top">
-								<span class={post.category === 'factual' ? 'badge badge-factual' : 'badge'}>
-									{post.category === 'factual' ? 'Factual' : 'Community'}
-								</span>
+								{#if post.category === 'personal'}
+									<span class="badge">Community</span>
+								{/if}
 								<span class="item-time muted">{timeAgo(post.createdAt)}</span>
 							</div>
 
@@ -98,7 +98,7 @@
 								{#if post.category === 'factual' && post.verifyCount + post.disputeCount > 0}
 									<span class={`item-votes vote-${voteStatus(post)}`}>
 										{Math.round((post.verifyCount / (post.verifyCount + post.disputeCount)) * 100)}%
-										verified
+										reliable
 									</span>
 								{/if}
 							</div>
@@ -198,6 +198,7 @@
 	.item-time {
 		font-size: 11px;
 		flex-shrink: 0;
+		margin-left: auto;
 	}
 
 	.item-title {
@@ -249,13 +250,13 @@
 		font-weight: 700;
 		color: var(--verify);
 	}
-	.item-votes.vote-factual {
+	.item-votes.vote-reliable {
 		color: #16a34a;
 	}
-	.item-votes.vote-disputed {
+	.item-votes.vote-needs-review {
 		color: #dc2626;
 	}
-	.item-votes.vote-decisive {
+	.item-votes.vote-mixed {
 		color: #ca8a04;
 	}
 

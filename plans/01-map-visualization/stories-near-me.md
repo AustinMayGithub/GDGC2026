@@ -13,7 +13,7 @@ a whole region): this answers "what is happening *right here*, closest
 first".
 
 ## Why it fits BirdsEye
-project.md §1: *"news has a location and a blast radius"* — proximity is the
+project.md §1: *"news has a location and a blast radius"* - proximity is the
 core promise. §3/§9.3 also describe proximity as a genuine pitch point
 (proximity-weighted votes). The page already has `userLocation`,
 `requestUserLocation()`, and a `distanceKm()` haversine helper
@@ -31,7 +31,7 @@ None. `posts.lng`/`posts.lat` exist (`schema.ts:70-71`); distance is computed
 from the user's geolocation client-side.
 
 ## API / server changes
-None for MVP — the full post list is already fetched and distance is computed
+None for MVP - the full post list is already fetched and distance is computed
 in the browser with `haversineMeters()` (`src/lib/geo.ts:7`).
 Optional future: a `GET /api/posts/near?lng=&lat=` endpoint using PostGIS
 `ST_DWithin` for large datasets.
@@ -50,7 +50,7 @@ Optional future: a `GET /api/posts/near?lng=&lat=` endpoint using PostGIS
   nearest ~10 posts, each with a `formatDistance()` badge, reusing the
   `HeadlineList` card visual language. Clicking an item calls
   `handleSelectPost`.
-- Optional: a "you are here" marker on `HomeMap` — add a `userMarker`
+- Optional: a "you are here" marker on `HomeMap` - add a `userMarker`
   GeoJSON source + circle layer fed by a new `userLng/userLat` prop.
 
 ## Dependencies & risks
@@ -62,7 +62,7 @@ Optional future: a `GET /api/posts/near?lng=&lat=` endpoint using PostGIS
   time out. Reuse the existing cached `userLocation` if present before
   re-requesting.
 - Privacy: never send the user's exact coordinates to the server in the MVP
-  path — distance is computed locally.
+  path - distance is computed locally.
 
 ## Implementation steps
 1. Add `nearMeActive` state + a "Near me" trigger in the header.

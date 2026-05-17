@@ -30,7 +30,7 @@ budget, but a fast shell that reveals the map progressively directly serves the
 None.
 
 ## API / server changes
-None — this is a build/client-side change. Optionally tune `vite.config.ts`:
+None - this is a build/client-side change. Optionally tune `vite.config.ts`:
 add `build.rollupOptions.output.manualChunks` to isolate `maplibre-gl` into a
 named `maplibre` chunk so its load is observable and cacheable separately.
 
@@ -39,23 +39,23 @@ named `maplibre` chunk so its load is observable and cacheable separately.
   - Remove the static `import 'maplibre-gl/dist/maplibre-gl.css'` at line 2.
   - In the existing `onMount` (line 509), after `await import('maplibre-gl')`,
     also `await import('maplibre-gl/dist/maplibre-gl.css')` (Vite supports
-    dynamic CSS import) — or inject a `<link>` to the CSS lazily.
+    dynamic CSS import) - or inject a `<link>` to the CSS lazily.
   - Add a lightweight skeleton/placeholder shown until `mapReady` so layout
-    does not jump; `+page.svelte:729` already has a `map-loading` spinner —
+    does not jump; `+page.svelte:729` already has a `map-loading` spinner -
     reuse that styling for a pre-load state.
-- `src/lib/components/ImpactMap.svelte` — apply the identical pattern (verify
+- `src/lib/components/ImpactMap.svelte` - apply the identical pattern (verify
   it does not statically import maplibre or its CSS; if it does, defer them).
-- `src/routes/post/[id]/+page.svelte:12` imports `ImpactMap` — ensure that
+- `src/routes/post/[id]/+page.svelte:12` imports `ImpactMap` - ensure that
   import does not transitively pull maplibre into the page's eager bundle
   (the component file's own dynamic import handles this once fixed).
-- `vite.config.ts` — add `manualChunks` (see above).
+- `vite.config.ts` - add `manualChunks` (see above).
 
 ## Dependencies & risks
 - No new dependencies.
-- Risk: dynamic CSS import timing — the map may render one frame unstyled.
+- Risk: dynamic CSS import timing - the map may render one frame unstyled.
   Mitigated by keeping the placeholder until `onMapReady` fires
   (`+page.svelte:389 handleMapReady`).
-- Risk: SSR — MapLibre is browser-only; the dynamic import already lives in
+- Risk: SSR - MapLibre is browser-only; the dynamic import already lives in
   `onMount`, so SSR is unaffected. Verify `ImpactMap` does the same.
 
 ## Implementation steps

@@ -15,7 +15,7 @@ for that region. Markers stay on top for individual stories.
 project.md §1 calls the home page a *"'control room' view of the country"*
 and §8 says national mode should render *"the 16 regional council
 boundaries"* from GeoJSON. Today the national map only shows discrete
-markers — a choropleth adds the missing aggregate layer. It also directly
+markers - a choropleth adds the missing aggregate layer. It also directly
 serves §9.9 ("national feed needs a ranking rule") by giving a spatial
 summary instead of an unscannable marker swarm, and ties to the
 `regionId`-indexed `posts` table (`schema.ts:73,78`).
@@ -38,13 +38,13 @@ are aggregated at query time.
   24h. Add a `getRegionDensity()` helper in `src/lib/server/posts.ts`
   alongside `listPosts()`.
 - Alternatively, derive density entirely client-side from the already-fetched
-  `posts` array (group by `regionId`) — zero new endpoint, lower fidelity but
+  `posts` array (group by `regionId`) - zero new endpoint, lower fidelity but
   L→M effort. Recommend client-side for the hackathon; the endpoint is the
   scalable version.
 
 ## UI / component changes
 - **Region GeoJSON is a prerequisite.** `src/lib/data/nz-regions.ts` only
-  has centroids + bboxes — there is no polygon geometry. Add
+  has centroids + bboxes - there is no polygon geometry. Add
   `src/lib/data/nz-regions.geojson.ts` (or a static `.json` import)
   containing simplified region polygons keyed by the same `id`s. Source:
   Stats NZ regional council boundaries, simplified with `mapshaper` (§8
@@ -69,12 +69,12 @@ are aggregated at query time.
 
 ## Dependencies & risks
 - New asset: simplified NZ region GeoJSON. `mapshaper` is a build-time/CLI
-  tool, not a runtime dependency — no `package.json` change. Sourcing and
+  tool, not a runtime dependency - no `package.json` change. Sourcing and
   simplifying the geometry is the main effort and the schedule risk.
 - Gotcha: keep the simplified polygons small (target <150 KB total) so the
   bundle stays light, per §8's "tiny payload" goal.
 - Gotcha: choropleth fill must sit below markers and the `selected-radius`
-  layers, and must not steal clicks from `post-point` — order layers
+  layers, and must not steal clicks from `post-point` - order layers
   carefully and let marker clicks win.
 - Gotcha: region polygon `id`s must exactly match `NZ_REGIONS` ids
   (`nz-regions.ts:14`) or the join fails silently.

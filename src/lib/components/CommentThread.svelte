@@ -24,6 +24,7 @@
 	let reportReason = $state('');
 	let reportError = $state('');
 	let reportSubmitting = $state(false);
+	let failedAvatars = $state<Set<string>>(new Set());
 
 	async function submitComment() {
 		if (!body.trim() || submitting) return;
@@ -33,7 +34,9 @@
 		// Optimistic
 		const optimistic: CommentItem = {
 			id: `optimistic-${Date.now()}`,
+			authorId: user!.id,
 			authorName: user!.displayName,
+			authorHasAvatar: user!.hasAvatar,
 			body: body.trim(),
 			createdAt: new Date().toISOString()
 		};
@@ -94,6 +97,10 @@
 		}
 	}
 
+	function markAvatarFailed(authorId: string) {
+		failedAvatars = new Set([...failedAvatars, authorId]);
+	}
+
 	$effect(() => {
 		postId;
 		comments = [...initialComments];
@@ -115,7 +122,18 @@
 			{#each comments as comment (comment.id)}
 				<article class="comment">
 					<div class="comment-rail">
-						<span class="avatar-circle">{comment.authorName[0]?.toUpperCase() ?? '?'}</span>
+						<span class="avatar-circle">
+							{#if comment.authorHasAvatar && !failedAvatars.has(comment.authorId)}
+								<img
+									class="comment-avatar-img"
+									src="/api/users/{comment.authorId}/avatar"
+									alt=""
+									onerror={() => markAvatarFailed(comment.authorId)}
+								/>
+							{:else}
+								{comment.authorName[0]?.toUpperCase() ?? '?'}
+							{/if}
+						</span>
 					</div>
 					<div class="comment-main">
 						<div class="comment-meta">
@@ -172,7 +190,18 @@
 	{#if user}
 		<div class="compose-box">
 			<div class="compose-header">
-				<span class="avatar-circle own">{user.displayName[0]?.toUpperCase() ?? '?'}</span>
+				<span class="avatar-circle own">
+					{#if user.hasAvatar && !failedAvatars.has(user.id)}
+						<img
+							class="comment-avatar-img"
+							src="/api/users/{user.id}/avatar"
+							alt=""
+							onerror={() => markAvatarFailed(user.id)}
+						/>
+					{:else}
+						{user.displayName[0]?.toUpperCase() ?? '?'}
+					{/if}
+				</span>
 				<span class="compose-name">{user.displayName}</span>
 			</div>
 			<textarea
@@ -299,6 +328,13 @@
 		justify-content: center;
 		flex-shrink: 0;
 		box-shadow: var(--shadow-sm);
+		overflow: hidden;
+	}
+	.comment-avatar-img {
+		width: 100%;
+		height: 100%;
+		display: block;
+		object-fit: cover;
 	}
 	.avatar-circle.own {
 		background: var(--text);

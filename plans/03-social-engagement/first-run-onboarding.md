@@ -7,11 +7,11 @@
 ## Summary
 A short, dismissible first-run experience for new accounts: a 3-step overlay on
 the map that explains the National/Local toggle, the Verify/Dispute credibility
-meter, and the "New post" action — plus a one-time nudge to pick a home region.
+meter, and the "New post" action - plus a one-time nudge to pick a home region.
 Shown once, then never again.
 
 ## Why it fits BirdsEye
-project.md §1 calls the map-of-NZ home page a "control room" view — a deliberately
+project.md §1 calls the map-of-NZ home page a "control room" view - a deliberately
 *unfamiliar* interface. Connector lines, an impact-zone radius, and a
 crowd-verification meter are not self-explanatory. §8 even flags the map as "the
 riskiest UI". A judge or first-time visitor in a 48-hour demo needs to grasp the
@@ -29,7 +29,7 @@ None. Completion state is stored client-side in `localStorage`
 (key `birdseye:onboarded`), consistent with the existing
 `birdseye:local-region` cache (`+page.svelte:51`). Optionally, an
 `onboardedAt timestamp` column could be added to `users` later for cross-device
-persistence — out of scope for 48h.
+persistence - out of scope for 48h.
 
 ## API / server changes
 None. This is a pure client feature.
@@ -55,10 +55,10 @@ None. This is a pure client feature.
 - Risk: highlight rings drift if the header reflows on small screens
   (`+page.svelte:1597-1666` shows the header wraps). Mitigation: on viewport
   ≤ 980px, drop the rings and show plain centred cards (text-only tour).
-- Risk: `localStorage` unavailable (private mode) — wrap reads/writes in
+- Risk: `localStorage` unavailable (private mode) - wrap reads/writes in
   try/catch exactly as `readCachedRegion`/`writeCachedRegion` already do
   (`+page.svelte:209-229`); on failure, simply skip the tour.
-- Must not block `fetchPosts` or map interaction underneath — backdrop is a
+- Must not block `fetchPosts` or map interaction underneath - backdrop is a
   modal layer the user can dismiss instantly.
 
 ## Implementation steps

@@ -190,10 +190,10 @@ export async function getUserProfile(id: string): Promise<UserProfile | null> {
 	let label = 'Unrated';
 	if (totalVotes >= 5) {
 		score = Math.round((totalVerify / totalVotes) * 100);
-		if (score >= 80) label = 'Highly Trusted';
-		else if (score >= 60) label = 'Trusted';
+		if (score >= 80) label = 'Highly reliable';
+		else if (score >= 60) label = 'Reliable';
 		else if (score >= 40) label = 'Balanced';
-		else label = 'Disputed';
+		else label = 'Needs review';
 	}
 
 	return {

@@ -17,7 +17,7 @@
 	<div class="note-header">
 		<div class="note-titles">
 			<span class="note-title">Community Note</span>
-			<span class="note-subtitle muted">Reader context about this post - not independently verified</span>
+			<span class="note-subtitle muted">Reader context about this post - not independently fact-checked</span>
 		</div>
 	</div>
 

@@ -14,7 +14,7 @@ conversational glue a flat comment thread otherwise lacks.
 project.md §4.4 commits to a *flat* comment thread and §12 rejects nested
 replies. Without threading, there is no way to address a specific person in a
 discussion. `@mentions` restore "I'm replying to you" semantics without adding
-tree structure — a perfect fit for the flat model. Profiles already exist
+tree structure - a perfect fit for the flat model. Profiles already exist
 (`profile/[id]/+page.svelte`) and carry reputation, so a mention naturally links
 into the platform's identity layer (§3).
 
@@ -45,44 +45,44 @@ export const commentMentions = pgTable(
 );
 ```
 The `comments.body` column (`schema.ts:114`) stores the raw text including the
-`@name` token — no schema change to `comments` itself.
+`@name` token - no schema change to `comments` itself.
 
 ## API / server changes
 - New `src/lib/server/mentions.ts`:
-  - `extractMentions(body): string[]` — regex `/@([\w][\w .'-]{1,49})/g`,
+  - `extractMentions(body): string[]` - regex `/@([\w][\w .'-]{1,49})/g`,
     longest-match against the candidate set.
-  - `resolveMentions(body, postId)` — query `users.displayName` (case-insensitive,
+  - `resolveMentions(body, postId)` - query `users.displayName` (case-insensitive,
     `schema.ts:18-30`) restricted to users who have *commented on or authored*
     the post, to keep the lookup scoped and cheap; return matched user rows.
-- `src/routes/api/posts/[id]/comments/+server.ts` `POST` (`+server.ts:13-49`) —
+- `src/routes/api/posts/[id]/comments/+server.ts` `POST` (`+server.ts:13-49`) -
   after inserting the comment and *after* `moderateText` passes
   (`+server.ts:27`), call `resolveMentions`, insert `commentMentions` rows, and
   enqueue a notification per mentioned user (skip self-mentions). Return a
   `mentions` array on the response so the client can render links immediately.
-- New `src/routes/api/posts/[id]/mention-candidates/+server.ts` — `GET` returns
+- New `src/routes/api/posts/[id]/mention-candidates/+server.ts` - `GET` returns
   the distinct display names of users who have participated in the thread, for
   the autocomplete dropdown.
 
 ## UI / component changes
-- `src/lib/types.ts` — add `mentions: { name: string; userId: string }[]` to
+- `src/lib/types.ts` - add `mentions: { name: string; userId: string }[]` to
   `CommentItem`.
-- New `src/lib/components/CommentBody.svelte` — tokenises a comment body and
+- New `src/lib/components/CommentBody.svelte` - tokenises a comment body and
   renders matched `@name` spans as `<a href="/profile/{id}">`; plain text
   otherwise. Replaces the raw `{comment.body}` render at
   `CommentThread.svelte:144`.
-- `src/lib/components/CommentThread.svelte` — in the compose `<textarea>`
+- `src/lib/components/CommentThread.svelte` - in the compose `<textarea>`
   (`CommentThread.svelte:182-189`), add a lightweight autocomplete: on `@` +
   typing, fetch `mention-candidates`, show a positioned suggestion list, insert
-  on select. Keep it minimal — a `$state` list and absolute-positioned `<div>`.
+  on select. Keep it minimal - a `$state` list and absolute-positioned `<div>`.
 
 ## Dependencies & risks
-- No new packages — a hand-rolled tokeniser/autocomplete is enough at this
+- No new packages - a hand-rolled tokeniser/autocomplete is enough at this
   scale.
 - Risk: display names are not unique (`users.displayName` has no unique
   constraint, `schema.ts:21`). Resolve ambiguous names to *all* matching users,
   or scope to thread participants (recommended) so collisions are rare; if still
   ambiguous, link the most-recent commenter.
-- Risk: names contain spaces — the regex must allow them but stop at sensible
+- Risk: names contain spaces - the regex must allow them but stop at sensible
   boundaries; cap match length at 50 chars (the display-name max).
 - XSS: render mention spans via Svelte's escaped interpolation, never `@html`.
 

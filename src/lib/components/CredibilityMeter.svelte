@@ -34,9 +34,14 @@
 	const verifyPct = $derived(total === 0 ? 50 : Math.round((verifyCount / total) * 100));
 	const disputePct = $derived(100 - verifyPct);
 	const canVote = $derived(Boolean(user) && !loading && !locating);
+	const reliabilitySummary = $derived(
+		total === 0
+			? 'No reliability ratings yet'
+			: `This source is ${verifyPct}% reliable in the community`
+	);
 
 	// Warm the location provider as soon as the meter is on screen, so the
-	// voter isn't waiting on a cold GPS fix the moment they click Verify.
+	// voter isn't waiting on a cold GPS fix the moment they rate reliability.
 	onMount(() => {
 		if (user) prewarm();
 	});
@@ -46,7 +51,7 @@
 		error = '';
 		outOfRangeVote = null;
 
-		// 1. Establish where the voter is — required to vote (project.md §4.4).
+		// 1. Establish where the rater is - required for reliability ratings.
 		//    The shared service usually has a warm fix ready, so this is instant.
 		locating = true;
 		let fix: GeoFix;
@@ -68,7 +73,7 @@
 		const buffer = Math.min(accuracyM, MAX_ACCURACY_BUFFER_M);
 		if (distance > post.impactRadiusM + buffer) {
 			outOfRangeVote = value;
-			error = `You're ${formatDistance(distance)} from this story — you must be inside its ${formatDistance(post.impactRadiusM)} impact zone to vote.`;
+			error = `You're ${formatDistance(distance)} from this story - you must be inside its ${formatDistance(post.impactRadiusM)} impact zone to rate reliability.`;
 			return;
 		}
 
@@ -117,10 +122,36 @@
 		}
 	}
 
+	function randomPointInsideImpactRadius(): { lng: number; lat: number } {
+		const earthRadiusM = 6371000;
+		const bearing = Math.random() * Math.PI * 2;
+		const distance = Math.sqrt(Math.random()) * post.impactRadiusM * 0.95;
+		const angularDistance = distance / earthRadiusM;
+		const lat1 = (post.lat * Math.PI) / 180;
+		const lng1 = (post.lng * Math.PI) / 180;
+
+		const lat2 = Math.asin(
+			Math.sin(lat1) * Math.cos(angularDistance) +
+				Math.cos(lat1) * Math.sin(angularDistance) * Math.cos(bearing)
+		);
+		const lng2 =
+			lng1 +
+			Math.atan2(
+				Math.sin(bearing) * Math.sin(angularDistance) * Math.cos(lat1),
+				Math.cos(angularDistance) - Math.sin(lat1) * Math.sin(lat2)
+			);
+
+		return {
+			lng: (lng2 * 180) / Math.PI,
+			lat: (lat2 * 180) / Math.PI
+		};
+	}
+
 	async function moveVoteLocationIntoRange() {
 		if (!outOfRangeVote || loading || locating) return;
 		error = '';
 		loading = true;
+		const testLocation = randomPointInsideImpactRadius();
 
 		try {
 			const res = await fetch(`/api/posts/${post.id}/vote`, {
@@ -128,8 +159,8 @@
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({
 					vote: outOfRangeVote,
-					voterLng: post.lng,
-					voterLat: post.lat,
+					voterLng: testLocation.lng,
+					voterLat: testLocation.lat,
 					accuracyM: 0
 				})
 			});
@@ -164,9 +195,9 @@
 
 <div class="meter-card card">
 	<div class="meter-header">
-		<span class="meter-label">Community credibility</span>
+		<span class="meter-label">Community reliability</span>
 		<span class="meter-counts muted">
-			{verifyCount} verified · {disputeCount} disputed
+			{reliabilitySummary}
 		</span>
 	</div>
 
@@ -174,7 +205,7 @@
 		class="bar-track"
 		class:no-votes={total === 0}
 		style="--verify-pct: {verifyPct}%; --dispute-pct: {disputePct}%;"
-		aria-label="Credibility: {verifyPct}% verified, {disputePct}% disputed"
+		aria-label="Community reliability: {verifyPct}% reliable, {disputePct}% needs review"
 	>
 		<div
 			class="bar-fill bar-verify"
@@ -187,20 +218,20 @@
 			style="width: {disputePct === 0 ? '0%' : `calc(${disputePct}% + 18px)`}"
 		></div>
 		<div class="bar-labels" aria-hidden="true">
-			<span>{total === 0 ? 'Verify' : `${verifyPct}% verified`}</span>
-			<span>{total === 0 ? 'Dispute' : `${disputePct}% disputed`}</span>
+			<span>{total === 0 ? 'Reliable' : `${verifyPct}% reliable`}</span>
+			<span>{total === 0 ? 'Needs review' : `${disputePct}% needs review`}</span>
 		</div>
 		<button
 			type="button"
 			class="bar-hit bar-hit-verify"
-			aria-label="Verify this post"
+			aria-label="Rate this source reliable"
 			onclick={() => vote('verify')}
 			disabled={!canVote}
 		></button>
 		<button
 			type="button"
 			class="bar-hit bar-hit-dispute"
-			aria-label="Dispute this post"
+			aria-label="Mark this source as needing review"
 			onclick={() => vote('dispute')}
 			disabled={!canVote}
 		></button>
@@ -208,7 +239,7 @@
 
 	{#if !user}
 		<p class="prompt muted">
-			<a href="/auth/login" class="link">Sign in</a> to verify or dispute this post.
+			<a href="/auth/login" class="link">Sign in</a> to rate this source's reliability.
 		</p>
 	{:else}
 		<div class="vote-row" hidden>
@@ -218,7 +249,7 @@
 				onclick={() => vote('verify')}
 				disabled={loading || locating}
 			>
-				✓ Verify
+				✓ Reliable
 			</button>
 			<button
 				class="btn vote-btn dispute-btn"
@@ -226,14 +257,14 @@
 				onclick={() => vote('dispute')}
 				disabled={loading || locating}
 			>
-				✗ Dispute
+				✗ Needs review
 			</button>
 		</div>
 		<p class="gate-hint muted">
 			{#if locating}
 				📍 Checking you're inside the impact zone…
 			{:else}
-				📍 Voting confirms your location is inside the story's impact zone.
+				📍 Reliability ratings confirm your location is inside the story's impact zone.
 			{/if}
 		</p>
 	{/if}
@@ -247,10 +278,10 @@
 				onclick={moveVoteLocationIntoRange}
 				disabled={loading || locating}
 			>
-				Move vote location into range
+				Move rating location into range
 			</button>
 			<p class="test-location-note muted">
-				Testing only: records this vote at the story location.
+				Testing only: records this rating at a random point inside the story radius.
 			</p>
 		{/if}
 	{/if}

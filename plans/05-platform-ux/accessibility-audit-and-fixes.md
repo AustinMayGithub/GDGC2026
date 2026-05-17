@@ -32,7 +32,7 @@ None.
 
 ## UI / component changes
 Concrete issues found in the code:
-- `src/routes/+page.svelte:660-669` — the logo is a `<div role="button">` with
+- `src/routes/+page.svelte:660-669` - the logo is a `<div role="button">` with
   an `onkeydown` Enter handler but no Space handler and a non-descriptive
   child `<img alt="logo">`. Replace with a real `<a href="/">` (semantic,
   focusable, both keys free) and give the logo image an empty `alt=""` plus a
@@ -40,31 +40,31 @@ Concrete issues found in the code:
 - `src/routes/+page.svelte:472 reportSelectedPost` uses `window.prompt` +
   `alert`. Replace with an accessible in-panel form / modal (focus-trapped,
   `aria-labelledby`, Escape to close). `CommentThread.svelte` already has an
-  inline report form pattern (`reportingId`/`reportReason` state) — reuse it.
+  inline report form pattern (`reportingId`/`reportReason` state) - reuse it.
 - Map markers are `circle` layers with no keyboard path; the headline list and
-  trending dropdown are the keyboard-accessible route to a post — confirm every
+  trending dropdown are the keyboard-accessible route to a post - confirm every
   post reachable on the map is also reachable in a list, and that
   `HeadlineList.svelte` items are real `<button>`/`<a>` elements with visible
   focus rings.
-- Scope toggle (`+page.svelte:679-696`) uses `aria-pressed` — good; verify the
+- Scope toggle (`+page.svelte:679-696`) uses `aria-pressed` - good; verify the
   `aria-busy` region and that the `.toggle-indicator` movement is not the only
-  state cue (text weight change at line 1126 covers this — confirm).
+  state cue (text weight change at line 1126 covers this - confirm).
 - `aside` panels (compose `+page.svelte:908`, post `+page.svelte:798`) appear
   via `transition:fly`. When opened, move focus into the panel; when closed,
   return focus to the trigger. Add `aria-modal`-style focus handling or at
   least programmatic focus on the panel heading.
 - Add a "skip to main content" link in `src/routes/+layout.svelte`.
 - Respect `prefers-reduced-motion` for the `fly` transitions and the spinner
-  (`+page.svelte:1242` `@keyframes spin`) — wrap motion in a media query in
+  (`+page.svelte:1242` `@keyframes spin`) - wrap motion in a media query in
   `app.css`.
 - Form fields: confirm every `input`/`textarea`/`select` has an associated
-  `<label>` — compose fields use `field-label`/`for` (good); the region
-  `<select>` at `+page.svelte:707` has no label — add a visually-hidden one.
-- Image `alt` text: post header images render `alt=""` (`+page.svelte:836`) —
+  `<label>` - compose fields use `field-label`/`for` (good); the region
+  `<select>` at `+page.svelte:707` has no label - add a visually-hidden one.
+- Image `alt` text: post header images render `alt=""` (`+page.svelte:836`) -
   acceptable as decorative, but confirm intentional; the article has a real
   `<h1>` title nearby.
 - Colour contrast: the credibility meter and the marker status colours
-  (`HomeMap.svelte:582-595` greens/reds/yellows) — verify text-on-colour and
+  (`HomeMap.svelte:582-595` greens/reds/yellows) - verify text-on-colour and
   adjacent-colour contrast; add a non-colour cue (icon/label) to verify vs
   dispute since red/green alone fails for colour-blind users.
 
@@ -72,7 +72,7 @@ Concrete issues found in the code:
 - Optional dev dependency: `axe-core` or `@axe-core/playwright` for automated
   checks; can also run the browser Lighthouse/axe extension manually with no
   dependency.
-- Risk: focus-trap behaviour for the panels is fiddly — keep it minimal
+- Risk: focus-trap behaviour for the panels is fiddly - keep it minimal
   (focus on open, restore on close) rather than a full trap if time is short.
 
 ## Implementation steps

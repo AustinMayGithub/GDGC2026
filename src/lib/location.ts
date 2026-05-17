@@ -8,7 +8,7 @@
 // deduplicates concurrent requests, and accepts a coarse server-derived seed
 // so the map can render a sensible view before any permission prompt.
 //
-// Safe to import on client and server — all browser access is guarded.
+// Safe to import on client and server - all browser access is guarded.
 
 import { writable, type Readable } from 'svelte/store';
 
@@ -46,9 +46,9 @@ export type GeoState = {
 
 const MESSAGES: Record<GeoErrorKind, string> = {
 	denied:
-		'Location access is blocked. BirdsEye only counts votes from inside a story’s impact zone — allow location to take part.',
+		'Location access is blocked. BirdsEye only counts reliability ratings from inside a story’s impact zone - allow location to take part.',
 	unavailable: 'This device can’t share a location right now.',
-	timeout: 'Couldn’t pin down your location in time — check your connection and try again.',
+	timeout: 'Couldn’t pin down your location in time - check your connection and try again.',
 	insecure: 'Location needs a secure (https) connection.'
 };
 
@@ -77,7 +77,7 @@ function persist(fix: GeoFix) {
 	try {
 		sessionStorage.setItem(SESSION_KEY, JSON.stringify(fix));
 	} catch {
-		// Storage unavailable (private mode / quota) — the in-memory cache still works.
+		// Storage unavailable (private mode / quota) - the in-memory cache still works.
 	}
 }
 
@@ -129,7 +129,7 @@ function startWatch() {
 	watchId = navigator.geolocation.watchPosition(
 		(pos) => setFix(toFix(pos)),
 		() => {
-			// Transient watch errors are non-fatal — `getLocation` surfaces hard failures.
+			// Transient watch errors are non-fatal - `getLocation` surfaces hard failures.
 		},
 		{ enableHighAccuracy: true, maximumAge: WATCH_FRESH_MS, timeout: 27_000 }
 	);
@@ -161,7 +161,7 @@ export type GetLocationOptions = {
 };
 
 /**
- * Resolve a precise GPS fix — fast when warm, deduplicated when cold.
+ * Resolve a precise GPS fix - fast when warm, deduplicated when cold.
  *
  * The cold path requests a *low-accuracy* fix first (wifi/cell positioning,
  * which returns in ~1 s instead of waiting on a GPS lock) and then starts the
@@ -184,7 +184,7 @@ export function getLocation(opts: GetLocationOptions = {}): Promise<GeoFix> {
 		return Promise.resolve(current);
 	}
 
-	// 2. A cold acquisition is already in flight — join it rather than stacking
+	// 2. A cold acquisition is already in flight - join it rather than stacking
 	//    a second permission/provider request.
 	if (pending) return pending;
 
@@ -208,7 +208,7 @@ export function getLocation(opts: GetLocationOptions = {}): Promise<GeoFix> {
 
 /**
  * Begin acquiring location early (e.g. on app mount) so the first vote or post
- * is instant. Never throws — callers that truly need a fix call `getLocation`.
+ * is instant. Never throws - callers that truly need a fix call `getLocation`.
  */
 export function prewarm() {
 	if (!current) {
@@ -219,7 +219,7 @@ export function prewarm() {
 		}
 	}
 	void getLocation().catch(() => {
-		// Swallowed — surfaced later if a consumer actually needs the fix.
+		// Swallowed - surfaced later if a consumer actually needs the fix.
 	});
 }
 

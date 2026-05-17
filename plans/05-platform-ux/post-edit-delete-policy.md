@@ -6,15 +6,15 @@
 
 ## Summary
 project.md §12 leaves post editing/deletion as an open question and suggests
-"delete yes, edit no for 48h — editing a voted-on factual post undermines the
+"delete yes, edit no for 48h - editing a voted-on factual post undermines the
 votes." This plan implements that policy: an author can **delete** their own
 post; **editing** is allowed only in a narrow, vote-safe form. Right now there
-is no delete endpoint and no author controls in the UI — `getPostDetail`
+is no delete endpoint and no author controls in the UI - `getPostDetail`
 already computes `isOwn` (`posts.ts:270`) but nothing consumes it.
 
 ## Why it fits BirdsEye
 Directly resolves the §12 open question. §4.4/§9.3 make the credibility vote the
-single truth signal — so the policy must protect it: deleting cascades cleanly
+single truth signal - so the policy must protect it: deleting cascades cleanly
 (the schema's `onDelete: 'cascade'` on `post_votes`, `comments`, etc. handles
 that), while editing the body of a voted-on factual post is forbidden because it
 would silently invalidate existing verify/dispute votes. The plan honours the
@@ -28,20 +28,20 @@ would silently invalidate existing verify/dispute votes. The plan honours the
   their votes.
 
 ## Data model changes
-None strictly required — `onDelete: 'cascade'` foreign keys in
+None strictly required - `onDelete: 'cascade'` foreign keys in
 `src/lib/server/db/schema.ts` already clean up votes, comments, reactions,
 notes and reports when a post row is deleted.
 
 Optional, recommended for honesty: add `updatedAt: timestamp(...)` and
 `editedAt: timestamp(...)` (nullable) to `posts` so the UI can show "edited".
 A soft-delete `deletedAt` is an alternative to hard delete; hard delete is
-simpler and the cascades make it safe — recommend hard delete for 48h.
+simpler and the cascades make it safe - recommend hard delete for 48h.
 
 ## API / server changes
 - New `DELETE` handler in `src/routes/api/posts/[id]/+server.ts`:
   - Require `locals.user`; load the post; reject 403 unless
     `post.authorId === locals.user.id`.
-  - `db.delete(posts).where(eq(posts.id, params.id))` — cascades handle the
+  - `db.delete(posts).where(eq(posts.id, params.id))` - cascades handle the
     rest. If the object-storage image plan lands, also delete the stored
     image object here.
 - New `PATCH` handler in the same file for editing, enforcing the policy:
@@ -57,12 +57,12 @@ simpler and the cascades make it safe — recommend hard delete for 48h.
   - Set `editedAt` if the column is added.
 
 ## UI / component changes
-- `src/routes/+page.svelte` — the post panel already loads `selectedPostDetail`
+- `src/routes/+page.svelte` - the post panel already loads `selectedPostDetail`
   which carries `isOwn`. Add an author controls row in `.post-actions`
-  (line 894): a "Delete" button (with an accessible confirm — not
+  (line 894): a "Delete" button (with an accessible confirm - not
   `window.confirm`; reuse an inline-confirm pattern) and, when editing is
   permitted, an "Edit" button that reopens the compose-style panel pre-filled.
-- `src/routes/post/[id]/+page.svelte` — `data.post.isOwn` is available; add the
+- `src/routes/post/[id]/+page.svelte` - `data.post.isOwn` is available; add the
   same author controls on the full-page article view.
 - Edit flow can reuse the compose panel: pre-fill `composeTitle`/`composeBody`
   from the post, disable the category picker and (when voted) the location/
@@ -74,12 +74,12 @@ simpler and the cascades make it safe — recommend hard delete for 48h.
 
 ## Dependencies & risks
 - No new dependencies.
-- Risk: an accessible confirmation dialog — do not use `window.confirm`
+- Risk: an accessible confirmation dialog - do not use `window.confirm`
   (see the accessibility plan); use an inline two-step confirm.
-- Risk: race between an edit and an incoming vote — the zero-votes check and
+- Risk: race between an edit and an incoming vote - the zero-votes check and
   the insert happen close together; acceptable at hackathon scale, but wrap the
   factual-edit check + update in a transaction for correctness.
-- Risk: anonymous posts — `isOwn` is computed server-side from `authorId`
+- Risk: anonymous posts - `isOwn` is computed server-side from `authorId`
   regardless of the `anonymous` flag (`posts.ts:268-270`), so author controls
   still work for the real author; confirm the UI does not leak identity.
 

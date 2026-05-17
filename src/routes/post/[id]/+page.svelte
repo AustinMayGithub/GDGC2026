@@ -37,7 +37,7 @@
 	let rightOpen = $state(true);
 	let communityNote = $state(post.communityNote);
 
-	// Vote heatmap data — refreshed live when the viewer casts a vote.
+	// Reliability heatmap data - refreshed live when the viewer rates a source.
 	let votePoints = $state<VotePoint[]>(data.votePoints);
 	const heatmapReady = $derived(votePoints.length >= MIN_VOTES_FOR_HEATMAP);
 
@@ -79,7 +79,7 @@
 </script>
 
 <svelte:head>
-	<title>{post.title} — BirdsEye</title>
+	<title>{post.title} - BirdsEye</title>
 </svelte:head>
 
 <div class="page" class:right-open={rightOpen}>
@@ -107,12 +107,12 @@
 
 				<!-- Category + meta row -->
 				<div class="article-meta">
-					{#if post.category === 'factual'}
-						<span class="badge badge-factual">Factual</span>
-					{:else}
+					{#if post.category === 'personal'}
 						<span class="badge">Community notice</span>
 					{/if}
-					<span class="muted meta-sep">·</span>
+					{#if post.category === 'personal'}
+						<span class="muted meta-sep">·</span>
+					{/if}
 					{#if post.anonymous}
 						<span class="muted author">Anonymous</span>
 					{:else}
@@ -158,7 +158,7 @@
 					<!-- 1. Impact Map -->
 					<section class="panel-section map-section">
 						<h2 class="section-heading">
-							Affected area{post.category === 'factual' ? ' & vote map' : ''}
+							Affected area{post.category === 'factual' ? ' & reliability map' : ''}
 						</h2>
 						<div class="map-wrapper">
 							<ImpactMap
@@ -176,19 +176,19 @@
 						{#if post.category === 'factual'}
 							<p class="map-caption muted">
 								{#if heatmapReady}
-									🟢 Verify / 🔴 Dispute heatmap from {votePoints.length} located
-									{votePoints.length === 1 ? 'vote' : 'votes'}. Click the map to reveal
-									each voter's exact location.
+									🟢 Reliable / 🔴 Needs review heatmap from {votePoints.length} located
+									{votePoints.length === 1 ? 'rating' : 'ratings'}. Click the map to reveal
+									each rater's exact location.
 								{:else}
-									The vote heatmap appears once {MIN_VOTES_FOR_HEATMAP}+ voters inside the
-									impact zone have voted ({votePoints.length} so far).
+									The reliability heatmap appears once {MIN_VOTES_FOR_HEATMAP}+ raters inside
+									the impact zone have rated this source ({votePoints.length} so far).
 								{/if}
 							</p>
 						{/if}
 					</section>
 
 					{#if post.category === 'factual'}
-						<!-- 2. Credibility meter — sticky -->
+						<!-- 2. Credibility meter - sticky -->
 						<div class="sticky-meter">
 							<CredibilityMeter {post} {user} onVoted={handleVoted} />
 						</div>

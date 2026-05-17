@@ -247,8 +247,8 @@
 		const total = post.verifyCount + post.disputeCount;
 		if (total === 0) return 'untouched';
 		const verifyRatio = post.verifyCount / total;
-		if (verifyRatio >= 0.4 && verifyRatio <= 0.6) return 'decisive';
-		return verifyRatio > 0.6 ? 'factual' : 'disputed';
+		if (verifyRatio >= 0.4 && verifyRatio <= 0.6) return 'mixed';
+		return verifyRatio > 0.6 ? 'reliable' : 'needs-review';
 	}
 
 	function popularityFor(post: PostSummary) {
@@ -830,11 +830,11 @@
 					'circle-color': [
 						'match',
 						['get', 'status'],
-						'factual',
+						'reliable',
 						'#16a34a',
-						'disputed',
+						'needs-review',
 						'#dc2626',
-						'decisive',
+						'mixed',
 						'#eab308',
 						'untouched',
 						'#ffffff',

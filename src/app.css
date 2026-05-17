@@ -1,4 +1,4 @@
-/* BirdsEye design system — minimalist white with gradient accents. */
+/* BirdsEye design system - minimalist white with gradient accents. */
 
 :root {
 	/* Surfaces */
@@ -20,7 +20,7 @@
 	--gradient: linear-gradient(120deg, var(--brand-1), var(--brand-2));
 	--accent: #111111;
 
-	/* Semantic — verify / dispute */
+	/* Semantic - reliable / needs review */
 	--verify: #16a34a;
 	--verify-soft: #dcfce7;
 	--dispute: #dc2626;

@@ -15,7 +15,7 @@ dots.
 ## Why it fits BirdsEye
 project.md §8 "Marker clustering" states plainly: *"Multiple posts in one
 city will overlap. MapLibre's built-in GeoJSON source clustering handles
-this — enable it from the start."* It is also listed under §10 Nice-to-have.
+this - enable it from the start."* It is also listed under §10 Nice-to-have.
 The current `posts` source (`src/lib/components/HomeMap.svelte:564`) has no
 clustering, so seeded demo data (15–20 posts, §10) concentrated in two
 regions will overlap badly.
@@ -37,10 +37,10 @@ All changes in `src/lib/components/HomeMap.svelte`:
 - In the `m.addSource('posts', ...)` call (line 564) add
   `cluster: true`, `clusterRadius: 46`, `clusterMaxZoom: 9`.
 - Add three layers in the `load` handler:
-  1. `clusters` — circle layer filtered to `['has','point_count']`,
+  1. `clusters` - circle layer filtered to `['has','point_count']`,
      sized/coloured by `point_count` via a `step` expression, styled to match
      the app's glassy palette.
-  2. `cluster-count` — symbol layer with `text-field: ['get','point_count_abbreviated']`.
+  2. `cluster-count` - symbol layer with `text-field: ['get','point_count_abbreviated']`.
   3. Keep the existing `post-point` layer but add filter
      `['!', ['has','point_count']]` so it only draws unclustered points.
 - Add a `click` handler on `clusters` that calls
@@ -48,23 +48,23 @@ All changes in `src/lib/components/HomeMap.svelte`:
 - Add `mouseenter`/`mouseleave` cursor handlers on `clusters` (mirror
   lines 658-664).
 - **Important:** clustering breaks `getMarkerScreenPos()` (line 425) for any
-  post currently inside a cluster — the connector line would point at a
+  post currently inside a cluster - the connector line would point at a
   marker that is not rendered. In `getMarkerScreenPos`, when the post's
   point is clustered at the current zoom, return the *cluster's* screen
   position instead (query the cluster feature near that lng/lat), or return
   `null` so `ConnectorLines.svelte:47` skips it gracefully (it already
   `continue`s on null).
-- The `selected-radius` and `compose-*` sources stay unclustered — only
+- The `selected-radius` and `compose-*` sources stay unclustered - only
   `posts` clusters.
 
 ## Dependencies & risks
-- No new libraries — clustering is native to MapLibre's GeoJSON source.
+- No new libraries - clustering is native to MapLibre's GeoJSON source.
 - **Schedule risk: connector-line interaction.** This is the real cost. The
   connector lines (project.md §8, the named biggest schedule risk) assume
   every post has a stable on-map pixel. Decide the policy up front: either
   (a) connector skips clustered posts, or (b) connector points to the
   cluster. Option (a) is the safe, fast choice.
-- Gotcha: `setData` on a clustered source recomputes clusters — the existing
+- Gotcha: `setData` on a clustered source recomputes clusters - the existing
   `syncPostLayers()` (line 314) still works, no change needed.
 - Gotcha: trending pulse / selected-marker styling (`selected`, `hovered`
   feature props) does not propagate to cluster bubbles; a selected post

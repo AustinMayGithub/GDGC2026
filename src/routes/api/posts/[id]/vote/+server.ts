@@ -13,11 +13,11 @@ function coord(value: unknown): number | null {
 }
 
 export const POST: RequestHandler = async ({ request, params, locals }) => {
-	if (!locals.user) throw error(401, 'Sign in to vote.');
+	if (!locals.user) throw error(401, 'Sign in to rate reliability.');
 
 	const data = await request.json().catch(() => null);
 	const vote = data?.vote;
-	if (vote !== 'verify' && vote !== 'dispute') throw error(400, 'Invalid vote.');
+	if (vote !== 'verify' && vote !== 'dispute') throw error(400, 'Invalid reliability rating.');
 
 	const [post] = await db
 		.select({
@@ -30,22 +30,22 @@ export const POST: RequestHandler = async ({ request, params, locals }) => {
 		.where(eq(posts.id, params.id));
 	if (!post) throw error(404, 'Post not found.');
 	if (post.category !== 'factual')
-		throw error(400, 'Only factual posts can be voted on.');
+		throw error(400, 'Only reliability-rated reports can be rated.');
 
-	// Location gate: a voter must be inside the post's impact zone to vote
+	// Location gate: a rater must be inside the post's impact zone.
 	// (the heatmap depends on this, and it raises the bar for brigading).
 	const voterLng = coord(data?.voterLng);
 	const voterLat = coord(data?.voterLat);
 	if (voterLng === null || voterLat === null)
-		throw error(400, 'Location required — share your location to vote on this post.');
+		throw error(400, 'Location required - share your location to rate this source.');
 
 	const accuracyM = coord(data?.accuracyM) ?? 0;
 	if (!isWithinRadius(post.lng, post.lat, post.impactRadiusM, voterLng, voterLat, accuracyM)) {
 		const distance = haversineMeters(post.lng, post.lat, voterLng, voterLat);
 		throw error(
 			403,
-			`You're ${formatDistance(distance)} from this story — you must be inside its ` +
-				`${formatDistance(post.impactRadiusM)} impact zone to vote.`
+			`You're ${formatDistance(distance)} from this story - you must be inside its ` +
+				`${formatDistance(post.impactRadiusM)} impact zone to rate this source.`
 		);
 	}
 

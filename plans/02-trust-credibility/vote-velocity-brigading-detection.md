@@ -5,8 +5,8 @@
 **Status:** Proposed
 
 ## Summary
-Detect abnormal bursts of votes on a post — a sudden spike in vote rate, or many
-votes from accounts created in the last few hours — and flag the post as
+Detect abnormal bursts of votes on a post - a sudden spike in vote rate, or many
+votes from accounts created in the last few hours - and flag the post as
 "unusual voting activity". Flagged posts show a soft banner on the credibility
 meter and surface in the moderation triage view.
 
@@ -57,22 +57,22 @@ No change to `post_votes` itself; `created_at` (`schema.ts:96`) and
     ~60% insert a `new_account_cluster` flag.
   - Idempotent: skip if an unresolved flag of the same reason already exists.
 - Call `checkVelocity(params.id)` at the end of `vote/+server.ts` after the
-  insert (`vote/+server.ts:60`), non-blocking — wrap in a try/catch so a
+  insert (`vote/+server.ts:60`), non-blocking - wrap in a try/catch so a
   detection error never fails the vote.
-- `getPostDetail` (`posts.ts:206`) — add `voteFlagged: boolean` and an optional
+- `getPostDetail` (`posts.ts:206`) - add `voteFlagged: boolean` and an optional
   `voteFlagReason` to `PostDetail` by selecting unresolved rows from
   `post_vote_flags`.
 
 ## UI / component changes
-- `src/lib/components/CredibilityMeter.svelte` — when `post.voteFlagged`, render
+- `src/lib/components/CredibilityMeter.svelte` - when `post.voteFlagged`, render
   a muted warning row above the bar (`CredibilityMeter.svelte:147`): "Unusual
-  voting activity detected — this score is under review." Use the existing
+  voting activity detected - this score is under review." Use the existing
   `.error-text` / muted styling vocabulary.
 - Surface flagged posts in the moderation triage view (see the report-triage
-  dashboard plan) — flags and reports share that queue.
+  dashboard plan) - flags and reports share that queue.
 
 ## Dependencies & risks
-- No new packages — all SQL aggregate queries via Drizzle.
+- No new packages - all SQL aggregate queries via Drizzle.
 - Risk: false positives from a genuinely viral local story. Mitigation: require
   *both* a high absolute count and a multiple of the baseline; keep the banner
   soft ("under review"), never auto-hide the post or zero the score.

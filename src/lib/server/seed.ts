@@ -1,5 +1,5 @@
 /**
- * BirdsEye — Database Seed Script
+ * BirdsEye - Database Seed Script
  * Run: npx tsx src/lib/server/seed.ts
  * Or:  npm run db:seed
  */
@@ -128,7 +128,7 @@ async function main() {
 		// AUCKLAND (dense)
 		{
 			authorId: liam.id,
-			title: 'SH1 Northbound Closed at Newmarket — Major Delays Expected',
+			title: 'SH1 Northbound Closed at Newmarket - Major Delays Expected',
 			body: `State Highway 1 northbound through Newmarket is closed from 6 am today following a multi-vehicle crash near the Gillies Ave on-ramp. Emergency services are on scene and the closure is expected to last several hours.\n\nDrivers are advised to use Khyber Pass Road or Great South Road as alternatives. Auckland Transport has deployed additional traffic management staff at key intersections. Expect delays of up to 45 minutes during peak hour.`,
 			category: 'factual',
 			lng: 174.779,
@@ -139,7 +139,7 @@ async function main() {
 		},
 		{
 			authorId: priya.id,
-			title: 'Water Main Burst in Ponsonby — Roads Closed on Franklin Road',
+			title: 'Water Main Burst in Ponsonby - Roads Closed on Franklin Road',
 			body: `Watercare crews are responding to a burst 300mm main on Franklin Road, Ponsonby. The road is closed between Collingwood and Richmond Road while repairs are carried out.\n\nResidents in surrounding streets may experience low pressure or discoloured water. Watercare expects to restore supply by early afternoon. Parking restrictions are in effect for the length of the repair works.`,
 			category: 'factual',
 			lng: 174.745,
@@ -151,7 +151,7 @@ async function main() {
 		{
 			authorId: mike.id,
 			title: 'Storm Damage Closes Mt Eden Road After Overnight Winds',
-			body: `A large pohutukawa fell across Mt Eden Road in the early hours of Sunday morning, following winds gusting to 95 km/h overnight. The tree has brought down a power line and Auckland Transport has confirmed the road will be closed until at least midday.\n\nVector crews are working to make the line safe before the tree can be removed. Neighbouring streets — Balmoral Road and Dominion Road — are handling diverted traffic with significant queuing reported.`,
+			body: `A large pohutukawa fell across Mt Eden Road in the early hours of Sunday morning, following winds gusting to 95 km/h overnight. The tree has brought down a power line and Auckland Transport has confirmed the road will be closed until at least midday.\n\nVector crews are working to make the line safe before the tree can be removed. Neighbouring streets - Balmoral Road and Dominion Road - are handling diverted traffic with significant queuing reported.`,
 			category: 'factual',
 			lng: 174.757,
 			lat: -36.889,
@@ -161,8 +161,8 @@ async function main() {
 		},
 		{
 			authorId: sarah.id,
-			title: 'Free Community BBQ This Saturday — Grey Lynn Park',
-			body: `The Grey Lynn Community Association is hosting a free family BBQ this Saturday from noon to 3 pm at Grey Lynn Park. All welcome — bring a blanket and lawn games if you have them.\n\nSausages, veggie patties and juice provided. There will be a brief slot for locals to share ideas about the upcoming park redevelopment consultation. Dogs on leads are welcome.`,
+			title: 'Free Community BBQ This Saturday - Grey Lynn Park',
+			body: `The Grey Lynn Community Association is hosting a free family BBQ this Saturday from noon to 3 pm at Grey Lynn Park. All welcome - bring a blanket and lawn games if you have them.\n\nSausages, veggie patties and juice provided. There will be a brief slot for locals to share ideas about the upcoming park redevelopment consultation. Dogs on leads are welcome.`,
 			category: 'personal',
 			lng: 174.743,
 			lat: -36.866,
@@ -172,8 +172,8 @@ async function main() {
 		},
 		{
 			authorId: aroha.id,
-			title: 'Lost Cat — Orange Tabby, Kingsland',
-			body: `Our cat Biscuit has been missing since Thursday evening. He is a large orange tabby, neutered, no collar but microchipped. Last seen near the railway line on New North Road, Kingsland.\n\nIf you spot him please don't try to grab him — he's nervous with strangers. Call or text Aroha on 021 555 0194. There is a reward.`,
+			title: 'Lost Cat - Orange Tabby, Kingsland',
+			body: `Our cat Biscuit has been missing since Thursday evening. He is a large orange tabby, neutered, no collar but microchipped. Last seen near the railway line on New North Road, Kingsland.\n\nIf you spot him please don't try to grab him - he's nervous with strangers. Call or text Aroha on 021 555 0194. There is a reward.`,
 			category: 'personal',
 			lng: 174.748,
 			lat: -36.875,
@@ -208,7 +208,7 @@ async function main() {
 		{
 			authorId: priya.id,
 			title: 'Wellington City Council Votes to Close Courtenay Place to Traffic on Friday Nights',
-			body: `Wellington City Council last night voted 9–5 to trial a pedestrianisation of Courtenay Place between Tory and Blair streets on Friday nights from 10 pm to 4 am, starting from March.\n\nThe trial is for six months and will be reviewed. Supporters say it will reduce alcohol-fuelled incidents and create space for street performers. Opponents — including several bar owners who appeared before the committee — argue it will harm late-night logistics for deliveries and taxis.`,
+			body: `Wellington City Council last night voted 9–5 to trial a pedestrianisation of Courtenay Place between Tory and Blair streets on Friday nights from 10 pm to 4 am, starting from March.\n\nThe trial is for six months and will be reviewed. Supporters say it will reduce alcohol-fuelled incidents and create space for street performers. Opponents - including several bar owners who appeared before the committee - argue it will harm late-night logistics for deliveries and taxis.`,
 			category: 'factual',
 			lng: 174.778,
 			lat: -41.295,
@@ -218,8 +218,8 @@ async function main() {
 		},
 		{
 			authorId: sarah.id,
-			title: 'Garage Sale — Newtown, Sunday 9am',
-			body: `Moving overseas so everything must go. Furniture, kitchenware, books, vinyl records, kids toys and a very good sofa bed. Sunday 9 am–1 pm, 44 Rintoul Street, Newtown.\n\nCash only please. Everything priced to sell — first in first served. No early birds please, the gate won't be open before 9.`,
+			title: 'Garage Sale - Newtown, Sunday 9am',
+			body: `Moving overseas so everything must go. Furniture, kitchenware, books, vinyl records, kids toys and a very good sofa bed. Sunday 9 am–1 pm, 44 Rintoul Street, Newtown.\n\nCash only please. Everything priced to sell - first in first served. No early birds please, the gate won't be open before 9.`,
 			category: 'personal',
 			lng: 174.782,
 			lat: -41.314,
@@ -253,7 +253,7 @@ async function main() {
 		},
 		{
 			authorId: liam.id,
-			title: 'Nor\'west Arch Brings Record Heat to Christchurch — 38°C Forecast',
+			title: 'Nor\'west Arch Brings Record Heat to Christchurch - 38°C Forecast',
 			body: `A strong nor'west arch is forecast to bring temperatures up to 38°C to the Canterbury Plains on Thursday, according to MetService. This would equal the hottest day recorded in Christchurch since 2009.\n\nFire and Emergency NZ has issued an open-air burn ban for the Canterbury region. Residents are advised to check on elderly neighbours, keep pets inside during the hottest part of the day (noon–4pm), and avoid strenuous outdoor activity.`,
 			category: 'factual',
 			lng: 172.636,
@@ -266,7 +266,7 @@ async function main() {
 		// OTAGO
 		{
 			authorId: odw.id,
-			title: 'Dunedin Hospital Construction Crane Collapse — No Injuries Reported',
+			title: 'Dunedin Hospital Construction Crane Collapse - No Injuries Reported',
 			body: `A construction crane at the new Dunedin Hospital site on Castle Street partially collapsed this morning after a structural failure during the lift of a steel beam. No workers were injured and the site has been cleared.\n\nWorksafe NZ inspectors are on-site. Hospital construction manager Downer Group said the incident occurred before workers had moved into the immediate area. Castle Street is closed between Hanover and St David streets and is expected to remain closed overnight.`,
 			category: 'factual',
 			lng: 170.503,
@@ -277,7 +277,7 @@ async function main() {
 		},
 		{
 			authorId: brendan.id,
-			title: 'Queenstown Skifield Road Closed — Ice and Fresh Snow Overnight',
+			title: 'Queenstown Skifield Road Closed - Ice and Fresh Snow Overnight',
 			body: `The Remarkables ski area access road is closed this morning after 25cm of new snow fell overnight and freezing temperatures created significant ice on the upper section. The Coronet Peak road is open but chains are required beyond the carpark.\n\nQueenstown Lakes District Council's roading team is treating the Remarkables road and expects to re-open it by late morning, conditions permitting. Visitors heading to the Remarkables are advised to check the NZSki website before departing.`,
 			category: 'factual',
 			lng: 168.768,
@@ -301,7 +301,7 @@ async function main() {
 		// WAIKATO
 		{
 			authorId: mike.id,
-			title: 'Hamilton East Bridge Repair Work to Begin — 12-Week Closure',
+			title: 'Hamilton East Bridge Repair Work to Begin - 12-Week Closure',
 			body: `The Riverlea Road bridge over the Waikato River in Hamilton East will close to all traffic from Monday for a 12-week repair programme. Hamilton City Council says the bridge deck has significant deterioration requiring full replacement.\n\nResidents in Hamilton East will need to use the Victoria Bridge or the Claudelands Road bridge as alternatives. A dedicated contra-flow lane for cyclists and pedestrians will be maintained at Victoria Bridge during the works.`,
 			category: 'factual',
 			lng: 175.293,
@@ -314,7 +314,7 @@ async function main() {
 		// BAY OF PLENTY
 		{
 			authorId: priya.id,
-			title: 'Rotorua Sulphur Smell — Council Investigates Increase in Geothermal Activity',
+			title: 'Rotorua Sulphur Smell - Council Investigates Increase in Geothermal Activity',
 			body: `Rotorua Lakes Council is investigating an increase in hydrogen sulphide odour reported by residents across the central city and Ohinemutu over the past 48 hours. The smell, while unpleasant, is not at levels considered dangerous.\n\nGeothermal monitoring equipment at several reference sites has recorded increased ground temperatures and gas output. GNS Science has been notified and says the activity is consistent with seasonal variation but is being monitored. Residents with respiratory conditions are advised to keep windows closed during periods of strong smell.`,
 			category: 'factual',
 			lng: 176.249,
@@ -373,19 +373,19 @@ async function main() {
 		return p;
 	};
 
-	const pSH1 = byTitle('SH1 Northbound Closed at Newmarket — Major Delays Expected');
-	const pWater = byTitle('Water Main Burst in Ponsonby — Roads Closed on Franklin Road');
+	const pSH1 = byTitle('SH1 Northbound Closed at Newmarket - Major Delays Expected');
+	const pWater = byTitle('Water Main Burst in Ponsonby - Roads Closed on Franklin Road');
 	const pStorm = byTitle('Storm Damage Closes Mt Eden Road After Overnight Winds');
 	const pNewLynn = byTitle('Auckland Council Approves $2.4M Upgrade for New Lynn Town Centre');
 	const pHutt = byTitle('Hutt Road Slip Causes Commuter Chaos on Monday Morning');
 	const pCourt = byTitle('Wellington City Council Votes to Close Courtenay Place to Traffic on Friday Nights');
 	const pMiramar = byTitle('Miramar Peninsula Flood Warning After 80mm Rainfall in 6 Hours');
 	const pChchCouncil = byTitle('Christchurch City Council Defers Decision on Proposed Memorial Park Extension');
-	const pNorwest = byTitle('Nor\'west Arch Brings Record Heat to Christchurch — 38°C Forecast');
-	const pCrane = byTitle('Dunedin Hospital Construction Crane Collapse — No Injuries Reported');
-	const pSkifield = byTitle('Queenstown Skifield Road Closed — Ice and Fresh Snow Overnight');
-	const pBridge = byTitle('Hamilton East Bridge Repair Work to Begin — 12-Week Closure');
-	const pRotorua = byTitle('Rotorua Sulphur Smell — Council Investigates Increase in Geothermal Activity');
+	const pNorwest = byTitle('Nor\'west Arch Brings Record Heat to Christchurch - 38°C Forecast');
+	const pCrane = byTitle('Dunedin Hospital Construction Crane Collapse - No Injuries Reported');
+	const pSkifield = byTitle('Queenstown Skifield Road Closed - Ice and Fresh Snow Overnight');
+	const pBridge = byTitle('Hamilton East Bridge Repair Work to Begin - 12-Week Closure');
+	const pRotorua = byTitle('Rotorua Sulphur Smell - Council Investigates Increase in Geothermal Activity');
 	const pNapier = byTitle('Napier Port Expansion Consent Granted After Two-Year Process');
 	const pCycleway = byTitle('Palmerston North Cycleway Extension Opens This Week');
 
@@ -395,95 +395,95 @@ async function main() {
 	type VoteInsert = typeof schema.postVotes.$inferInsert;
 
 	const voteData: VoteInsert[] = [
-		// SH1 crash — strongly verified
+		// SH1 crash - strongly verified
 		{ postId: pSH1.id, userId: priya.id, vote: 'verify', voterLng: 174.779, voterLat: -36.877 },
 		{ postId: pSH1.id, userId: mike.id, vote: 'verify', voterLng: 174.757, voterLat: -36.889 },
 		{ postId: pSH1.id, userId: sarah.id, vote: 'verify', voterLng: 174.743, voterLat: -36.866 },
 		{ postId: pSH1.id, userId: brendan.id, vote: 'verify', voterLng: 174.779, voterLat: -36.877 },
 		{ postId: pSH1.id, userId: aroha.id, vote: 'verify', voterLng: 174.748, voterLat: -36.875 },
 
-		// Water main — mostly verified, one dispute
+		// Water main - mostly verified, one dispute
 		{ postId: pWater.id, userId: liam.id, vote: 'verify', voterLng: 174.745, voterLat: -36.861 },
 		{ postId: pWater.id, userId: mike.id, vote: 'verify', voterLng: 174.757, voterLat: -36.889 },
 		{ postId: pWater.id, userId: sarah.id, vote: 'verify', voterLng: 174.743, voterLat: -36.866 },
 		{ postId: pWater.id, userId: odw.id, vote: 'dispute', voterLng: 170.503, voterLat: -45.872 },
 
-		// Storm / Mt Eden — strongly verified
+		// Storm / Mt Eden - strongly verified
 		{ postId: pStorm.id, userId: priya.id, vote: 'verify', voterLng: 174.745, voterLat: -36.861 },
 		{ postId: pStorm.id, userId: liam.id, vote: 'verify', voterLng: 174.779, voterLat: -36.877 },
 		{ postId: pStorm.id, userId: brendan.id, vote: 'verify', voterLng: 174.877, voterLat: -41.228 },
 		{ postId: pStorm.id, userId: aroha.id, vote: 'verify', voterLng: 174.748, voterLat: -36.875 },
 
-		// New Lynn council — contested
+		// New Lynn council - contested
 		{ postId: pNewLynn.id, userId: priya.id, vote: 'verify', voterLng: 174.686, voterLat: -36.909 },
 		{ postId: pNewLynn.id, userId: mike.id, vote: 'dispute', voterLng: 174.757, voterLat: -36.889 },
 		{ postId: pNewLynn.id, userId: brendan.id, vote: 'dispute', voterLng: 174.877, voterLat: -41.228 },
 		{ postId: pNewLynn.id, userId: sarah.id, vote: 'verify', voterLng: 174.743, voterLat: -36.866 },
 		{ postId: pNewLynn.id, userId: aroha.id, vote: 'dispute', voterLng: 174.748, voterLat: -36.875 },
 
-		// Hutt Road — strongly verified
+		// Hutt Road - strongly verified
 		{ postId: pHutt.id, userId: liam.id, vote: 'verify', voterLng: 174.877, voterLat: -41.228 },
 		{ postId: pHutt.id, userId: priya.id, vote: 'verify', voterLng: 174.877, voterLat: -41.228 },
 		{ postId: pHutt.id, userId: sarah.id, vote: 'verify', voterLng: 174.782, voterLat: -41.314 },
 		{ postId: pHutt.id, userId: aroha.id, vote: 'verify', voterLng: 174.813, voterLat: -41.330 },
 
-		// Courtenay Place — contested
+		// Courtenay Place - contested
 		{ postId: pCourt.id, userId: liam.id, vote: 'verify', voterLng: 174.778, voterLat: -41.295 },
 		{ postId: pCourt.id, userId: mike.id, vote: 'verify', voterLng: 174.778, voterLat: -41.295 },
 		{ postId: pCourt.id, userId: brendan.id, vote: 'dispute', voterLng: 174.877, voterLat: -41.228 },
 		{ postId: pCourt.id, userId: odw.id, vote: 'dispute', voterLng: 170.503, voterLat: -45.872 },
 		{ postId: pCourt.id, userId: aroha.id, vote: 'dispute', voterLng: 174.813, voterLat: -41.330 },
 
-		// Miramar flood — mostly verified
+		// Miramar flood - mostly verified
 		{ postId: pMiramar.id, userId: liam.id, vote: 'verify', voterLng: 174.813, voterLat: -41.330 },
 		{ postId: pMiramar.id, userId: brendan.id, vote: 'verify', voterLng: 174.877, voterLat: -41.228 },
 		{ postId: pMiramar.id, userId: sarah.id, vote: 'verify', voterLng: 174.782, voterLat: -41.314 },
 		{ postId: pMiramar.id, userId: priya.id, vote: 'dispute', voterLng: 174.745, voterLat: -36.861 },
 
-		// Chch Council defer — mostly disputed
+		// Chch Council defer - mostly disputed
 		{ postId: pChchCouncil.id, userId: liam.id, vote: 'dispute', voterLng: 172.558, voterLat: -43.524 },
 		{ postId: pChchCouncil.id, userId: priya.id, vote: 'dispute', voterLng: 172.636, voterLat: -43.531 },
 		{ postId: pChchCouncil.id, userId: mike.id, vote: 'verify', voterLng: 175.293, voterLat: -37.784 },
 		{ postId: pChchCouncil.id, userId: sarah.id, vote: 'dispute', voterLng: 174.782, voterLat: -41.314 },
 
-		// Nor'west heat — strongly verified
+		// Nor'west heat - strongly verified
 		{ postId: pNorwest.id, userId: liam.id, vote: 'verify', voterLng: 172.636, voterLat: -43.531 },
 		{ postId: pNorwest.id, userId: brendan.id, vote: 'verify', voterLng: 172.636, voterLat: -43.531 },
 		{ postId: pNorwest.id, userId: aroha.id, vote: 'verify', voterLng: 172.636, voterLat: -43.531 },
 		{ postId: pNorwest.id, userId: sarah.id, vote: 'verify', voterLng: 174.782, voterLat: -41.314 },
 		{ postId: pNorwest.id, userId: odw.id, vote: 'verify', voterLng: 170.503, voterLat: -45.872 },
 
-		// Crane collapse — strongly verified
+		// Crane collapse - strongly verified
 		{ postId: pCrane.id, userId: liam.id, vote: 'verify', voterLng: 170.503, voterLat: -45.872 },
 		{ postId: pCrane.id, userId: priya.id, vote: 'verify', voterLng: 170.503, voterLat: -45.872 },
 		{ postId: pCrane.id, userId: sarah.id, vote: 'verify', voterLng: 170.503, voterLat: -45.872 },
 		{ postId: pCrane.id, userId: mike.id, vote: 'verify', voterLng: 175.293, voterLat: -37.784 },
 		{ postId: pCrane.id, userId: aroha.id, vote: 'dispute', voterLng: 174.748, voterLat: -36.875 },
 
-		// Ski road — mostly verified
+		// Ski road - mostly verified
 		{ postId: pSkifield.id, userId: liam.id, vote: 'verify', voterLng: 168.768, voterLat: -45.031 },
 		{ postId: pSkifield.id, userId: priya.id, vote: 'verify', voterLng: 168.768, voterLat: -45.031 },
 		{ postId: pSkifield.id, userId: odw.id, vote: 'verify', voterLng: 170.503, voterLat: -45.872 },
 		{ postId: pSkifield.id, userId: mike.id, vote: 'dispute', voterLng: 175.293, voterLat: -37.784 },
 
-		// Bridge — strongly verified
+		// Bridge - strongly verified
 		{ postId: pBridge.id, userId: liam.id, vote: 'verify', voterLng: 175.293, voterLat: -37.784 },
 		{ postId: pBridge.id, userId: sarah.id, vote: 'verify', voterLng: 175.293, voterLat: -37.784 },
 		{ postId: pBridge.id, userId: brendan.id, vote: 'verify', voterLng: 175.293, voterLat: -37.784 },
 
-		// Rotorua sulphur — contested
+		// Rotorua sulphur - contested
 		{ postId: pRotorua.id, userId: liam.id, vote: 'verify', voterLng: 176.249, voterLat: -38.137 },
 		{ postId: pRotorua.id, userId: brendan.id, vote: 'dispute', voterLng: 174.877, voterLat: -41.228 },
 		{ postId: pRotorua.id, userId: sarah.id, vote: 'dispute', voterLng: 174.782, voterLat: -41.314 },
 		{ postId: pRotorua.id, userId: odw.id, vote: 'verify', voterLng: 170.503, voterLat: -45.872 },
 
-		// Napier port — mostly verified
+		// Napier port - mostly verified
 		{ postId: pNapier.id, userId: liam.id, vote: 'verify', voterLng: 176.916, voterLat: -39.481 },
 		{ postId: pNapier.id, userId: mike.id, vote: 'verify', voterLng: 175.293, voterLat: -37.784 },
 		{ postId: pNapier.id, userId: brendan.id, vote: 'dispute', voterLng: 174.877, voterLat: -41.228 },
 		{ postId: pNapier.id, userId: priya.id, vote: 'verify', voterLng: 174.745, voterLat: -36.861 },
 
-		// Cycleway — strongly verified
+		// Cycleway - strongly verified
 		{ postId: pCycleway.id, userId: aroha.id, vote: 'verify', voterLng: 175.607, voterLat: -40.356 },
 		{ postId: pCycleway.id, userId: sarah.id, vote: 'verify', voterLng: 175.607, voterLat: -40.356 },
 		{ postId: pCycleway.id, userId: liam.id, vote: 'verify', voterLng: 174.779, voterLat: -36.877 }
@@ -514,12 +514,12 @@ async function main() {
 
 	type CommentInsert = typeof schema.comments.$inferInsert;
 
-	// Courtenay Place — rich thread (10 comments) → will get a community note
+	// Courtenay Place - rich thread (10 comments) → will get a community note
 	const courtComments: CommentInsert[] = [
 		{
 			postId: pCourt.id,
 			authorId: liam.id,
-			body: `About time. Friday nights on Courtenay are already chaos — pedestrians weaving around taxis and rideshares that double-park everywhere. If it takes pressure off the footpath this is a win.`,
+			body: `About time. Friday nights on Courtenay are already chaos - pedestrians weaving around taxis and rideshares that double-park everywhere. If it takes pressure off the footpath this is a win.`,
 			createdAt: daysAgo(1)
 		},
 		{
@@ -549,25 +549,25 @@ async function main() {
 		{
 			postId: pCourt.id,
 			authorId: aroha.id,
-			body: `The street performers angle is a bit of a stretch — it's 10pm to 4am, not exactly busking hours. But reducing vehicle traffic near drunk crowds does make sense from a safety perspective.`,
+			body: `The street performers angle is a bit of a stretch - it's 10pm to 4am, not exactly busking hours. But reducing vehicle traffic near drunk crowds does make sense from a safety perspective.`,
 			createdAt: daysAgo(1)
 		},
 		{
 			postId: pCourt.id,
 			authorId: odw.id,
-			body: `Nine to five vote is tighter than I expected. The ones voting against — were they all responding to the bar owner submissions, or was there a principled traffic argument from anyone?`,
+			body: `Nine to five vote is tighter than I expected. The ones voting against - were they all responding to the bar owner submissions, or was there a principled traffic argument from anyone?`,
 			createdAt: daysAgo(1)
 		},
 		{
 			postId: pCourt.id,
 			authorId: liam.id,
-			body: `@Mike Te Ao — WCC published the TMP on their website yesterday. Tory Street becomes two-way during the closure to take displacement. Not perfect but not as bad as feared.`,
+			body: `@Mike Te Ao - WCC published the TMP on their website yesterday. Tory Street becomes two-way during the closure to take displacement. Not perfect but not as bad as feared.`,
 			createdAt: daysAgo(1)
 		},
 		{
 			postId: pCourt.id,
 			authorId: brendan.id,
-			body: `Making Tory two-way is going to cause chaos for the restaurants on Tory — they rely on the kerb space for kitchen deliveries in the early hours. Council really should have sat down with operators before finalising anything.`,
+			body: `Making Tory two-way is going to cause chaos for the restaurants on Tory - they rely on the kerb space for kitchen deliveries in the early hours. Council really should have sat down with operators before finalising anything.`,
 			createdAt: daysAgo(1)
 		},
 		{
@@ -578,7 +578,7 @@ async function main() {
 		}
 	];
 
-	// New Lynn — rich thread (8 comments) → will get a community note
+	// New Lynn - rich thread (8 comments) → will get a community note
 	const newLynnComments: CommentInsert[] = [
 		{
 			postId: pNewLynn.id,
@@ -589,7 +589,7 @@ async function main() {
 		{
 			postId: pNewLynn.id,
 			authorId: sarah.id,
-			body: `I think the cycleway connection is the most important part of this — the current gap between the Northwestern and the town centre is genuinely dangerous.`,
+			body: `I think the cycleway connection is the most important part of this - the current gap between the Northwestern and the town centre is genuinely dangerous.`,
 			createdAt: daysAgo(4)
 		},
 		{
@@ -601,13 +601,13 @@ async function main() {
 		{
 			postId: pNewLynn.id,
 			authorId: brendan.id,
-			body: `The businesses who got consulted are happy — I spoke to a few of them. The concern is the loading zone changes during works because the delivery windows are tight for some of the food places.`,
+			body: `The businesses who got consulted are happy - I spoke to a few of them. The concern is the loading zone changes during works because the delivery windows are tight for some of the food places.`,
 			createdAt: daysAgo(4)
 		},
 		{
 			postId: pNewLynn.id,
 			authorId: liam.id,
-			body: `The timeline concern from councillors is legitimate — the Te Atatū upgrade ran four months over and that was simpler. Seven months for this is very optimistic.`,
+			body: `The timeline concern from councillors is legitimate - the Te Atatū upgrade ran four months over and that was simpler. Seven months for this is very optimistic.`,
 			createdAt: daysAgo(3)
 		},
 		{
@@ -630,12 +630,12 @@ async function main() {
 		}
 	];
 
-	// Crane collapse — 9 comments
+	// Crane collapse - 9 comments
 	const craneComments: CommentInsert[] = [
 		{
 			postId: pCrane.id,
 			authorId: liam.id,
-			body: `Really glad no one was hurt. The timing was lucky — they had just moved the steel fixing crew out of that bay twenty minutes earlier according to the site foreman.`,
+			body: `Really glad no one was hurt. The timing was lucky - they had just moved the steel fixing crew out of that bay twenty minutes earlier according to the site foreman.`,
 			createdAt: daysAgo(2)
 		},
 		{
@@ -671,7 +671,7 @@ async function main() {
 		{
 			postId: pCrane.id,
 			authorId: liam.id,
-			body: `@Otago Daily Word — is the ODT reporting that officially or is that sourced from someone on site? Makes a big difference to how quickly the investigation wraps up.`,
+			body: `@Otago Daily Word - is the ODT reporting that officially or is that sourced from someone on site? Makes a big difference to how quickly the investigation wraps up.`,
 			createdAt: daysAgo(2)
 		},
 		{
@@ -683,17 +683,17 @@ async function main() {
 		{
 			postId: pCrane.id,
 			authorId: sarah.id,
-			body: `Regardless of cause — the main thing is the safety outcome was okay. Hoping Worksafe moves quickly so the build can restart without too much delay for the community's sake.`,
+			body: `Regardless of cause - the main thing is the safety outcome was okay. Hoping Worksafe moves quickly so the build can restart without too much delay for the community's sake.`,
 			createdAt: daysAgo(2)
 		}
 	];
 
-	// SH1 crash — 5 comments
+	// SH1 crash - 5 comments
 	const sh1Comments: CommentInsert[] = [
 		{
 			postId: pSH1.id,
 			authorId: priya.id,
-			body: `I drove past at 6:30 and confirmed — it's completely blocked, police and two firetrucks on scene. Go via Khyber Pass.`,
+			body: `I drove past at 6:30 and confirmed - it's completely blocked, police and two firetrucks on scene. Go via Khyber Pass.`,
 			createdAt: hoursAgo(3)
 		},
 		{
@@ -722,7 +722,7 @@ async function main() {
 		}
 	];
 
-	// Rotorua — 4 comments
+	// Rotorua - 4 comments
 	const rotoruaComments: CommentInsert[] = [
 		{
 			postId: pRotorua.id,
@@ -739,7 +739,7 @@ async function main() {
 		{
 			postId: pRotorua.id,
 			authorId: mike.id,
-			body: `Rotorua always smells, tourists just have to deal with it — this is a bit dismissive of what locals are actually experiencing this week.`,
+			body: `Rotorua always smells, tourists just have to deal with it - this is a bit dismissive of what locals are actually experiencing this week.`,
 			createdAt: daysAgo(3)
 		},
 		{
@@ -756,7 +756,7 @@ async function main() {
 		{
 			postId: pBbq.id,
 			authorId: liam.id,
-			body: `Great initiative — will come along with the kids. Is there a contact for the park redevelopment consultation ahead of Saturday?`,
+			body: `Great initiative - will come along with the kids. Is there a contact for the park redevelopment consultation ahead of Saturday?`,
 			createdAt: daysAgo(2)
 		},
 		{
@@ -790,7 +790,7 @@ async function main() {
 	await db.insert(schema.communityNotes).values([
 		{
 			postId: pCourt.id,
-			body: `Commenters are divided on the pedestrianisation trial. Several residents welcome the move, citing pedestrian safety and noise reduction on Friday nights, and one commenter referenced Auckland data suggesting similar policies reduce assaults. However, late-night operators and delivery workers express strong concern about logistics — particularly the displacement of loading zones onto Tory Street and the impact on taxi stands. A few commenters question whether the council's six-month trial process will genuinely incorporate feedback before a permanent decision. The traffic management plan has been mentioned but opinions on its adequacy vary.`,
+			body: `Commenters are divided on the pedestrianisation trial. Several residents welcome the move, citing pedestrian safety and noise reduction on Friday nights, and one commenter referenced Auckland data suggesting similar policies reduce assaults. However, late-night operators and delivery workers express strong concern about logistics - particularly the displacement of loading zones onto Tory Street and the impact on taxi stands. A few commenters question whether the council's six-month trial process will genuinely incorporate feedback before a permanent decision. The traffic management plan has been mentioned but opinions on its adequacy vary.`,
 			basedOnCommentCount: 10,
 			generatedAt: daysAgo(1)
 		},

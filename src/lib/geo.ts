@@ -1,4 +1,4 @@
-// Shared geo helpers — safe to import on both client and server.
+// Shared geo helpers - safe to import on both client and server.
 // (Not under $lib/server, so the browser bundle can use them too.)
 
 const EARTH_RADIUS_M = 6_371_000;
@@ -53,7 +53,7 @@ export function formatDistance(meters: number): string {
 }
 
 /**
- * Below this many located votes the heatmap stays hidden — with a single
+ * Below this many located votes the heatmap stays hidden - with a single
  * point a "heatmap" plus exact-location reveal would simply dox that lone
  * voter (project.md §9.8).
  */

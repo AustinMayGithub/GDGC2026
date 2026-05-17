@@ -9,7 +9,7 @@ A compact filter bar on the home map that lets the reader narrow what
 markers and headlines are shown: by category (personal / factual / all),
 by recency (last hour / 24h / 7d / all), and by credibility status
 (verified / disputed / contested / unvoted / all). Filtering is purely
-client-side over the already-fetched `posts` array — no new fetch, instant
+client-side over the already-fetched `posts` array - no new fetch, instant
 feedback.
 
 ## Why it fits BirdsEye
@@ -23,7 +23,7 @@ first-class navigation, not just per-post badges.
 ## User value
 - Quickly answer "what factual news broke near me today?" vs. browsing
   everything.
-- Surface only disputed/contested posts — a compelling judge demo of the
+- Surface only disputed/contested posts - a compelling judge demo of the
   credibility system.
 - Reduces connector-line clutter (§8) by shrinking the candidate set the
   trending list draws from.
@@ -56,10 +56,10 @@ already returns the full list; filtering happens in the client.
 ## Dependencies & risks
 - No new libraries.
 - Gotcha: filtering to zero posts must show the existing `.empty-state`
-  (`+page.svelte:777`) — extend its condition to include an active-filter
+  (`+page.svelte:777`) - extend its condition to include an active-filter
   case with a "clear filters" button.
 - Gotcha: a selected post that gets filtered out should not silently vanish
-  mid-read — only apply filters to the map/list, never to `selectedPosts`
+  mid-read - only apply filters to the map/list, never to `selectedPosts`
   when `selectedPostId` is set, or clear selection explicitly.
 
 ## Implementation steps
@@ -85,4 +85,4 @@ already returns the full list; filtering happens in the client.
 ## Out of scope / future
 - Server-side filtering for very large datasets.
 - Saved/remembered filter preferences across sessions.
-- A "region" filter — covered by the existing National/Local toggle.
+- A "region" filter - covered by the existing National/Local toggle.

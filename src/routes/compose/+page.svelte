@@ -143,7 +143,7 @@
 </script>
 
 <svelte:head>
-	<title>New post — BirdsEye</title>
+	<title>New post - BirdsEye</title>
 </svelte:head>
 
 <div class="page">
@@ -226,7 +226,7 @@
 						<input type="checkbox" bind:checked={anonymous} disabled={submitting} class="anon-check" />
 						<span class="anon-text">
 							Post anonymously
-							<span class="field-hint muted">— your name won't be shown publicly</span>
+							<span class="field-hint muted">- your name won't be shown publicly</span>
 						</span>
 					</label>
 

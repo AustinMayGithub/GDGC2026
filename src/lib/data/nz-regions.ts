@@ -1,6 +1,6 @@
 // New Zealand's 16 regions, with approximate centroids and bounding boxes.
 // Used for: local-mode map zoom, assigning a post to a region, and the
-// manual region picker (project.md §8 — geolocation fallback).
+// manual region picker (project.md §8 - geolocation fallback).
 
 export interface NzRegion {
 	id: string;
@@ -41,7 +41,7 @@ export function getRegion(id: string): NzRegion | undefined {
 	return REGION_BY_ID.get(id);
 }
 
-/** Approximate region for a point — nearest centroid. Good enough for NZ. */
+/** Approximate region for a point - nearest centroid. Good enough for NZ. */
 export function regionForPoint(lng: number, lat: number): string {
 	let best = NZ_REGIONS[0];
 	let bestDist = Infinity;

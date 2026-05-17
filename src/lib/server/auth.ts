@@ -63,7 +63,7 @@ export async function deleteSession(token: string): Promise<void> {
 	await db.delete(sessions).where(eq(sessions.id, token));
 }
 
-// A small disposable-domain blocklist — the cheap half of anti-sock-puppet
+// A small disposable-domain blocklist - the cheap half of anti-sock-puppet
 // defence (project.md §3). Not exhaustive; covers the common throwaways.
 const DISPOSABLE_DOMAINS = new Set([
 	'mailinator.com',

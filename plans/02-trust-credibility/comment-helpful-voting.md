@@ -12,10 +12,10 @@ also makes the AI community note's input cleaner.
 ## Why it fits BirdsEye
 `project.md` §4.4 already specifies lightweight reactions on posts but comments
 have no quality signal at all. The community note (§4.5) summarises "the
-opinions expressed in the comments" — if the crowd can mark which comments are
+opinions expressed in the comments" - if the crowd can mark which comments are
 helpful, the discussion the AI summarises (and the discussion a reader skims)
 is higher-signal. It is a small, on-theme trust primitive: the crowd, not the
-AI, decides what is useful — consistent with the §1 separation of crowd and AI.
+AI, decides what is useful - consistent with the §1 separation of crowd and AI.
 
 ## User value
 Good explanations and corrections rise to the top of the thread; a reader gets
@@ -47,7 +47,7 @@ as `uniq_post_user_emoji`, `schema.ts:136`).
   require `locals.user` (mirror `comments/+server.ts:14`); toggle a
   `comment_helpfuls` row via `onConflictDoNothing` + delete-if-exists, or an
   upsert toggle; return the new count.
-- `getComments` in `src/lib/server/posts.ts:315-333` — add a left join /
+- `getComments` in `src/lib/server/posts.ts:315-333` - add a left join /
   grouped count of `comment_helpfuls`, plus a `mine` flag for the viewer
   (`getComments` needs a `viewerId` param, like `getPostDetail`). Return
   `helpfulCount` and `helpfulByMe` on each row.
@@ -55,7 +55,7 @@ as `uniq_post_user_emoji`, `schema.ts:136`).
   `src/lib/types.ts:85-90`.
 
 ## UI / component changes
-- `src/lib/components/CommentThread.svelte` — add a small "👍 Helpful
+- `src/lib/components/CommentThread.svelte` - add a small "👍 Helpful
   {count}" toggle button in `.comment-meta` (`CommentThread.svelte:127-143`),
   next to the existing Report trigger. Optimistic update like the existing
   comment/report fetches (`CommentThread.svelte:54-74`).
@@ -64,7 +64,7 @@ as `uniq_post_user_emoji`, `schema.ts:136`).
 
 ## Dependencies & risks
 - No new packages.
-- Risk: helpful votes could themselves be brigaded. Acceptable — they only
+- Risk: helpful votes could themselves be brigaded. Acceptable - they only
   reorder a thread, they do not affect the post credibility meter.
 - Risk: only signed-in users can vote helpful (matches comment posting,
   `comments/+server.ts:14`); show a sign-in hint for guests.
@@ -84,6 +84,6 @@ as `uniq_post_user_emoji`, `schema.ts:136`).
 - "Top" sort orders the most-helpful comment first.
 
 ## Out of scope / future
-- A "not helpful" / downvote — keep it one-directional to avoid pile-ons.
+- A "not helpful" / downvote - keep it one-directional to avoid pile-ons.
 - Feeding `helpfulCount` into community-note prompt weighting.
 - Author reputation credit for helpful comments (see author-reputation plan).

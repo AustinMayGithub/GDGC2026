@@ -1,4 +1,4 @@
-﻿<script lang="ts">
+<script lang="ts">
 	import { onDestroy, onMount, tick } from 'svelte';
 	import { invalidateAll } from '$app/navigation';
 	import { fly } from 'svelte/transition';
@@ -144,6 +144,7 @@
 	let trendingOpen = $state(true);
 	let trendMode = $state<TrendMode>('trending');
 	let lastTrendingFitKey = '';
+	let suppressTrendingFitUntil = 0;
 	let localAutoNationalEnabledAt = 0;
 	let localPeakZoom: number | null = null;
 	let pendingNationalFocus = false;
@@ -211,7 +212,12 @@
 		localPeakZoom = null;
 	}
 
+	function suppressTrendingFit(duration = 1000) {
+		suppressTrendingFitUntil = Date.now() + duration;
+	}
+
 	function focusLocalView(lng: number, lat: number) {
+		suppressTrendingFit();
 		setLocalFocus(lng, lat);
 		pauseLocalAutoNational();
 		pendingNationalFocus = false;
@@ -225,6 +231,7 @@
 	}
 
 	function focusNationalView() {
+		suppressTrendingFit();
 		pendingRegionFocus = null;
 		pendingLocalFocus = null;
 		if (!mapReady || !mapComponent) {
@@ -263,7 +270,7 @@
 		const requestId = ++geoRequestId;
 
 		// The shared service keeps the location provider warm, so this resolves
-		// instantly once the first fix is in — no per-call cold start.
+		// instantly once the first fix is in - no per-call cold start.
 		getLocation({ maxAgeMs: GEO_MAX_AGE_MS, timeoutMs: GEO_TIMEOUT_MS })
 			.then((fix) => {
 				if (requestId !== geoRequestId) return;
@@ -591,6 +598,7 @@
 	}
 
 	async function switchToNational() {
+		if (scope === 'national' && !composing && !viewingPost && !viewingProfile) return;
 		clearSelectedPost();
 		closeProfile();
 		if (composing) {
@@ -607,6 +615,7 @@
 	}
 
 	async function switchToRegion() {
+		if (scope === 'region' && !composing && !viewingPost && !viewingProfile) return;
 		clearSelectedPost();
 		closeProfile();
 		if (composing) {
@@ -623,6 +632,7 @@
 	}
 
 	async function switchToLocal() {
+		if (scope === 'local' && !composing && !viewingPost && !viewingProfile) return;
 		clearSelectedPost();
 		closeProfile();
 		if (composing) {
@@ -646,6 +656,7 @@
 	function zoomToRegion(regionId: string) {
 		const region = NZ_REGIONS.find((r) => r.id === regionId);
 		if (!region) return;
+		suppressTrendingFit();
 		setLocalFocus(region.center[0], region.center[1]);
 		pauseLocalAutoNational();
 		pendingNationalFocus = false;
@@ -1410,6 +1421,7 @@
 
 	$effect(() => {
 		if (!trendingOpen || !mapReady || trendingPosts.length === 0) return;
+		if (Date.now() < suppressTrendingFitUntil) return;
 		const fitKey = trendingPosts.map((post) => post.id).join('|');
 		if (fitKey === lastTrendingFitKey) return;
 		lastTrendingFitKey = fitKey;
@@ -1668,12 +1680,10 @@
 						{/if}
 
 						<div class="article-meta">
-							{#if post.category === 'factual'}
-								<span class="badge badge-factual">Factual</span>
-							{:else}
+							{#if post.category === 'personal'}
 								<span class="badge">Community notice</span>
+								<span class="muted meta-sep">·</span>
 							{/if}
-							<span class="muted meta-sep">·</span>
 							{#if post.anonymous}
 								<span class="muted author">Anonymous</span>
 							{:else}
@@ -1738,7 +1748,7 @@
 										aria-selected={selectedPostTab === 'voters'}
 										onclick={() => (selectedPostTab = 'voters')}
 									>
-										Voters
+										Ratings
 										<span>{selectedVoteUsers.length}</span>
 									</button>
 								</div>
@@ -1746,9 +1756,9 @@
 
 							{#if selectedPostTab === 'voters' && post.category === 'factual'}
 								<section class="panel-section">
-									<h2 class="section-heading">Voters</h2>
+									<h2 class="section-heading">Community ratings</h2>
 									{#if selectedVoteUsers.length === 0}
-										<p class="muted voter-empty">No one has voted on this post yet.</p>
+										<p class="muted voter-empty">No one has rated this source yet.</p>
 									{:else}
 										<div class="voter-list">
 											{#each selectedVoteUsers as voter (voter.userId)}
@@ -1764,7 +1774,7 @@
 														{voter.displayName}
 													</a>
 													<span class:voter-verify={voter.vote === 'verify'} class:voter-dispute={voter.vote === 'dispute'}>
-														{voter.vote === 'verify' ? 'Verified' : 'Disputed'}
+														{voter.vote === 'verify' ? 'Reliable' : 'Needs review'}
 													</span>
 													<time class="muted" datetime={voter.createdAt}>
 														{formatDate(voter.createdAt)}
@@ -1841,7 +1851,7 @@
 								<p class="section-heading">BirdsEye account</p>
 								<h2>Join the local signal</h2>
 								<p class="muted">
-									Create a profile to publish posts, verify reports, and keep your community reputation in one place.
+									Create a profile to publish posts, rate source reliability, and keep your community reputation in one place.
 								</p>
 								<div class="login-actions">
 									<button type="button" class="btn btn-primary" onclick={() => switchAuthMode('signup')}>
@@ -1856,7 +1866,7 @@
 								<h2>With an account you can</h2>
 								<ul>
 									<li>Publish local posts with an affected area.</li>
-									<li>Verify or dispute factual reports.</li>
+									<li>Rate whether local reports feel reliable or need review.</li>
 									<li>Build a visible reputation over time.</li>
 								</ul>
 							</section>
@@ -1868,7 +1878,7 @@
 								<h2>{authPanelMode === 'signup' ? 'Create your account' : 'Sign in to your account'}</h2>
 								<p class="muted">
 									{authPanelMode === 'signup'
-										? 'Join BirdsEye to publish, verify, and build a local reputation.'
+										? 'Join BirdsEye to publish, rate reliability, and build a local reputation.'
 										: 'Open your profile, manage your posts, and share updates with your community.'}
 								</p>
 								{#if authPanelMode === 'signup'}
@@ -2138,7 +2148,7 @@
 
 						<section class="profile-reputation">
 							<div class="radius-label-row">
-								<span class="field-label">Reputation</span>
+								<span class="field-label">Source reliability</span>
 								<span class="radius-value">{profile.reputation.label}</span>
 							</div>
 							{#if profile.reputation.score !== null}
@@ -2149,14 +2159,14 @@
 									></div>
 								</div>
 								<p class="muted profile-rep-copy">
-									{profile.reputation.score}% verified from {profile.reputation.totalVotes}
-									{profile.reputation.totalVotes === 1 ? 'vote' : 'votes'}.
+									{profile.reputation.score}% reliable from {profile.reputation.totalVotes}
+									community {profile.reputation.totalVotes === 1 ? 'rating' : 'ratings'}.
 								</p>
 							{:else}
 								<p class="muted profile-rep-copy">
 									{profile.reputation.postCount === 0
 										? 'No posts yet.'
-										: `Not enough votes yet (${profile.reputation.totalVotes}/5).`}
+										: `Not enough reliability ratings yet (${profile.reputation.totalVotes}/5).`}
 								</p>
 							{/if}
 						</section>
@@ -2169,7 +2179,7 @@
 								</div>
 								<p class="muted profile-danger-copy">
 									Delete your account and everything connected to it, including your posts, comments,
-									votes, reactions, and sessions.
+									reliability ratings, reactions, and sessions.
 								</p>
 								{#if profileDeleteAccountOpen}
 									<form
@@ -2235,9 +2245,9 @@
 										{@const totalVotes = profilePost.verifyCount + profilePost.disputeCount}
 										<article class="profile-post-item">
 											<div class="profile-post-top">
-												<span class={profilePost.category === 'factual' ? 'badge badge-factual' : 'badge'}>
-													{profilePost.category === 'factual' ? 'Factual' : 'Community'}
-												</span>
+												{#if profilePost.category === 'personal'}
+													<span class="badge">Community</span>
+												{/if}
 												<span class="muted">{timeAgo(profilePost.createdAt)}</span>
 											</div>
 											<h3>{profilePost.title}</h3>
@@ -2246,7 +2256,7 @@
 													<span>{regionName(profilePost.regionId)}</span>
 												{/if}
 												{#if profilePost.category === 'factual' && totalVotes > 0}
-													<span>{Math.round((profilePost.verifyCount / totalVotes) * 100)}% verified</span>
+													<span>{Math.round((profilePost.verifyCount / totalVotes) * 100)}% reliable</span>
 												{/if}
 												<span>{profilePost.commentCount} comments</span>
 											</div>
@@ -3096,6 +3106,10 @@
 		flex-wrap: wrap;
 		gap: 8px;
 		font-size: 12px;
+	}
+
+	.profile-post-top .muted {
+		margin-left: auto;
 	}
 
 	.profile-account-actions {

@@ -153,7 +153,7 @@
 </script>
 
 <svelte:head>
-	<title>{profile.displayName} — BirdsEye</title>
+	<title>{profile.displayName} - BirdsEye</title>
 </svelte:head>
 
 <div class="page">
@@ -219,7 +219,7 @@
 									bind:value={editAge}
 									min="1"
 									max="120"
-									placeholder="—"
+									placeholder="-"
 								/>
 							</div>
 							<div class="field-group field-loc">
@@ -303,7 +303,7 @@
 
 		<!-- Reputation -->
 		<div class="rep-card card">
-			<h2 class="section-label">Reputation</h2>
+			<h2 class="section-label">Source reliability</h2>
 			{#if profile.reputation.score !== null}
 				<div class="rep-bar-track">
 					<div
@@ -312,19 +312,19 @@
 					></div>
 				</div>
 				<p class="rep-verdict" style="color: {repColor};">
-					{profile.reputation.score}% verified — <strong>{profile.reputation.label}</strong>
+					{profile.reputation.score}% reliable - <strong>{profile.reputation.label}</strong>
 				</p>
 			{:else}
 				<p class="rep-unrated muted">
 					{profile.reputation.postCount === 0
 						? 'No posts yet.'
-						: `Not enough votes yet (need 5, have ${profile.reputation.totalVotes}).`}
+						: `Not enough reliability ratings yet (need 5, have ${profile.reputation.totalVotes}).`}
 				</p>
 			{/if}
 			<p class="rep-stats muted">
 				{profile.reputation.postCount}
 				{profile.reputation.postCount === 1 ? 'post' : 'posts'} · {profile.reputation.totalVotes}
-				total {profile.reputation.totalVotes === 1 ? 'vote' : 'votes'}
+				total community {profile.reputation.totalVotes === 1 ? 'rating' : 'ratings'}
 			</p>
 		</div>
 
@@ -344,9 +344,9 @@
 						{@const totalVotes = post.verifyCount + post.disputeCount}
 						<article class="post-item card">
 							<div class="post-top">
-								<span class={post.category === 'factual' ? 'badge badge-factual' : 'badge'}>
-									{post.category === 'factual' ? 'Factual' : 'Community'}
-								</span>
+								{#if post.category === 'personal'}
+									<span class="badge">Community</span>
+								{/if}
 								{#if post.anonymous}
 									<span class="anon-badge">Anonymous</span>
 								{/if}
@@ -362,7 +362,7 @@
 											? 'var(--verify)'
 											: 'var(--dispute)'};"
 									>
-										{Math.round((post.verifyCount / totalVotes) * 100)}% verified
+										{Math.round((post.verifyCount / totalVotes) * 100)}% reliable
 									</span>
 								{/if}
 								<span>💬 {post.commentCount}</span>

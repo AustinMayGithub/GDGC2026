@@ -36,7 +36,7 @@ export const actions: Actions = {
 				error: 'Disposable email addresses are not allowed.'
 			});
 
-		// Rate-limit signups per IP — max 3 per 10 minutes (project.md §3).
+		// Rate-limit signups per IP - max 3 per 10 minutes (project.md §3).
 		const ip = getClientAddress();
 		const since = new Date(Date.now() - 10 * 60 * 1000);
 		const recent = await db

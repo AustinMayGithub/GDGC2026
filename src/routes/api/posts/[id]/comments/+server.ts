@@ -41,7 +41,9 @@ export const POST: RequestHandler = async ({ request, params, locals }) => {
 		{
 			comment: {
 				id: c.id,
+				authorId: locals.user.id,
 				authorName: locals.user.displayName,
+				authorHasAvatar: locals.user.hasAvatar,
 				body: c.body,
 				createdAt: c.createdAt.toISOString()
 			},

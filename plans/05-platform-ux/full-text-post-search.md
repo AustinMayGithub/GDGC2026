@@ -5,7 +5,7 @@
 **Status:** Proposed
 
 ## Summary
-BirdsEye currently has no way to find a post by words — `listPosts`
+BirdsEye currently has no way to find a post by words - `listPosts`
 (`src/lib/server/posts.ts:160`) only orders by `createdAt` and caps at 300 rows,
 and the home page ranks client-side. Add a Postgres full-text search over post
 title + body, exposed through the existing `/api/posts` endpoint with a `q`
@@ -37,18 +37,18 @@ searchVector: tsvector('search_vector')
 searchIdx: index('posts_search').using('gin', t.searchVector)
 ```
 
-Drizzle has no native `tsvector` type — define a small `customType` helper
+Drizzle has no native `tsvector` type - define a small `customType` helper
 (e.g. `src/lib/server/db/columns.ts`) returning `dataType: () => 'tsvector'`.
 The column is `GENERATED ALWAYS`, so no write-path changes are needed. Apply
 via `npm run db:push`.
 
 ## API / server changes
-- `src/lib/server/posts.ts` — extend `listPosts(opts)` with an optional
+- `src/lib/server/posts.ts` - extend `listPosts(opts)` with an optional
   `query?: string`. When present, add a `WHERE search_vector @@
   websearch_to_tsquery('english', $query)` clause and order by
   `ts_rank(search_vector, query)` then `createdAt`. Keep the existing
   region filter composable with `and(...)`.
-- `src/routes/api/posts/+server.ts:44` (`GET`) — read
+- `src/routes/api/posts/+server.ts:44` (`GET`) - read
   `url.searchParams.get('q')`, trim, pass to `listPosts`. Empty `q` = current
   behaviour. Cap query length (e.g. 100 chars) before passing it on.
 - The `isMissingOptionalPostColumn` fallback pattern in `posts.ts:46` should be
@@ -56,7 +56,7 @@ via `npm run db:push`.
   still serves non-search requests.
 
 ## UI / component changes
-- `src/routes/+page.svelte` — add a search `<input>` in `.header-center`
+- `src/routes/+page.svelte` - add a search `<input>` in `.header-center`
   (near the scope toggle, lines 671-714). Debounce input (~250 ms) and call the
   existing `fetchPosts()` flow with the new `q` param; the fetch URL is built at
   `+page.svelte:326`. Add `searchQuery = $state('')` and include it in the
@@ -67,11 +67,11 @@ via `npm run db:push`.
   `+page.svelte` from growing further.
 
 ## Dependencies & risks
-- No new npm dependencies — uses native Postgres FTS.
+- No new npm dependencies - uses native Postgres FTS.
 - Risk: Drizzle `customType` for `tsvector` plus a `GENERATED ALWAYS` column
-  via `drizzle-kit push` — verify the generated migration SQL; may need a
+  via `drizzle-kit push` - verify the generated migration SQL; may need a
   hand-written `ALTER TABLE` if `push` cannot express the generated expression.
-- Risk: `websearch_to_tsquery` ignores some operators silently — acceptable for
+- Risk: `websearch_to_tsquery` ignores some operators silently - acceptable for
   a hackathon; document it.
 
 ## Implementation steps
@@ -88,7 +88,7 @@ via `npm run db:push`.
 - Seed data (`src/lib/server/seed.ts`) provides posts; search a known keyword,
   confirm ranked results and that markers/headlines update together.
 - Verify region + search combine (local scope + query).
-- Confirm SQL injection safety — query is bound, never interpolated.
+- Confirm SQL injection safety - query is bound, never interpolated.
 - `npm run check` passes; un-migrated DB still serves `/api/posts` without `q`.
 
 ## Out of scope / future

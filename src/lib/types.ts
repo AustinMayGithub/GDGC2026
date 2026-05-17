@@ -1,4 +1,4 @@
-// Shared types — the contract between backend endpoints and the UI.
+// Shared types - the contract between backend endpoints and the UI.
 
 export type PostCategory = 'personal' | 'factual';
 export type VoteValue = 'verify' | 'dispute';
@@ -92,9 +92,9 @@ export interface ReactionTally {
 }
 
 /**
- * A single vote's recorded location, for the article-view vote heatmap.
- * Deliberately carries no user identity — only where a verify/dispute vote
- * was cast — so revealing exact points can't be tied back to a person.
+ * A single vote's recorded location, for the article-view reliability heatmap.
+ * Deliberately carries no user identity - only where a reliability rating
+ * was cast - so revealing exact points can't be tied back to a person.
  */
 export interface VotePoint {
 	lng: number;
@@ -111,10 +111,12 @@ export interface VoteUser {
 
 export interface CommentItem {
 	id: string;
+	authorId: string;
 	authorName: string;
+	authorHasAvatar: boolean;
 	body: string;
 	createdAt: string;
 }
 
-/** Fixed reaction set — an open emoji picker is a moderation risk (project.md §4.4). */
+/** Fixed reaction set - an open emoji picker is a moderation risk (project.md §4.4). */
 export const REACTIONS = ['👍', '😮', '😟', '❤️', '🔥'] as const;

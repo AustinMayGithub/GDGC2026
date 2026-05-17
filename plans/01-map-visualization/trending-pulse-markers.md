@@ -13,7 +13,7 @@ national map.
 
 ## Why it fits BirdsEye
 project.md §9 "Ideas worth adding if time allows" explicitly lists
-*"Trending / 'what's loud right now' — a pulse on markers with high recent
+*"Trending / 'what's loud right now' - a pulse on markers with high recent
 activity. Cheap, makes the map feel alive in the demo."* The app already
 computes a `trendScore` and a top-6 `trendingEntries` list in
 `src/routes/+page.svelte:249-283`; this feature simply renders that existing
@@ -23,7 +23,7 @@ signal on the map itself.
 - The map feels alive and draws the eye to what matters during the demo.
 - Reinforces the "blast radius" theme (§1): loud stories literally pulse
   outward.
-- Zero extra clicks — ambient signal.
+- Zero extra clicks - ambient signal.
 
 ## Data model changes
 None. Trending is derived client-side from existing engagement counts.
@@ -48,12 +48,12 @@ None.
   into `<HomeMap>` (line 735).
 
 ## Dependencies & risks
-- No new libraries — MapLibre paint-property updates are cheap.
+- No new libraries - MapLibre paint-property updates are cheap.
 - Risk: an always-running rAF loop costs battery. Mitigate by only running
   the loop while at least one trending marker exists, and pausing it when the
   page is hidden (`document.visibilitychange`).
 - Gotcha: keep the pulse layer's `circle-pitch-alignment`/stroke minimal so
-  it does not capture clicks — `post-point` must stay the click target.
+  it does not capture clicks - `post-point` must stay the click target.
 - Gotcha: cap pulsing markers to the top ~3–4 of `trendingEntries` so the map
   does not look noisy.
 

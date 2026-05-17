@@ -208,7 +208,7 @@
 		if (geom.type !== 'Point') return;
 		const [pLng, pLat] = geom.coordinates as [number, number];
 		const vote = feature.properties?.vote === 'dispute' ? 'dispute' : 'verify';
-		const label = vote === 'verify' ? 'Verified here' : 'Disputed here';
+		const label = vote === 'verify' ? 'Rated reliable here' : 'Marked for review here';
 		new maplibre.Popup({ closeButton: false, offset: 12 })
 			.setLngLat([pLng, pLat])
 			.setHTML(
@@ -368,7 +368,7 @@
 					}
 				});
 
-				// Exact-location point layers — hidden until the heatmap is clicked.
+				// Exact-location point layers - hidden until the heatmap is clicked.
 				map.addLayer({
 					id: 'verify-points',
 					type: 'circle',
@@ -448,11 +448,11 @@
 		<!-- Legend + reveal hint -->
 		<div class="vote-legend">
 			<div class="legend-row">
-				<span class="legend-key"><span class="swatch swatch-verify"></span>Verify</span>
-				<span class="legend-key"><span class="swatch swatch-dispute"></span>Dispute</span>
+				<span class="legend-key"><span class="swatch swatch-verify"></span>Reliable</span>
+				<span class="legend-key"><span class="swatch swatch-dispute"></span>Needs review</span>
 			</div>
 			<div class="legend-hint">
-				{revealed ? 'Showing exact voter locations — click map for the heatmap' : 'Click the map to reveal exact voter locations'}
+				{revealed ? 'Showing exact rater locations - click map for the heatmap' : 'Click the map to reveal exact rater locations'}
 			</div>
 		</div>
 	{/if}
