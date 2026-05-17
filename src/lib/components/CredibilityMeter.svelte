@@ -42,6 +42,7 @@
 
 	async function vote(value: VoteValue) {
 		if (loading || locating) return;
+		if (myVote === value) return;
 		error = '';
 
 		// 1. Establish where the voter is — required to vote (project.md §4.4).
@@ -139,12 +140,12 @@
 		<div
 			class="bar-fill bar-verify"
 			class:active={myVote === 'verify'}
-			style="width: {verifyPct === 0 ? '0%' : `calc(${verifyPct}% + 10px)`}"
+			style="width: {verifyPct === 0 ? '0%' : `calc(${verifyPct}% + 9px)`}"
 		></div>
 		<div
 			class="bar-fill bar-dispute"
 			class:active={myVote === 'dispute'}
-			style="width: {disputePct === 0 ? '0%' : `calc(${disputePct}% + 10px)`}"
+			style="width: {disputePct === 0 ? '0%' : `calc(${disputePct}% + 9px)`}"
 		></div>
 		<div class="bar-labels" aria-hidden="true">
 			<span>{total === 0 ? 'Verify' : `${verifyPct}% verified`}</span>
@@ -250,7 +251,7 @@
 	.bar-dispute {
 		right: 0;
 		background: var(--dispute);
-		clip-path: polygon(18px 0, 100% 0, 100% 100%, 0 100%);
+		clip-path: polygon(0 0, 100% 0, 100% 100%, 18px 100%);
 	}
 	.bar-track.no-votes .bar-fill {
 		filter: saturate(0.72) opacity(0.92);
