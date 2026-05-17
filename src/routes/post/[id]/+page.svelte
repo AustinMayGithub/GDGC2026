@@ -297,6 +297,7 @@
 	}
 	.article-heading-row .back-link {
 		flex: 0 0 auto;
+		margin-top: 4px;
 	}
 
 	.article-body {

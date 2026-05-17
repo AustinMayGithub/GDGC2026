@@ -1511,7 +1511,7 @@
 				<svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
 					<path d="M8 1v14M1 8h14" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
 				</svg>
-				New post
+				<span class="action-label">New post</span>
 			</button>
 			<UserMenu
 				user={data.user}
@@ -2447,6 +2447,14 @@
 		flex-shrink: 0;
 	}
 
+	.logo img {
+		display: block;
+		height: 24px;
+		width: auto;
+		max-width: 142px;
+		object-fit: contain;
+	}
+
 	.header-center {
 		flex: 1;
 		display: flex;
@@ -2916,6 +2924,7 @@
 
 	.post-panel-heading-row .close-btn {
 		flex: 0 0 auto;
+		margin-top: 4px;
 	}
 
 	.profile-panel-body {
@@ -3839,9 +3848,113 @@
 	}
 
 	@media (max-width: 720px) {
-		.header-right {
+		.header {
+			top: 10px;
+			left: 10px;
+			right: 10px;
+			display: grid;
+			grid-template-columns: minmax(0, 1fr) auto;
+			align-items: center;
+			gap: 10px 8px;
+			padding: 10px;
+		}
+
+		.logo {
+			min-width: 0;
+		}
+
+		.logo img {
+			width: min(136px, 43vw);
+			height: auto;
+			max-height: 30px;
+		}
+
+		.header-center {
+			grid-column: 1 / -1;
+			grid-row: 2;
+			display: grid;
+			grid-template-columns: minmax(0, 1fr) minmax(118px, 0.46fr);
+			align-items: stretch;
+			justify-items: stretch;
+			gap: 8px;
 			width: 100%;
-			justify-content: space-between;
+		}
+
+		.scope-toggle {
+			grid-column: 1 / -1;
+			width: 100%;
+			min-width: 0;
+		}
+
+		.header-center:has(.region-controls) .scope-toggle {
+			grid-column: auto;
+		}
+
+		.toggle-btn {
+			padding: 7px 4px;
+			font-size: 12px;
+		}
+
+		.region-controls {
+			position: static;
+			transform: none;
+			display: grid;
+			grid-template-columns: minmax(0, 1fr);
+			gap: 6px;
+			width: auto;
+			min-width: 0;
+			white-space: normal;
+		}
+
+		.region-picker {
+			width: 100%;
+			min-width: 0;
+			height: 100%;
+			min-height: 38px;
+		}
+
+		.region-picker-icon {
+			left: 9px;
+		}
+
+		.region-select {
+			padding: 0 28px 0 31px;
+			font-size: 12px;
+		}
+
+		.region-picker-chevron {
+			right: 10px;
+		}
+
+		.helper-text {
+			justify-self: start;
+		}
+
+		.header-right {
+			grid-column: 2;
+			grid-row: 1;
+			width: auto;
+			justify-content: flex-end;
+			gap: 8px;
+		}
+
+		.header-action-btn {
+			width: 38px;
+			min-width: 38px;
+			height: 38px;
+			padding: 0;
+		}
+
+		.header-action-btn .action-label {
+			display: none;
+		}
+
+		.header-right :global(.header-action-btn) {
+			width: auto;
+			min-width: 70px;
+			height: 38px;
+			padding: 0 12px;
+			font-size: 13px;
 		}
 
 		.compose-panel {
