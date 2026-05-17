@@ -19,12 +19,23 @@ const DEFAULT_JITTER_MIN_M = 250;
 const DEFAULT_JITTER_MAX_M = 500;
 const METERS_PER_DEGREE_LAT = 111320;
 const MAX_POST_IMAGES = 6;
-const MAX_IMAGE_BYTES = 1_500_000;
+const MAX_IMAGE_BYTES = 5_000_000;
+const JPEG_DATA_URL_PREFIX = 'data:image/jpeg;base64,';
 
 function normalizePostCategory(value: unknown): PostCategory | null {
 	if (value === 'news' || value === 'factual') return 'news';
 	if (value === 'community' || value === 'personal') return 'community';
 	return null;
+}
+
+function imageByteLength(dataUrl: string) {
+	const base64 = dataUrl.slice(JPEG_DATA_URL_PREFIX.length);
+	const padding = base64.endsWith('==') ? 2 : base64.endsWith('=') ? 1 : 0;
+	return Math.floor((base64.length * 3) / 4) - padding;
+}
+
+function isValidPostImage(dataUrl: string) {
+	return dataUrl.startsWith(JPEG_DATA_URL_PREFIX) && imageByteLength(dataUrl) <= MAX_IMAGE_BYTES;
 }
 
 function isMissingOptionalPostColumn(err: unknown) {
@@ -159,14 +170,10 @@ async function createPost({ request, locals }: Parameters<RequestHandler>[0]) {
 	if (body.length < 10 || body.length > 5000)
 		throw error(400, 'Body must be 10–5000 characters.');
 	if (
-		imageDataUrls.some(
-			(image) => !image.startsWith('data:image/jpeg;base64,') || image.length > MAX_IMAGE_BYTES
-		) ||
-		(headerImageDataUrl &&
-			(!headerImageDataUrl.startsWith('data:image/jpeg;base64,') ||
-				headerImageDataUrl.length > MAX_IMAGE_BYTES))
+		imageDataUrls.some((image) => !isValidPostImage(image)) ||
+		(headerImageDataUrl && !isValidPostImage(headerImageDataUrl))
 	)
-		throw error(400, 'Images must be cropped JPEGs under 1.5 MB each.');
+		throw error(400, 'Images must be cropped JPEGs under 5 MB each.');
 	if (!category) throw error(400, 'Choose a post category.');
 	if (!Number.isFinite(lng) || !Number.isFinite(lat))
 		throw error(400, 'Pick a location on the map.');
