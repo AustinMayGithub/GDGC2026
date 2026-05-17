@@ -723,7 +723,7 @@
 		mapComponent?.fitToPostRadius(post, {
 			panelSide: 'left',
 			paddingScale: 1.18,
-			maxZoom: 14
+			maxZoom: 16.25
 		});
 	}
 
@@ -2880,14 +2880,6 @@
 		backdrop-filter: blur(18px);
 		border-radius: var(--radius-lg);
 		box-shadow: 0 18px 44px rgba(15, 23, 42, 0.14);
-	}
-
-	.post-panel-top {
-		display: flex;
-		align-items: flex-start;
-		justify-content: space-between;
-		gap: 16px;
-		margin-bottom: 28px;
 	}
 
 	.profile-panel-top {

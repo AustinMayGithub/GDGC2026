@@ -70,6 +70,19 @@
 		};
 	}
 
+	function optimisticReaction(comment: CommentItem, reaction: CommentReactionValue): Partial<CommentItem> {
+		const nextReaction = comment.myReaction === reaction ? null : reaction;
+		let likeCount = comment.likeCount;
+		let dislikeCount = comment.dislikeCount;
+
+		if (comment.myReaction === 'like') likeCount = Math.max(0, likeCount - 1);
+		if (comment.myReaction === 'dislike') dislikeCount = Math.max(0, dislikeCount - 1);
+		if (nextReaction === 'like') likeCount += 1;
+		if (nextReaction === 'dislike') dislikeCount += 1;
+
+		return { likeCount, dislikeCount, myReaction: nextReaction };
+	}
+
 	async function submitComment(parentId: string | null = null) {
 		const draft = parentId ? (replyDrafts[parentId] ?? '') : body;
 		if (!draft.trim() || submitting || submittingReplyId) return;
@@ -82,6 +95,9 @@
 		comments = [...comments, optimistic];
 		if (parentId) replyDrafts = { ...replyDrafts, [parentId]: '' };
 		else body = '';
+		replyingToId = null;
+		submitting = false;
+		submittingReplyId = null;
 
 		try {
 			const res = await fetch(`/api/posts/${postId}/comments`, {
@@ -94,25 +110,43 @@
 				comments = comments.map((comment) =>
 					comment.id === optimistic.id ? data.comment : comment
 				);
-				replyingToId = null;
 				if (data.communityNote) onCommunityNoteUpdated(data.communityNote);
 			} else {
 				submitError = data.message ?? 'Failed to post comment';
 				comments = comments.filter((comment) => comment.id !== optimistic.id);
+				if (parentId) {
+					replyingToId = parentId;
+					if (!(replyDrafts[parentId] ?? '').trim()) {
+						replyDrafts = { ...replyDrafts, [parentId]: sentBody };
+					}
+				} else if (!body.trim()) {
+					body = sentBody;
+				}
 			}
 		} catch {
 			submitError = 'Network error';
 			comments = comments.filter((comment) => comment.id !== optimistic.id);
-		} finally {
-			submitting = false;
-			submittingReplyId = null;
+			if (parentId) {
+				replyingToId = parentId;
+				if (!(replyDrafts[parentId] ?? '').trim()) {
+					replyDrafts = { ...replyDrafts, [parentId]: sentBody };
+				}
+			} else if (!body.trim()) {
+				body = sentBody;
+			}
 		}
 	}
 
 	async function reactToComment(comment: CommentItem, reaction: CommentReactionValue) {
 		if (!user || reactingIds.has(comment.id)) return;
+		const previous = {
+			likeCount: comment.likeCount,
+			dislikeCount: comment.dislikeCount,
+			myReaction: comment.myReaction
+		};
 		reactingIds = new Set([...reactingIds, comment.id]);
 		submitError = '';
+		updateComment(comment.id, optimisticReaction(comment, reaction));
 
 		try {
 			const res = await fetch(`/api/posts/${postId}/comments/${comment.id}/react`, {
@@ -123,6 +157,7 @@
 			const data = await res.json().catch(() => ({}));
 			if (!res.ok) {
 				submitError = data.message ?? 'Failed to update comment reaction';
+				updateComment(comment.id, previous);
 				return;
 			}
 			updateComment(comment.id, {
@@ -133,6 +168,7 @@
 			if (data.communityNote) onCommunityNoteUpdated(data.communityNote);
 		} catch {
 			submitError = 'Network error';
+			updateComment(comment.id, previous);
 		} finally {
 			const next = new Set(reactingIds);
 			next.delete(comment.id);
