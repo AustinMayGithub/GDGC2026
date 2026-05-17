@@ -717,7 +717,7 @@
 		};
 		const m = new ml.Map(mapOptions);
 
-		m.addControl(new ml.AttributionControl({ compact: true }), 'bottom-left');
+		m.addControl(new ml.AttributionControl({ compact: true }), 'bottom-right');
 		m.addControl(
 			new ml.NavigationControl({ visualizePitch: true, showCompass: true }),
 			'bottom-right'
