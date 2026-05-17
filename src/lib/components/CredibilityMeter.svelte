@@ -204,22 +204,26 @@
 	<div
 		class="bar-track"
 		class:no-votes={total === 0}
+		class:has-left-arrow={total > 0 && verifyPct === 0}
+		class:has-right-arrow={total > 0 && disputePct === 0}
 		style="--verify-pct: {verifyPct}%; --dispute-pct: {disputePct}%;"
 		aria-label="Community reliability: {verifyPct}% reliable, {disputePct}% needs review"
 	>
-		<div
-			class="bar-fill bar-verify"
-			class:active={myVote === 'verify'}
-			style="width: {verifyPct === 0 ? '0%' : `calc(${verifyPct}% + 18px)`}"
-		></div>
-		<div
-			class="bar-fill bar-dispute"
-			class:active={myVote === 'dispute'}
-			style="width: {disputePct === 0 ? '0%' : `calc(${disputePct}% + 18px)`}"
-		></div>
-		<div class="bar-labels" aria-hidden="true">
-			<span>{total === 0 ? 'Reliable' : `${verifyPct}% reliable`}</span>
-			<span>{total === 0 ? 'Needs review' : `${disputePct}% needs review`}</span>
+		<div class="bar-clip">
+			<div
+				class="bar-fill bar-verify"
+				class:active={myVote === 'verify'}
+				style="width: {verifyPct === 0 ? '0%' : `calc(${verifyPct}% + 18px)`}"
+			></div>
+			<div
+				class="bar-fill bar-dispute"
+				class:active={myVote === 'dispute'}
+				style="width: {disputePct === 0 ? '0%' : `calc(${disputePct}% + 18px)`}"
+			></div>
+			<div class="bar-labels" aria-hidden="true">
+				<span>{total === 0 ? 'Reliable' : `${verifyPct}% reliable`}</span>
+				<span>{total === 0 ? 'Needs review' : `${disputePct}% needs review`}</span>
+			</div>
 		</div>
 		<button
 			type="button"
@@ -316,6 +320,17 @@
 	.bar-track {
 		position: relative;
 		height: 54px;
+		transition: margin 0.2s ease;
+	}
+	.bar-track.has-left-arrow {
+		margin-left: 36px;
+	}
+	.bar-track.has-right-arrow {
+		margin-right: 36px;
+	}
+	.bar-clip {
+		position: absolute;
+		inset: 0;
 		border-radius: 6px;
 		overflow: hidden;
 		background: var(--surface-3);
@@ -375,16 +390,17 @@
 		cursor: pointer;
 	}
 	.bar-hit.edge-visible {
-		width: 28px;
+		width: 24px;
 		overflow: visible;
 	}
 	.bar-hit.edge-visible::before {
 		content: '';
 		position: absolute;
 		top: 50%;
-		width: 0;
-		height: 0;
+		width: 20px;
+		height: 24px;
 		transform: translateY(-50%);
+		border-radius: 5px;
 		filter: drop-shadow(0 1px 2px rgba(15, 23, 42, 0.22));
 	}
 	.bar-hit:disabled {
@@ -394,21 +410,17 @@
 		left: 0;
 	}
 	.bar-hit-verify.edge-visible::before {
-		left: 0;
-		border-top: 12px solid transparent;
-		border-bottom: 12px solid transparent;
-		border-left: 18px solid var(--verify);
-		border-right: 0;
+		left: -31px;
+		background: var(--verify);
+		clip-path: polygon(0 0, 100% 50%, 0 100%);
 	}
 	.bar-hit-dispute {
 		right: 0;
 	}
 	.bar-hit-dispute.edge-visible::before {
-		right: 0;
-		border-top: 12px solid transparent;
-		border-bottom: 12px solid transparent;
-		border-left: 0;
-		border-right: 18px solid var(--dispute);
+		right: -31px;
+		background: var(--dispute);
+		clip-path: polygon(100% 0, 0 50%, 100% 100%);
 	}
 	.bar-track:has(.bar-hit:not(:disabled):hover) .bar-fill {
 		filter: brightness(1.04);
