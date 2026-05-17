@@ -1658,19 +1658,12 @@
 								flushMode="panel"
 							/>
 						{/if}
-
-						{#if post.images.length === 0 && !post.headerImageDataUrl}
-                            <h1 class="article-title article-title-top">{post.title}</h1>
-                        {/if}
-						<div class="post-panel-back-row">
+						<div class="post-panel-heading-row" class:hasMedia={post.images.length > 0 || post.headerImageDataUrl}>
+							<h1 class="article-title">{post.title}</h1>
 							<button type="button" class="close-btn" aria-label="Back" onclick={clearSelectedPost}>
 								Back
 							</button>
 						</div>
-
-                        {#if post.images.length > 0 || post.headerImageDataUrl}
-                            <h1 class="article-title">{post.title}</h1>
-                        {/if}
 
                         <div class="article-meta">
 							<span class="badge" class:badge-factual={post.category === 'news'}>
@@ -2912,10 +2905,24 @@
 		max-width: 760px;
 		margin: 0 auto;
 	}
-
-	.post-panel-back-row {
+	.post-panel-heading-row {
 		display: flex;
+		align-items: flex-start;
+		justify-content: space-between;
+		gap: 16px;
+	}
+
+	.post-panel-heading-row.hasMedia {
 		margin-top: -6px;
+	}
+	.post-panel-heading-row .article-title {
+		flex: 1;
+		min-width: 0;
+		margin: 0;
+	}
+
+	.post-panel-heading-row .close-btn {
+		flex: 0 0 auto;
 	}
 
 	.profile-panel-body {
@@ -3361,10 +3368,6 @@
 		align-items: center;
 		justify-content: center;
 		gap: 12px;
-	}
-
-	.article-title-top {
-		margin-top: 0;
 	}
 
 	.article-meta {
