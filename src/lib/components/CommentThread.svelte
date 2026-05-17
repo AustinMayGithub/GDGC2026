@@ -29,10 +29,7 @@
 	let replyingToId = $state<string | null>(null);
 	let replyDrafts = $state<Record<string, string>>({});
 	let reactingIds = $state<Set<string>>(new Set());
-	let reportingId = $state<string | null>(null);
-	let reportReason = $state('');
-	let reportError = $state('');
-	let reportSubmitting = $state(false);
+	let deletingIds = $state<Set<string>>(new Set());
 	let failedAvatars = $state<Set<string>>(new Set());
 
 	let topLevelComments = $derived(comments.filter((comment) => !comment.parentId));
@@ -142,27 +139,31 @@
 		}
 	}
 
-	async function submitReport(commentId: string) {
-		if (!reportReason.trim() || reportSubmitting) return;
-		reportError = '';
-		reportSubmitting = true;
+	async function deleteComment(comment: CommentItem) {
+		if (!user || user.id !== comment.authorId) return;
+		if (deletingIds.has(comment.id) || comment.id.startsWith('optimistic-')) return;
+		if (!confirm('Delete this comment? This cannot be undone.')) return;
+
+		deletingIds = new Set([...deletingIds, comment.id]);
+		submitError = '';
 		try {
-			const res = await fetch(`/api/posts/${postId}/report`, {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ targetType: 'comment', targetId: commentId, reason: reportReason.trim() })
+			const res = await fetch(`/api/posts/${postId}/comments/${comment.id}`, {
+				method: 'DELETE'
 			});
-			if (res.ok) {
-				reportingId = null;
-				reportReason = '';
-			} else {
-				const data = await res.json();
-				reportError = data.message ?? 'Report failed';
+			const data = await res.json().catch(() => ({}));
+			if (!res.ok) {
+				submitError = data.message ?? 'Failed to delete comment';
+				return;
 			}
+			// Drop the comment along with any of its replies.
+			comments = comments.filter((c) => c.id !== comment.id && c.parentId !== comment.id);
+			if (data.communityNote) onCommunityNoteUpdated(data.communityNote);
 		} catch {
-			reportError = 'Network error';
+			submitError = 'Network error';
 		} finally {
-			reportSubmitting = false;
+			const next = new Set(deletingIds);
+			next.delete(comment.id);
+			deletingIds = next;
 		}
 	}
 
@@ -250,44 +251,17 @@
 								<button class="comment-action" onclick={() => toggleReply(comment.id)}>
 									Reply
 								</button>
-								<button
-									class="comment-action danger"
-									onclick={() => {
-										reportingId = reportingId === comment.id ? null : comment.id;
-										reportReason = '';
-										reportError = '';
-									}}
-								>
-									Report
-								</button>
+								{#if user.id === comment.authorId}
+									<button
+										class="comment-action danger"
+										disabled={deletingIds.has(comment.id) || comment.id.startsWith('optimistic-')}
+										onclick={() => deleteComment(comment)}
+									>
+										{deletingIds.has(comment.id) ? 'Deleting…' : 'Delete'}
+									</button>
+								{/if}
 							{/if}
 						</div>
-
-						{#if reportingId === comment.id}
-							<div class="report-panel">
-								<textarea
-									class="input report-input"
-									placeholder="Why are you reporting this comment?"
-									bind:value={reportReason}
-									rows={2}
-								></textarea>
-								{#if reportError}
-									<p class="error-text">{reportError}</p>
-								{/if}
-								<div class="report-actions">
-									<button
-										class="btn btn-primary"
-										onclick={() => submitReport(comment.id)}
-										disabled={reportSubmitting || !reportReason.trim()}
-									>
-										Submit
-									</button>
-									<button class="btn" onclick={() => { reportingId = null; reportReason = ''; }}>
-										Cancel
-									</button>
-								</div>
-							</div>
-						{/if}
 
 						{#if replyingToId === comment.id && user}
 							<div class="reply-compose">
@@ -359,45 +333,16 @@
 												>
 													Dislike <span>{reply.dislikeCount}</span>
 												</button>
-												{#if user}
+												{#if user && user.id === reply.authorId}
 													<button
 														class="comment-action danger"
-														onclick={() => {
-															reportingId = reportingId === reply.id ? null : reply.id;
-															reportReason = '';
-															reportError = '';
-														}}
+														disabled={deletingIds.has(reply.id) || reply.id.startsWith('optimistic-')}
+														onclick={() => deleteComment(reply)}
 													>
-														Report
+														{deletingIds.has(reply.id) ? 'Deleting…' : 'Delete'}
 													</button>
 												{/if}
 											</div>
-
-											{#if reportingId === reply.id}
-												<div class="report-panel">
-													<textarea
-														class="input report-input"
-														placeholder="Why are you reporting this reply?"
-														bind:value={reportReason}
-														rows={2}
-													></textarea>
-													{#if reportError}
-														<p class="error-text">{reportError}</p>
-													{/if}
-													<div class="report-actions">
-														<button
-															class="btn btn-primary"
-															onclick={() => submitReport(reply.id)}
-															disabled={reportSubmitting || !reportReason.trim()}
-														>
-															Submit
-														</button>
-														<button class="btn" onclick={() => { reportingId = null; reportReason = ''; }}>
-															Cancel
-														</button>
-													</div>
-												</div>
-											{/if}
 										</div>
 									</article>
 								{/each}
@@ -617,7 +562,7 @@
 		align-items: center;
 		gap: 5px;
 		border: 1px solid var(--border);
-		border-radius: 999px;
+		border-radius: var(--radius-sm);
 		background: rgba(255, 255, 255, 0.7);
 		color: var(--text-2);
 		padding: 4px 8px;
@@ -650,30 +595,21 @@
 		padding-left: 8px;
 		border-left: 2px solid rgba(16, 122, 95, 0.14);
 	}
-	.reply-compose,
-	.report-panel {
+	.reply-compose {
 		display: flex;
 		flex-direction: column;
 		gap: 8px;
 		margin-top: 4px;
 		padding: 10px;
 		border-radius: var(--radius-sm);
-	}
-	.reply-compose {
 		background: rgba(246, 250, 247, 0.92);
 		border: 1px solid rgba(16, 122, 95, 0.16);
 	}
-	.report-panel {
-		background: #fffafa;
-		border: 1px solid rgba(220, 38, 38, 0.18);
-	}
-	.reply-input,
-	.report-input {
+	.reply-input {
 		resize: vertical;
 		min-height: 68px;
 	}
-	.reply-actions,
-	.report-actions {
+	.reply-actions {
 		display: flex;
 		gap: 8px;
 	}
