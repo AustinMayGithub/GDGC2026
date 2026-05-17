@@ -162,8 +162,8 @@
 					'line-join': 'round' as const
 				},
 				paint: {
-					'line-color': '#f7fff1',
-					'line-opacity': ['interpolate', ['linear'], ['zoom'], 5, 0.18, 8, 0.32, 12, 0.48],
+					'line-color': '#d6e7cf',
+					'line-opacity': ['interpolate', ['linear'], ['zoom'], 5, 0.14, 8, 0.24, 12, 0.36],
 					'line-width': ['interpolate', ['linear'], ['zoom'], 5, 0.45, 8, 0.75, 12, 1.8, 16, 4]
 				}
 			},
@@ -179,8 +179,8 @@
 					'line-join': 'round' as const
 				},
 				paint: {
-					'line-color': '#f8fff4',
-					'line-opacity': ['interpolate', ['linear'], ['zoom'], 10, 0.14, 14, 0.34],
+					'line-color': '#c9ddc3',
+					'line-opacity': ['interpolate', ['linear'], ['zoom'], 10, 0.1, 14, 0.28],
 					'line-width': ['interpolate', ['linear'], ['zoom'], 10, 0.35, 14, 1.2, 17, 2.6]
 				}
 			}
@@ -817,13 +817,14 @@
 				paint: {
 					'circle-radius': [
 						'*',
+						['interpolate', ['linear'], ['zoom'], 4, 0.68, 6, 0.86, 9, 1.18, 12, 1.62, 16, 2.25],
 						[
 							'case',
 							['==', ['get', 'selected'], true],
-							9,
+							10,
 							['==', ['get', 'hovered'], true],
-							8,
-							6
+							9,
+							7
 						],
 						['coalesce', ['get', 'scale'], 1]
 					],
