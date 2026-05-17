@@ -32,6 +32,7 @@
 	const total = $derived(verifyCount + disputeCount);
 	const verifyPct = $derived(total === 0 ? 50 : Math.round((verifyCount / total) * 100));
 	const disputePct = $derived(100 - verifyPct);
+	const canVote = $derived(Boolean(user) && !loading && !locating);
 
 	// Warm the location provider as soon as the meter is on screen, so the
 	// voter isn't waiting on a cold GPS fix the moment they click Verify.
@@ -129,28 +130,38 @@
 		</span>
 	</div>
 
-	<div class="bar-track" aria-label="Credibility: {verifyPct}% verified">
-		{#if total === 0}
-			<div class="bar-empty">No votes yet</div>
-		{:else}
-			<div class="bar-verify" style="width: {verifyPct}%"></div>
-			<div class="bar-dispute" style="width: {disputePct}%"></div>
-		{/if}
-	</div>
-
-	{#if total > 0}
-		<div class="pct-row">
-			<span class="pct-verify">{verifyPct}% verified</span>
-			<span class="pct-dispute">{disputePct}% disputed</span>
+	<div
+		class="bar-track"
+		class:no-votes={total === 0}
+		style="--verify-pct: {verifyPct}%;"
+		aria-label="Credibility: {verifyPct}% verified, {disputePct}% disputed"
+	>
+		<div class="bar-labels" aria-hidden="true">
+			<span>{total === 0 ? 'Verify' : `${verifyPct}% verified`}</span>
+			<span>{total === 0 ? 'Dispute' : `${disputePct}% disputed`}</span>
 		</div>
-	{/if}
+		<button
+			type="button"
+			class="bar-hit bar-hit-verify"
+			aria-label="Verify this post"
+			onclick={() => vote('verify')}
+			disabled={!canVote}
+		></button>
+		<button
+			type="button"
+			class="bar-hit bar-hit-dispute"
+			aria-label="Dispute this post"
+			onclick={() => vote('dispute')}
+			disabled={!canVote}
+		></button>
+	</div>
 
 	{#if !user}
 		<p class="prompt muted">
 			<a href="/auth/login" class="link">Sign in</a> to verify or dispute this post.
 		</p>
 	{:else}
-		<div class="vote-row">
+		<div class="vote-row" hidden>
 			<button
 				class="btn vote-btn verify-btn"
 				class:active={myVote === 'verify'}
@@ -207,39 +218,72 @@
 		font-size: 12px;
 	}
 	.bar-track {
-		display: flex;
-		height: 8px;
-		border-radius: 999px;
+		position: relative;
+		height: 54px;
+		border-radius: 6px;
 		overflow: hidden;
-		background: var(--surface-3);
+		--verify-muted: #2f7d4b;
+		--dispute-muted: #a43c42;
+		--verify-bar: var(--verify-muted);
+		--dispute-bar: var(--dispute-muted);
+		background: linear-gradient(
+			104deg,
+			var(--verify-bar) 0%,
+			var(--verify-bar) calc(var(--verify-pct) - 1px),
+			var(--dispute-bar) calc(var(--verify-pct) + 1px),
+			var(--dispute-bar) 100%
+		);
+		border: 1px solid rgba(15, 23, 42, 0.1);
+		box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.18);
+		transition: background 0.16s ease;
 	}
-	.bar-empty {
-		width: 100%;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		font-size: 11px;
-		color: var(--text-3);
+	.bar-track:has(.bar-hit-verify:not(:disabled):hover) {
+		--verify-bar: var(--verify);
 	}
-	.bar-verify {
-		background: var(--verify);
-		transition: width 0.4s ease;
+	.bar-track:has(.bar-hit-dispute:not(:disabled):hover) {
+		--dispute-bar: var(--dispute);
 	}
-	.bar-dispute {
-		background: var(--dispute);
-		transition: width 0.4s ease;
-	}
-	.pct-row {
+	.bar-labels {
+		position: absolute;
+		inset: 0;
 		display: flex;
 		justify-content: space-between;
-		font-size: 12px;
-		font-weight: 600;
+		align-items: center;
+		gap: 12px;
+		padding: 0 14px;
+		color: #ffffff;
+		font-size: 14px;
+		font-weight: 850;
+		line-height: 1;
+		text-shadow: 0 1px 2px rgba(15, 23, 42, 0.35);
+		z-index: 3;
+		pointer-events: none;
 	}
-	.pct-verify { color: var(--verify); }
-	.pct-dispute { color: var(--dispute); }
+	.bar-labels span {
+		min-width: 0;
+		white-space: nowrap;
+	}
+	.bar-hit {
+		position: absolute;
+		top: 0;
+		bottom: 0;
+		width: 50%;
+		border: 0;
+		background: transparent;
+		z-index: 4;
+		cursor: pointer;
+	}
+	.bar-hit:disabled {
+		cursor: not-allowed;
+	}
+	.bar-hit-verify {
+		left: 0;
+	}
+	.bar-hit-dispute {
+		right: 0;
+	}
 	.vote-row {
-		display: flex;
-		gap: 8px;
+		display: none;
 	}
 	.vote-btn {
 		flex: 1;
