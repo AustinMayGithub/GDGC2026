@@ -27,6 +27,7 @@ services:
       RESEND_API_KEY: ${RESEND_API_KEY:-}
       EMAIL_FROM: ${EMAIL_FROM:-BirdsEye <onboarding@resend.dev>}
       ORIGIN: ${ORIGIN:-http://localhost:3000}
+      BODY_SIZE_LIMIT: ${BODY_SIZE_LIMIT:-50M}
     ports:
       - '3000:3000'
 

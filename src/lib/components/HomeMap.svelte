@@ -97,7 +97,7 @@
 				id: 'land',
 				type: 'background' as const,
 				paint: {
-					'background-color': '#6fa75f'
+					'background-color': '#82b873'
 				}
 			},
 			{
@@ -112,8 +112,8 @@
 					['==', 'subclass', 'recreation_ground']
 				],
 				paint: {
-					'fill-color': '#3f7f3d',
-					'fill-opacity': 0.36
+					'fill-color': '#579452',
+					'fill-opacity': 0.34
 				}
 			},
 			{
@@ -123,8 +123,8 @@
 				'source-layer': 'park',
 				minzoom: 6,
 				paint: {
-					'fill-color': '#2f6f35',
-					'fill-opacity': 0.42
+					'fill-color': '#477f45',
+					'fill-opacity': 0.4
 				}
 			},
 			{
@@ -818,16 +818,12 @@
 					'circle-radius': [
 						'*',
 						[
-							'*',
-							['interpolate', ['linear'], ['zoom'], 4, 0.78, 6, 0.95, 9, 1.25, 12, 1.65, 16, 2.15],
-							[
-								'case',
-								['==', ['get', 'selected'], true],
-								10,
-								['==', ['get', 'hovered'], true],
-								9,
-								7
-							]
+							'case',
+							['==', ['get', 'selected'], true],
+							9,
+							['==', ['get', 'hovered'], true],
+							8,
+							6
 						],
 						['coalesce', ['get', 'scale'], 1]
 					],
