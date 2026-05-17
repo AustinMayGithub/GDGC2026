@@ -100,7 +100,7 @@
 					<span class="badge" class:badge-factual={post.category === 'news'}>
 						{postCategoryLabel(post.category)}
 					</span>
-					<span class="muted meta-sep">·</span>
+					<span class="muted meta-sep">Â·</span>
 					{#if post.anonymous}
 						<span class="muted author">Anonymous</span>
 					{:else}

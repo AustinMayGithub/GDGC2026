@@ -88,7 +88,7 @@
 		align-items: center;
 		gap: 5px;
 		padding: 5px 10px;
-		border-radius: 999px;
+		border-radius: var(--radius-sm);
 		border: 1px solid var(--border);
 		background: var(--surface-2);
 		font-size: 16px;
