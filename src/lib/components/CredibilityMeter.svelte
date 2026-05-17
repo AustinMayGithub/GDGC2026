@@ -139,13 +139,15 @@
 	>
 		<div
 			class="bar-fill bar-verify"
+			class:full={verifyPct === 100}
 			class:active={myVote === 'verify'}
-			style="width: {verifyPct === 0 ? '0%' : `calc(${verifyPct}% + 9px)`}"
+			style="width: {verifyPct === 0 ? '0%' : verifyPct === 100 ? '100%' : `calc(${verifyPct}% + 9px)`}"
 		></div>
 		<div
 			class="bar-fill bar-dispute"
+			class:full={disputePct === 100}
 			class:active={myVote === 'dispute'}
-			style="width: {disputePct === 0 ? '0%' : `calc(${disputePct}% + 9px)`}"
+			style="width: {disputePct === 0 ? '0%' : disputePct === 100 ? '100%' : `calc(${disputePct}% + 9px)`}"
 		></div>
 		<div class="bar-labels" aria-hidden="true">
 			<span>{total === 0 ? 'Verify' : `${verifyPct}% verified`}</span>
@@ -252,6 +254,9 @@
 		right: 0;
 		background: var(--dispute);
 		clip-path: polygon(0 0, 100% 0, 100% 100%, 18px 100%);
+	}
+	.bar-fill.full {
+		clip-path: none;
 	}
 	.bar-track.no-votes .bar-fill {
 		filter: saturate(0.72) opacity(0.92);
