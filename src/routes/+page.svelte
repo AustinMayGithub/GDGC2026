@@ -1628,11 +1628,7 @@
 		{#if viewingPost}
 			<aside class="post-panel card" transition:fly={{ x: -80, duration: 260 }}>
 				<div class="post-panel-top">
-					<div>
-						<h1 class="compose-title">
-							{selectedPostDetail?.title ?? visiblePosts.find((post) => post.id === selectedPostId)?.title ?? 'Loading post'}
-						</h1>
-					</div>
+					<div></div>
 					<button type="button" class="close-btn" aria-label="Back" onclick={clearSelectedPost}>
 						Back
 					</button>
@@ -1669,6 +1665,8 @@
 								flushMode="panel"
 							/>
 						{/if}
+
+						<h1 class="article-title">{post.title}</h1>
 
 						<div class="article-meta">
 							<span class="badge" class:badge-factual={post.category === 'news'}>
@@ -3666,7 +3664,7 @@
 
 	.radius-slider {
 		width: 100%;
-		accent-color: #f59e0b;
+		accent-color: #ff8c00;
 		cursor: pointer;
 	}
 

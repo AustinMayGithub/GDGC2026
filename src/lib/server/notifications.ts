@@ -80,7 +80,12 @@ export async function notifyPreviousCommenters(postId: string, commentId: string
 			where ${comments.postId} = ${postId}
 				and ${comments.authorId} <> ${authorId}
 				and ${comments.id} <> ${commentId}
-			on conflict on constraint uniq_comment_notification do nothing
+				and not exists (
+					select 1
+					from ${commentNotifications}
+					where ${commentNotifications.recipientId} = ${comments.authorId}
+						and ${commentNotifications.commentId} = ${commentId}
+				)
 		`);
 	} catch (err) {
 		if (isMissingNotificationTable(err)) return;
