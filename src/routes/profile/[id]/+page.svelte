@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { postCategoryLabel } from '$lib/types';
-	import type { UserProfile, SessionUser } from '$lib/types';
+	import type { UserProfile, UserProfileComment, SessionUser } from '$lib/types';
 	import { goto, invalidateAll } from '$app/navigation';
 	import UserMenu from '$lib/components/UserMenu.svelte';
 	import { getRegion } from '$lib/data/nz-regions';
@@ -32,6 +32,7 @@
 	let accountPassword = $state('');
 	let deletingAccount = $state(false);
 	let deleteAccountError = $state('');
+	let deletingCommentIds = $state<Set<string>>(new Set());
 
 	function startEdit() {
 		editName = profile.displayName;
@@ -111,6 +112,25 @@
 			deleteAccountError = 'Network error. Try again.';
 		} finally {
 			deletingAccount = false;
+		}
+	}
+
+	async function deleteComment(comment: UserProfileComment) {
+		if (deletingCommentIds.has(comment.id)) return;
+		if (!confirm('Delete this comment? This cannot be undone.')) return;
+
+		deletingCommentIds = new Set([...deletingCommentIds, comment.id]);
+		try {
+			const res = await fetch(`/api/posts/${comment.postId}/comments/${comment.id}`, {
+				method: 'DELETE'
+			});
+			if (res.ok) {
+				await invalidateAll();
+			}
+		} finally {
+			const next = new Set(deletingCommentIds);
+			next.delete(comment.id);
+			deletingCommentIds = next;
 		}
 	}
 
@@ -353,6 +373,16 @@
 							</div>
 							<p>{comment.body}</p>
 							<div class="post-actions">
+								{#if isOwn}
+									<button
+										type="button"
+										class="btn post-open-btn danger-btn"
+										disabled={deletingCommentIds.has(comment.id)}
+										onclick={() => deleteComment(comment)}
+									>
+										{deletingCommentIds.has(comment.id) ? 'Deleting…' : 'Delete'}
+									</button>
+								{/if}
 								<a class="btn post-open-btn" href="/post/{comment.postId}">View post</a>
 							</div>
 						</article>
@@ -582,7 +612,7 @@
 		align-self: flex-start;
 		margin-top: 4px;
 		font-size: 13px;
-		padding: 7px 14px;
+		padding: 7px 12px;
 	}
 
 	/* ── Edit mode ── */

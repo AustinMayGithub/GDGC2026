@@ -3637,13 +3637,13 @@
 		flex-direction: column;
 		gap: 4px;
 		padding: 0;
-		text-shadow: 0 1px 2px rgba(255, 255, 255, 0.9);
+		text-shadow: none;
 	}
 
 	.compose-radius-overlay .field-label,
 	.compose-radius-overlay .radius-value,
 	.compose-radius-overlay .radius-hints {
-		color: var(--text);
+		color: #000000;
 	}
 
 	.compose-radius-overlay .radius-slider {
@@ -3661,12 +3661,12 @@
 	.radius-value {
 		font-size: 16px;
 		font-weight: 800;
-		color: #92400e;
+		color: #000000;
 	}
 
 	.radius-slider {
 		width: 100%;
-		accent-color: #d97706;
+		accent-color: #ff8c00;
 		cursor: pointer;
 	}
 

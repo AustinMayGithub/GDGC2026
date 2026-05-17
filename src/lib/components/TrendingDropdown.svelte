@@ -333,7 +333,7 @@
 		display: inline-flex;
 		align-items: center;
 		padding: 4px 8px;
-		border-radius: 999px;
+		border-radius: var(--radius-sm);
 		background: rgba(15, 23, 42, 0.06);
 		font-size: 11px;
 		font-weight: 700;
