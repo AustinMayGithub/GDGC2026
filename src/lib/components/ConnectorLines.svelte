@@ -111,7 +111,11 @@
 	{#each lines as line (line.id)}
 		<path
 			d="M {line.x1} {line.y1} Q {line.cx} {line.cy} {line.x2} {line.y2}"
-			stroke={line.hovered ? 'url(#connector-gradient)' : 'rgba(71, 85, 105, 0.26)'}
+			stroke={line.hovered
+				? 'url(#connector-gradient)'
+				: arrowheads
+					? 'rgba(30, 41, 59, 0.42)'
+					: 'rgba(71, 85, 105, 0.26)'}
 			stroke-width={line.hovered ? 2.35 : 1.2}
 			fill="none"
 			stroke-dasharray={line.hovered ? 'none' : '5 8'}
