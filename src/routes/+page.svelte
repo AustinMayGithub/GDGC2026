@@ -1426,14 +1426,6 @@
 				</button>
 			</div>
 
-			<label class="map-mode-toggle" aria-label="Toggle 3D map view">
-				<input type="checkbox" checked={mapThreeD} oninput={toggleMapThreeD} />
-				<span class="mode-track" aria-hidden="true">
-					<span class="mode-thumb"></span>
-				</span>
-				<span class="mode-label">3D</span>
-			</label>
-
 			{#if scope === 'region'}
 				<div class="region-controls">
 					{#if geoLoading}
@@ -1512,7 +1504,7 @@
 			/>
 
 			{#if composing && data.user}
-				<div class="compose-radius-overlay location-panel">
+				<div class="compose-radius-overlay">
 					<div class="radius-label-row">
 						<label class="field-label" for="compose-radius-slider">Affected location</label>
 						<span class="radius-value">{formatRadius(composeRadiusM)}</span>
@@ -1531,25 +1523,27 @@
 						<span>100 m</span>
 						<span>50 km</span>
 					</div>
-					<div class="area-label-row muted">
-						<span>{composeAreaLabel}</span>
-					</div>
 				</div>
 			{/if}
 
 			{#if !composing && !viewingPost && !viewingProfile}
 				<div class="trending-overlay">
-					<TrendingDropdown
-						entries={trendingEntries}
-						{scope}
-						mode={trendMode}
-						open={trendingOpen}
-						onOpenChange={handleTrendingOpenChange}
-						onModeChange={handleTrendModeChange}
-						onSelect={handleSelectPost}
-						itemEls={trendingItemEls}
-						onItemsChange={() => redrawTrigger++}
-					/>
+						<TrendingDropdown
+							entries={trendingEntries}
+							{scope}
+							mode={trendMode}
+							open={trendingOpen}
+							{hoveredPostId}
+							onOpenChange={handleTrendingOpenChange}
+							onModeChange={handleTrendModeChange}
+							onSelect={handleSelectPost}
+							onHover={(id) => {
+								hoveredPostId = id;
+								redrawTrigger++;
+							}}
+							itemEls={trendingItemEls}
+							onItemsChange={() => redrawTrigger++}
+						/>
 				</div>
 
 				<HeadlineList
@@ -2082,6 +2076,22 @@
 							</section>
 						{/if}
 
+						{#if profileIsOwn}
+							<section class="profile-map-settings">
+								<div>
+									<span class="field-label">Map view</span>
+									<p class="muted profile-rep-copy">Choose how the map is drawn while browsing.</p>
+								</div>
+								<label class="map-mode-toggle profile-map-toggle" aria-label="Toggle 3D map view">
+									<input type="checkbox" checked={mapThreeD} oninput={toggleMapThreeD} />
+									<span class="mode-track" aria-hidden="true">
+										<span class="mode-thumb"></span>
+									</span>
+									<span class="mode-label">3D</span>
+								</label>
+							</section>
+						{/if}
+
 						<section class="profile-reputation">
 							<div class="radius-label-row">
 								<span class="field-label">Reputation</span>
@@ -2370,8 +2380,8 @@
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		gap: 12px;
-		flex-wrap: wrap;
+		position: relative;
+		min-width: 282px;
 	}
 
 	.scope-toggle {
@@ -2505,60 +2515,96 @@
 		background: rgba(255, 255, 255, 0.92);
 	}
 
+	.profile-map-toggle {
+		flex: 0 0 auto;
+		background: #ffffff;
+	}
+
 	.region-controls {
+		position: absolute;
+		left: calc(50% + 153px);
+		top: 50%;
+		transform: translateY(-50%);
 		display: flex;
 		align-items: center;
-		gap: 8px;
+		gap: 10px;
+		white-space: nowrap;
+	}
+
+	.region-controls::before {
+		content: 'Region';
+		display: inline-flex;
+		align-items: center;
+		height: 24px;
+		padding: 0 9px;
+		border: 1px solid rgba(15, 23, 42, 0.08);
+		border-radius: 999px;
+		background: rgba(255, 255, 255, 0.72);
+		color: var(--text-3);
+		font-size: 10px;
+		font-weight: 850;
+		letter-spacing: 0.06em;
+		text-transform: uppercase;
+		box-shadow: 0 6px 18px rgba(15, 23, 42, 0.06);
 	}
 
 	.region-picker {
 		position: relative;
 		display: inline-flex;
 		align-items: center;
-		height: 36px;
-		min-width: 174px;
-		border: 1px solid rgba(15, 23, 42, 0.12);
-		border-radius: var(--radius-sm);
-		background: rgba(255, 255, 255, 0.92);
-		box-shadow: 0 8px 22px rgba(15, 23, 42, 0.07);
+		height: 38px;
+		min-width: 188px;
+		border: 1px solid rgba(15, 23, 42, 0.1);
+		border-radius: 999px;
+		background:
+			linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(247, 248, 250, 0.92));
+		box-shadow: 0 12px 30px rgba(15, 23, 42, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.92);
 		color: var(--text);
-		transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+		overflow: hidden;
+		transition:
+			border-color 0.15s ease,
+			box-shadow 0.15s ease,
+			background 0.15s ease,
+			transform 0.15s ease;
 	}
 
 	.region-picker:hover {
-		border-color: rgba(15, 23, 42, 0.22);
+		border-color: rgba(15, 23, 42, 0.2);
 		background: #ffffff;
-		box-shadow: 0 10px 28px rgba(15, 23, 42, 0.1);
+		box-shadow: 0 16px 34px rgba(15, 23, 42, 0.14), inset 0 1px 0 rgba(255, 255, 255, 0.96);
+		transform: translateY(-1px);
 	}
 
 	.region-picker:focus-within {
 		border-color: var(--accent);
-		box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.16);
+		box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15), 0 16px 34px rgba(15, 23, 42, 0.12);
 	}
 
 	.region-picker-icon {
 		position: absolute;
-		left: 11px;
+		left: 10px;
 		display: inline-flex;
 		align-items: center;
 		justify-content: center;
-		width: 18px;
-		height: 18px;
-		color: var(--accent);
+		width: 22px;
+		height: 22px;
+		border-radius: 50%;
+		background: rgba(99, 102, 241, 0.1);
+		color: #4f46e5;
 		pointer-events: none;
 	}
 
 	.region-select {
 		width: 100%;
 		height: 100%;
-		padding: 0 34px 0 36px;
+		padding: 0 38px 0 40px;
 		border: 0;
 		border-radius: inherit;
 		appearance: none;
 		background: transparent;
 		color: var(--text);
 		font-size: 13px;
-		font-weight: 750;
+		font-weight: 800;
 		cursor: pointer;
 	}
 
@@ -2566,15 +2612,29 @@
 		outline: none;
 	}
 
+	.region-select option {
+		background: #ffffff;
+		color: var(--text);
+		font-size: 13px;
+		font-weight: 650;
+	}
+
 	.region-picker-chevron {
 		position: absolute;
-		right: 13px;
-		width: 8px;
-		height: 8px;
+		right: 14px;
+		width: 7px;
+		height: 7px;
 		border-right: 2px solid var(--text-3);
 		border-bottom: 2px solid var(--text-3);
 		transform: translateY(-2px) rotate(45deg);
 		pointer-events: none;
+		transition: border-color 0.15s ease, transform 0.15s ease;
+	}
+
+	.region-picker:hover .region-picker-chevron,
+	.region-picker:focus-within .region-picker-chevron {
+		border-color: var(--text);
+		transform: translateY(0) rotate(45deg);
 	}
 
 	.helper-text {
@@ -2850,6 +2910,7 @@
 
 	.profile-summary,
 	.profile-notifications,
+	.profile-map-settings,
 	.profile-reputation,
 	.profile-danger,
 	.profile-posts,
@@ -2947,6 +3008,14 @@
 		grid-column: 1;
 	}
 
+	.profile-map-settings {
+		grid-column: 1;
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 16px;
+	}
+
 	.profile-danger {
 		grid-column: 1;
 		display: flex;
@@ -2958,7 +3027,7 @@
 
 	.profile-posts {
 		grid-column: 2;
-		grid-row: 1 / span 3;
+		grid-row: 1 / span 4;
 	}
 
 	.profile-avatar-wrap {
@@ -3516,13 +3585,25 @@
 
 	.compose-radius-overlay {
 		position: absolute;
-		left: 20px;
-		bottom: 20px;
+		left: 16px;
+		bottom: 10px;
 		z-index: 21;
-		width: min(360px, calc(100vw - 40px));
-		background: rgba(255, 255, 255, 0.94);
-		backdrop-filter: blur(16px);
-		box-shadow: 0 14px 34px rgba(15, 23, 42, 0.14);
+		width: min(320px, calc(100vw - 32px));
+		display: flex;
+		flex-direction: column;
+		gap: 4px;
+		padding: 0;
+		text-shadow: 0 1px 2px rgba(255, 255, 255, 0.9);
+	}
+
+	.compose-radius-overlay .field-label,
+	.compose-radius-overlay .radius-value,
+	.compose-radius-overlay .radius-hints {
+		color: var(--text);
+	}
+
+	.compose-radius-overlay .radius-slider {
+		height: 18px;
 	}
 
 	.radius-label-row,
@@ -3591,7 +3672,8 @@
 		.header-center {
 			order: 3;
 			width: 100%;
-			justify-content: flex-start;
+			justify-content: center;
+			min-width: 0;
 		}
 
 		.trending-overlay {
@@ -3655,8 +3737,8 @@
 
 		.compose-radius-overlay {
 			left: 12px;
-			bottom: 16px;
-			width: min(340px, calc(100vw - 24px));
+			bottom: 8px;
+			width: min(320px, calc(100vw - 24px));
 		}
 
 		.post-panel {
@@ -3687,6 +3769,7 @@
 
 		.profile-reputation,
 		.profile-danger,
+		.profile-map-settings,
 		.profile-posts {
 			grid-column: auto;
 			grid-row: auto;
