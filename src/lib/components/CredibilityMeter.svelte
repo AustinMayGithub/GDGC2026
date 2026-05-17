@@ -193,6 +193,7 @@
 		<button
 			type="button"
 			class="bar-hit bar-hit-verify"
+			class:edge-visible={total > 0 && verifyPct === 0}
 			aria-label="Verify this post"
 			onclick={() => vote('verify')}
 			disabled={!canVote}
@@ -200,6 +201,7 @@
 		<button
 			type="button"
 			class="bar-hit bar-hit-dispute"
+			class:edge-visible={total > 0 && disputePct === 0}
 			aria-label="Dispute this post"
 			onclick={() => vote('dispute')}
 			disabled={!canVote}
@@ -289,17 +291,6 @@
 		border: 1px solid rgba(15, 23, 42, 0.1);
 		box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.18);
 	}
-	.bar-track::after {
-		content: '';
-		position: absolute;
-		top: 7px;
-		bottom: 7px;
-		left: 50%;
-		border-left: 2px dotted rgba(15, 23, 42, 0.78);
-		transform: translateX(-1px);
-		z-index: 2;
-		pointer-events: none;
-	}
 	.bar-fill {
 		position: absolute;
 		top: 0;
@@ -352,14 +343,41 @@
 		z-index: 4;
 		cursor: pointer;
 	}
+	.bar-hit.edge-visible {
+		width: 28px;
+		overflow: visible;
+	}
+	.bar-hit.edge-visible::before {
+		content: '';
+		position: absolute;
+		top: 50%;
+		width: 0;
+		height: 0;
+		transform: translateY(-50%);
+		filter: drop-shadow(0 1px 2px rgba(15, 23, 42, 0.22));
+	}
 	.bar-hit:disabled {
 		cursor: not-allowed;
 	}
 	.bar-hit-verify {
 		left: 0;
 	}
+	.bar-hit-verify.edge-visible::before {
+		left: 0;
+		border-top: 12px solid transparent;
+		border-bottom: 12px solid transparent;
+		border-left: 18px solid var(--verify);
+		border-right: 0;
+	}
 	.bar-hit-dispute {
 		right: 0;
+	}
+	.bar-hit-dispute.edge-visible::before {
+		right: 0;
+		border-top: 12px solid transparent;
+		border-bottom: 12px solid transparent;
+		border-left: 0;
+		border-right: 18px solid var(--dispute);
 	}
 	.bar-track:has(.bar-hit:not(:disabled):hover) .bar-fill {
 		filter: brightness(1.04);
