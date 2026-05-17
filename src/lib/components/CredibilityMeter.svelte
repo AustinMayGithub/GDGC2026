@@ -48,6 +48,7 @@
 
 	async function vote(value: VoteValue) {
 		if (loading || locating) return;
+		if (myVote === value) return;
 		error = '';
 		outOfRangeVote = null;
 
@@ -79,17 +80,11 @@
 
 		// 3. Optimistic update.
 		const prev = { verifyCount, disputeCount, myVote };
-		if (myVote === value) {
-			if (value === 'verify') verifyCount--;
-			else disputeCount--;
-			myVote = null;
-		} else {
-			if (myVote === 'verify') verifyCount--;
-			else if (myVote === 'dispute') disputeCount--;
-			if (value === 'verify') verifyCount++;
-			else disputeCount++;
-			myVote = value;
-		}
+		if (myVote === 'verify') verifyCount--;
+		else if (myVote === 'dispute') disputeCount--;
+		if (value === 'verify') verifyCount++;
+		else disputeCount++;
+		myVote = value;
 
 		loading = true;
 		try {
@@ -333,7 +328,14 @@
 		inset: 0;
 		border-radius: 6px;
 		overflow: hidden;
-		background: var(--surface-3);
+		background:
+			linear-gradient(
+				108deg,
+				var(--verify) 0,
+				var(--verify) calc(var(--verify-pct) + 10px),
+				var(--dispute) calc(var(--verify-pct) + 10px),
+				var(--dispute) 100%
+			);
 		border: 1px solid rgba(15, 23, 42, 0.1);
 		box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.18);
 	}
@@ -342,6 +344,7 @@
 		top: 0;
 		bottom: 0;
 		transition: width 0.4s ease, filter 0.16s ease;
+		will-change: width;
 	}
 	.bar-verify {
 		left: 0;
