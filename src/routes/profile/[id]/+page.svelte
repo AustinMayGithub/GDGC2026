@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { postCategoryLabel } from '$lib/types';
 	import type { UserProfile, SessionUser } from '$lib/types';
 	import { goto, invalidateAll } from '$app/navigation';
 	import UserMenu from '$lib/components/UserMenu.svelte';
@@ -265,7 +266,7 @@
 						{/if}
 						<div class="profile-meta">
 							{#if profile.location}
-								<span class="meta-chip">📍 {profile.location}</span>
+								<span class="meta-chip">{profile.location}</span>
 							{/if}
 							{#if profile.age}
 								<span class="meta-chip">Age {profile.age}</span>
@@ -303,7 +304,7 @@
 
 		<!-- Reputation -->
 		<div class="rep-card card">
-			<h2 class="section-label">Source reliability</h2>
+			<h2 class="section-label">Community reliability</h2>
 			{#if profile.reputation.score !== null}
 				<div class="rep-bar-track">
 					<div
@@ -316,19 +317,50 @@
 				</p>
 			{:else}
 				<p class="rep-unrated muted">
-					{profile.reputation.postCount === 0
-						? 'No posts yet.'
-						: `Not enough reliability ratings yet (need 5, have ${profile.reputation.totalVotes}).`}
+					{profile.reputation.postCount === 0 && profile.comments.length === 0
+						? 'No posts or comments yet.'
+						: `Not enough post ratings or comment reactions yet (need 5, have ${profile.reputation.totalVotes}).`}
 				</p>
 			{/if}
 			<p class="rep-stats muted">
 				{profile.reputation.postCount}
-				{profile.reputation.postCount === 1 ? 'post' : 'posts'} · {profile.reputation.totalVotes}
-				total community {profile.reputation.totalVotes === 1 ? 'rating' : 'ratings'}
+				{profile.reputation.postCount === 1 ? 'post' : 'posts'} · {profile.comments.length}
+				{profile.comments.length === 1 ? 'comment' : 'comments'} · {profile.reputation.totalVotes}
+				total community {profile.reputation.totalVotes === 1 ? 'signal' : 'signals'}
+			</p>
+			<p class="rep-stats muted">
+				Post ratings: {profile.reputation.postRatingCount}. Comment reactions:
+				{profile.reputation.commentRatingCount}.
 			</p>
 		</div>
 
 		<!-- Posts -->
+		<section class="comments-section">
+			<h2 class="posts-heading">
+				{isOwn ? 'Your comments' : `Comments by ${profile.displayName}`}
+				<span class="posts-count muted">({profile.comments.length})</span>
+			</h2>
+
+			{#if profile.comments.length === 0}
+				<p class="no-posts muted">No comments yet.</p>
+			{:else}
+				<div class="comments-list">
+					{#each profile.comments as comment}
+						<article class="comment-item card">
+							<div class="post-top">
+								<strong>{comment.postTitle}</strong>
+								<span class="post-time muted">{timeAgo(comment.createdAt)}</span>
+							</div>
+							<p>{comment.body}</p>
+							<div class="post-actions">
+								<a class="btn post-open-btn" href="/post/{comment.postId}">View post</a>
+							</div>
+						</article>
+					{/each}
+				</div>
+			{/if}
+		</section>
+
 		<section class="posts-section">
 			<h2 id="posts" class="posts-heading">
 				{isOwn ? 'Your posts' : `Posts by ${profile.displayName}`}
@@ -344,9 +376,9 @@
 						{@const totalVotes = post.verifyCount + post.disputeCount}
 						<article class="post-item card">
 							<div class="post-top">
-								{#if post.category === 'community'}
-									<span class="badge">Community</span>
-								{/if}
+								<span class="badge" class:badge-factual={post.category === 'news'}>
+									{postCategoryLabel(post.category)}
+								</span>
 								{#if post.anonymous}
 									<span class="anon-badge">Anonymous</span>
 								{/if}
@@ -365,7 +397,7 @@
 										{Math.round((post.verifyCount / totalVotes) * 100)}% reliable
 									</span>
 								{/if}
-								<span>💬 {post.commentCount}</span>
+								<span>{post.commentCount} comments</span>
 							</div>
 							<div class="post-actions">
 								<a class="btn post-open-btn" href="/post/{post.id}">Open</a>
@@ -722,7 +754,8 @@
 		font-size: 12px;
 	}
 
-	/* ── Posts ── */
+	/* ── Comments and posts ── */
+	.comments-section,
 	.posts-section {
 		display: flex;
 		flex-direction: column;
@@ -751,6 +784,13 @@
 		gap: 10px;
 	}
 
+	.comments-list {
+		display: flex;
+		flex-direction: column;
+		gap: 10px;
+	}
+
+	.comment-item,
 	.post-item {
 		display: block;
 		padding: 16px 20px;
@@ -760,6 +800,14 @@
 	.post-item:hover {
 		transform: translateY(-1px);
 		box-shadow: var(--shadow);
+	}
+
+	.comment-item p {
+		margin: 0;
+		color: var(--text-2);
+		font-size: 14px;
+		line-height: 1.5;
+		overflow-wrap: anywhere;
 	}
 
 	.post-top {
@@ -907,3 +955,4 @@
 		}
 	}
 </style>
+

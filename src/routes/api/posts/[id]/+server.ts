@@ -10,7 +10,7 @@ export const GET: RequestHandler = async ({ params, locals }) => {
 	if (!post) throw error(404);
 
 	const [comments, votePoints, voteUsers] = await Promise.all([
-		getComments(params.id),
+		getComments(params.id, locals.user?.id ?? null),
 		post.category === 'news' ? getVotePoints(params.id) : Promise.resolve([]),
 		post.category === 'news' ? getVoteUsers(params.id) : Promise.resolve([])
 	]);

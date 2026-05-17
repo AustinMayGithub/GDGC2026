@@ -248,7 +248,7 @@
 		if (total === 0) return 'untouched';
 		const verifyRatio = post.verifyCount / total;
 		if (verifyRatio >= 0.4 && verifyRatio <= 0.6) return 'mixed';
-		return verifyRatio > 0.6 ? 'reliable' : 'needs-review';
+		return verifyRatio > 0.6 ? 'reliable' : 'untrue';
 	}
 
 	function popularityFor(post: PostSummary) {
@@ -836,7 +836,7 @@
 						['get', 'status'],
 						'reliable',
 						'#16a34a',
-						'needs-review',
+						'untrue',
 						'#dc2626',
 						'mixed',
 						'#eab308',

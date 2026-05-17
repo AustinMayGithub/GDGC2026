@@ -3,6 +3,11 @@
 export type PostCategory = 'community' | 'news';
 export type VoteValue = 'verify' | 'dispute';
 export type MapScope = 'national' | 'local';
+export type CommentReactionValue = 'like' | 'dislike';
+
+export function postCategoryLabel(category: PostCategory): string {
+	return category === 'news' ? 'News' : 'Community post';
+}
 
 export interface SessionUser {
 	id: string;
@@ -51,10 +56,21 @@ export interface UserProfile {
 		score: number | null;
 		label: string;
 		totalVotes: number;
+		postRatingCount: number;
+		commentRatingCount: number;
 		postCount: number;
 	};
 	posts: PostSummary[];
+	comments: UserProfileComment[];
 	newComments: CommentNotification[];
+}
+
+export interface UserProfileComment {
+	id: string;
+	postId: string;
+	postTitle: string;
+	body: string;
+	createdAt: string;
 }
 
 export interface CommentNotification {
@@ -111,11 +127,15 @@ export interface VoteUser {
 
 export interface CommentItem {
 	id: string;
+	parentId: string | null;
 	authorId: string;
 	authorName: string;
 	authorHasAvatar: boolean;
 	body: string;
 	createdAt: string;
+	likeCount: number;
+	dislikeCount: number;
+	myReaction: CommentReactionValue | null;
 }
 
 /** Fixed reaction set - an open emoji picker is a moderation risk (project.md §4.4). */

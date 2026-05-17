@@ -16,6 +16,7 @@
 	import CommentThread from '$lib/components/CommentThread.svelte';
 	import PostImageGallery from '$lib/components/PostImageGallery.svelte';
 	import LinkifiedText from '$lib/components/LinkifiedText.svelte';
+	import { postCategoryLabel } from '$lib/types';
 	import logo from '$lib/data/birdseye.png';
 
 
@@ -61,17 +62,6 @@
 		});
 	}
 
-	async function reportPost() {
-		const reason = window.prompt('Reason for reporting this post?');
-		if (!reason?.trim()) return;
-		await fetch(`/api/posts/${post.id}/report`, {
-			method: 'POST',
-			headers: { 'Content-Type': 'application/json' },
-			body: JSON.stringify({ targetType: 'post', reason: reason.trim() })
-		});
-		alert('Report submitted. Thank you.');
-	}
-
 	$effect(() => {
 		communityNote = post.communityNote;
 		votePoints = data.votePoints;
@@ -107,12 +97,10 @@
 
 				<!-- Category + meta row -->
 				<div class="article-meta">
-					{#if post.category === 'community'}
-						<span class="badge">Community notice</span>
-					{/if}
-					{#if post.category === 'community'}
-						<span class="muted meta-sep">·</span>
-					{/if}
+					<span class="badge" class:badge-factual={post.category === 'news'}>
+						{postCategoryLabel(post.category)}
+					</span>
+					<span class="muted meta-sep">�</span>
 					{#if post.anonymous}
 						<span class="muted author">Anonymous</span>
 					{:else}
@@ -132,13 +120,6 @@
 					{/each}
 				</div>
 
-				<div class="post-actions">
-					{#if user}
-						<button class="report-post-btn muted" onclick={reportPost}>
-							⚑ Report this post
-						</button>
-					{/if}
-				</div>
 			</article>
 		</main>
 
@@ -176,7 +157,7 @@
 						{#if post.category === 'news'}
 							<p class="map-caption muted">
 								{#if heatmapReady}
-									🟢 Reliable / 🔴 Needs review heatmap from {votePoints.length} located
+									Verified / Untrue heatmap from {votePoints.length} located
 									{votePoints.length === 1 ? 'rating' : 'ratings'}. Click the map to reveal
 									each rater's exact location.
 								{:else}
@@ -307,23 +288,6 @@
 		margin-bottom: 0;
 	}
 
-	.post-actions {
-		display: flex;
-		align-items: center;
-		gap: 16px;
-		margin-top: 24px;
-	}
-	.report-post-btn {
-		border: none;
-		background: none;
-		font-size: 12px;
-		cursor: pointer;
-		padding: 0;
-	}
-	.report-post-btn:hover {
-		color: var(--dispute);
-	}
-
 	/* Right panel */
 	.right-panel {
 		width: 380px;
@@ -448,3 +412,4 @@
 		}
 	}
 </style>
+

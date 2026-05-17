@@ -1,6 +1,15 @@
 import { and, desc, eq, isNotNull, sql } from 'drizzle-orm';
 import { db } from './db';
-import { posts, users, postVotes, comments, communityNotes, reactions, postImages } from './db/schema';
+import {
+	posts,
+	users,
+	postVotes,
+	comments,
+	communityNotes,
+	reactions,
+	postImages,
+	commentReactions
+} from './db/schema';
 import { getRegion } from '$lib/data/nz-regions';
 import { fallbackAreaLabel, nearestPlaces } from '$lib/data/geo-labels';
 import { generateAreaLabel } from './ai';
@@ -59,6 +68,14 @@ function isMissingOptionalPostColumn(err: unknown) {
 function isMissingPostImagesTable(err: unknown) {
 	const message = err instanceof Error ? err.message : String(err);
 	return message.includes('post_images') && message.includes('does not exist');
+}
+
+function isMissingCommentFeatureSchema(err: unknown) {
+	const message = err instanceof Error ? err.message : String(err);
+	return (
+		(message.includes('parent_id') || message.includes('comment_reactions')) &&
+		message.includes('does not exist')
+	);
 }
 
 async function selectPostListRows(opts: { regionId?: string }): Promise<PostListRow[]> {
@@ -384,26 +401,83 @@ export async function getVoteUsers(postId: string): Promise<VoteUser[]> {
 	}));
 }
 
-export async function getComments(postId: string): Promise<CommentItem[]> {
-	const rows = await db
-		.select({
-			id: comments.id,
-			body: comments.body,
-			createdAt: comments.createdAt,
-			authorId: users.id,
-			authorName: users.displayName,
-			authorHasAvatar: sql<boolean>`(${users.avatarDataUrl} IS NOT NULL)`
-		})
-		.from(comments)
-		.innerJoin(users, eq(comments.authorId, users.id))
-		.where(eq(comments.postId, postId))
-		.orderBy(comments.createdAt);
-	return rows.map((r) => ({
-		id: r.id,
-		authorId: r.authorId,
-		authorName: r.authorName,
-		authorHasAvatar: Boolean(r.authorHasAvatar),
-		body: r.body,
-		createdAt: iso(r.createdAt)
-	}));
+export async function getComments(postId: string, viewerId: string | null = null): Promise<CommentItem[]> {
+	try {
+		const myReactionSql = viewerId
+			? sql<CommentItem['myReaction']>`(
+					select ${commentReactions.reaction}
+					from ${commentReactions}
+					where ${commentReactions.commentId} = ${comments.id}
+						and ${commentReactions.userId} = ${viewerId}
+					limit 1
+				)`
+			: sql<CommentItem['myReaction']>`null`;
+
+		const rows = await db
+			.select({
+				id: comments.id,
+				parentId: comments.parentId,
+				body: comments.body,
+				createdAt: comments.createdAt,
+				authorId: users.id,
+				authorName: users.displayName,
+				authorHasAvatar: sql<boolean>`(${users.avatarDataUrl} IS NOT NULL)`,
+				likeCount: sql<number>`(
+					select count(*)::int
+					from ${commentReactions}
+					where ${commentReactions.commentId} = ${comments.id}
+						and ${commentReactions.reaction} = 'like'
+				)`,
+				dislikeCount: sql<number>`(
+					select count(*)::int
+					from ${commentReactions}
+					where ${commentReactions.commentId} = ${comments.id}
+						and ${commentReactions.reaction} = 'dislike'
+				)`,
+				myReaction: myReactionSql
+			})
+			.from(comments)
+			.innerJoin(users, eq(comments.authorId, users.id))
+			.where(eq(comments.postId, postId))
+			.orderBy(comments.createdAt);
+		return rows.map((r) => ({
+			id: r.id,
+			parentId: r.parentId,
+			authorId: r.authorId,
+			authorName: r.authorName,
+			authorHasAvatar: Boolean(r.authorHasAvatar),
+			body: r.body,
+			createdAt: iso(r.createdAt),
+			likeCount: r.likeCount,
+			dislikeCount: r.dislikeCount,
+			myReaction: r.myReaction === 'like' || r.myReaction === 'dislike' ? r.myReaction : null
+		}));
+	} catch (err) {
+		if (!isMissingCommentFeatureSchema(err)) throw err;
+		const rows = await db
+			.select({
+				id: comments.id,
+				body: comments.body,
+				createdAt: comments.createdAt,
+				authorId: users.id,
+				authorName: users.displayName,
+				authorHasAvatar: sql<boolean>`(${users.avatarDataUrl} IS NOT NULL)`
+			})
+			.from(comments)
+			.innerJoin(users, eq(comments.authorId, users.id))
+			.where(eq(comments.postId, postId))
+			.orderBy(comments.createdAt);
+		return rows.map((r) => ({
+			id: r.id,
+			parentId: null,
+			authorId: r.authorId,
+			authorName: r.authorName,
+			authorHasAvatar: Boolean(r.authorHasAvatar),
+			body: r.body,
+			createdAt: iso(r.createdAt),
+			likeCount: 0,
+			dislikeCount: 0,
+			myReaction: null
+		}));
+	}
 }

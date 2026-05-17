@@ -37,7 +37,7 @@
 	const reliabilitySummary = $derived(
 		total === 0
 			? 'No reliability ratings yet'
-			: `This source is ${verifyPct}% reliable in the community`
+			: `This claim is ${verifyPct}% verified by the community`
 	);
 
 	// Warm the location provider as soon as the meter is on screen, so the
@@ -207,7 +207,7 @@
 		class:has-left-arrow={total > 0 && verifyPct === 0}
 		class:has-right-arrow={total > 0 && disputePct === 0}
 		style="--verify-pct: {verifyPct}%; --dispute-pct: {disputePct}%;"
-		aria-label="Community reliability: {verifyPct}% reliable, {disputePct}% needs review"
+		aria-label="Community reliability: {verifyPct}% verified, {disputePct}% untrue"
 	>
 		<div class="bar-clip">
 			<div
@@ -221,15 +221,15 @@
 				style="width: {disputePct === 0 ? '0%' : `calc(${disputePct}% + 18px)`}"
 			></div>
 			<div class="bar-labels" aria-hidden="true">
-				<span>{total === 0 ? 'Reliable' : `${verifyPct}% reliable`}</span>
-				<span>{total === 0 ? 'Needs review' : `${disputePct}% needs review`}</span>
+				<span>{total === 0 ? 'Verify' : `${verifyPct}% verified`}</span>
+				<span>{total === 0 ? 'Untrue' : `${disputePct}% untrue`}</span>
 			</div>
 		</div>
 		<button
 			type="button"
 			class="bar-hit bar-hit-verify"
 			class:edge-visible={total > 0 && verifyPct === 0}
-			aria-label="Rate this source reliable"
+			aria-label="Verify this claim"
 			onclick={() => vote('verify')}
 			disabled={!canVote}
 		></button>
@@ -237,7 +237,7 @@
 			type="button"
 			class="bar-hit bar-hit-dispute"
 			class:edge-visible={total > 0 && disputePct === 0}
-			aria-label="Mark this source as needing review"
+			aria-label="Mark this claim as untrue"
 			onclick={() => vote('dispute')}
 			disabled={!canVote}
 		></button>
@@ -255,7 +255,7 @@
 				onclick={() => vote('verify')}
 				disabled={loading || locating}
 			>
-				✓ Reliable
+				✓ Verify
 			</button>
 			<button
 				class="btn vote-btn dispute-btn"
@@ -263,14 +263,14 @@
 				onclick={() => vote('dispute')}
 				disabled={loading || locating}
 			>
-				✗ Needs review
+				✗ Untrue
 			</button>
 		</div>
 		<p class="gate-hint muted">
 			{#if locating}
-				📍 Checking you're inside the impact zone…
+				Checking you're inside the impact zone…
 			{:else}
-				📍 Reliability ratings confirm your location is inside the story's impact zone.
+				Reliability ratings confirm your location is inside the story's impact zone.
 			{/if}
 		</p>
 	{/if}
@@ -463,3 +463,4 @@
 	}
 	.link { color: var(--accent); font-weight: 600; }
 </style>
+

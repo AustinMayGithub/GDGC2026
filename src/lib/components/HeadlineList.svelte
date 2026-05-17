@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { flip } from 'svelte/animate';
+	import { postCategoryLabel } from '$lib/types';
 	import type { PostSummary } from '$lib/types';
 	import { getRegion } from '$lib/data/nz-regions';
 	import { timeAgo } from '$lib/time';
@@ -34,7 +35,7 @@
 		if (total === 0) return 'untouched';
 		const verifyRatio = post.verifyCount / total;
 		if (verifyRatio >= 0.4 && verifyRatio <= 0.6) return 'mixed';
-		return verifyRatio > 0.6 ? 'reliable' : 'needs-review';
+		return verifyRatio > 0.6 ? 'reliable' : 'untrue';
 	}
 </script>
 
@@ -70,9 +71,9 @@
 								/>
 							{/if}
 							<div class="item-top">
-								{#if post.category === 'community'}
-									<span class="badge">Community</span>
-								{/if}
+								<span class="badge" class:badge-factual={post.category === 'news'}>
+									{postCategoryLabel(post.category)}
+								</span>
 								<span class="item-time muted">{timeAgo(post.createdAt)}</span>
 							</div>
 
@@ -253,7 +254,7 @@
 	.item-votes.vote-reliable {
 		color: #16a34a;
 	}
-	.item-votes.vote-needs-review {
+	.item-votes.vote-untrue {
 		color: #dc2626;
 	}
 	.item-votes.vote-mixed {
@@ -284,3 +285,4 @@
 		}
 	}
 </style>
+

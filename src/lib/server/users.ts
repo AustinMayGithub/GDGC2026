@@ -1,7 +1,7 @@
 import { desc, eq, sql } from 'drizzle-orm';
 import { db } from './db';
-import { posts, users, postVotes, comments, reactions } from './db/schema';
-import type { PostSummary, UserProfile } from '$lib/types';
+import { posts, users, postVotes, comments, reactions, commentReactions } from './db/schema';
+import type { PostSummary, UserProfile, UserProfileComment } from '$lib/types';
 import { fallbackAreaLabel } from '$lib/data/geo-labels';
 
 const iso = (d: Date) => d.toISOString();
@@ -27,6 +27,14 @@ type UserPostRow = {
 	createdAt: Date;
 	anonymous: boolean;
 	hasImage: boolean;
+};
+
+type UserCommentRow = {
+	id: string;
+	postId: string;
+	postTitle: string;
+	body: string;
+	createdAt: Date;
 };
 
 function isMissingOptionalProfileColumn(err: unknown) {
@@ -127,13 +135,51 @@ async function selectUserPostRows(id: string): Promise<UserPostRow[]> {
 	}
 }
 
+function isMissingCommentReactionTable(err: unknown) {
+	const message = err instanceof Error ? err.message : String(err);
+	return message.includes('comment_reactions') && message.includes('does not exist');
+}
+
+async function selectUserCommentRows(id: string): Promise<UserCommentRow[]> {
+	return await db
+		.select({
+			id: comments.id,
+			postId: comments.postId,
+			postTitle: posts.title,
+			body: comments.body,
+			createdAt: comments.createdAt
+		})
+		.from(comments)
+		.innerJoin(posts, eq(comments.postId, posts.id))
+		.where(eq(comments.authorId, id))
+		.orderBy(desc(comments.createdAt))
+		.limit(60);
+}
+
+async function selectUserCommentReactionRows(id: string): Promise<{ reaction: string; c: number }[]> {
+	try {
+		return await db
+			.select({
+				reaction: commentReactions.reaction,
+				c: sql<number>`count(*)::int`
+			})
+			.from(commentReactions)
+			.innerJoin(comments, eq(commentReactions.commentId, comments.id))
+			.where(eq(comments.authorId, id))
+			.groupBy(commentReactions.reaction);
+	} catch (err) {
+		if (isMissingCommentReactionTable(err)) return [];
+		throw err;
+	}
+}
+
 export async function getUserProfile(id: string): Promise<UserProfile | null> {
 	const u = await selectUserProfileRow(id);
 	if (!u) return null;
 
 	const rows = await selectUserPostRows(id);
 
-	const [voteRows, commentRows, reactionRows] = await Promise.all([
+	const [voteRows, commentRows, reactionRows, commentReactionRows] = await Promise.all([
 		db
 			.select({ postId: postVotes.postId, vote: postVotes.vote, c: sql<number>`count(*)::int` })
 			.from(postVotes)
@@ -151,7 +197,8 @@ export async function getUserProfile(id: string): Promise<UserProfile | null> {
 			.from(reactions)
 			.innerJoin(posts, eq(reactions.postId, posts.id))
 			.where(eq(posts.authorId, id))
-			.groupBy(reactions.postId)
+			.groupBy(reactions.postId),
+		selectUserCommentReactionRows(id)
 	]);
 
 	const verify = new Map<string, number>();
@@ -182,18 +229,36 @@ export async function getUserProfile(id: string): Promise<UserProfile | null> {
 		areaLabel: fallbackAreaLabel(r.lng, r.lat, r.impactRadiusM)
 	}));
 
+	const userComments: UserProfileComment[] = (await selectUserCommentRows(id)).map((comment) => ({
+		id: comment.id,
+		postId: comment.postId,
+		postTitle: comment.postTitle,
+		body: comment.body,
+		createdAt: iso(comment.createdAt)
+	}));
+
 	const totalVerify = userPosts.reduce((sum, p) => sum + p.verifyCount, 0);
 	const totalDispute = userPosts.reduce((sum, p) => sum + p.disputeCount, 0);
-	const totalVotes = totalVerify + totalDispute;
+	const commentLikes = commentReactionRows
+		.filter((row) => row.reaction === 'like')
+		.reduce((sum, row) => sum + row.c, 0);
+	const commentDislikes = commentReactionRows
+		.filter((row) => row.reaction === 'dislike')
+		.reduce((sum, row) => sum + row.c, 0);
+	const postRatingCount = totalVerify + totalDispute;
+	const commentRatingCount = commentLikes + commentDislikes;
+	const reliableSignals = totalVerify + commentLikes;
+	const untrueSignals = totalDispute + commentDislikes;
+	const totalVotes = reliableSignals + untrueSignals;
 
 	let score: number | null = null;
 	let label = 'Unrated';
 	if (totalVotes >= 5) {
-		score = Math.round((totalVerify / totalVotes) * 100);
+		score = Math.round((reliableSignals / totalVotes) * 100);
 		if (score >= 80) label = 'Highly reliable';
 		else if (score >= 60) label = 'Reliable';
 		else if (score >= 40) label = 'Balanced';
-		else label = 'Needs review';
+		else label = 'Untrue';
 	}
 
 	return {
@@ -204,8 +269,9 @@ export async function getUserProfile(id: string): Promise<UserProfile | null> {
 		location: u.location,
 		hasAvatar: Boolean(u.hasAvatar),
 		joinedAt: iso(u.createdAt),
-		reputation: { score, label, totalVotes, postCount: rows.length },
+		reputation: { score, label, totalVotes, postRatingCount, commentRatingCount, postCount: rows.length },
 		posts: userPosts,
+		comments: userComments,
 		newComments: []
 	};
 }

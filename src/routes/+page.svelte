@@ -17,6 +17,7 @@
 	import CommentThread from '$lib/components/CommentThread.svelte';
 	import { fallbackAreaLabel } from '$lib/data/geo-labels';
 	import { timeAgo } from '$lib/time';
+	import { postCategoryLabel } from '$lib/types';
 	import type {
 		SessionUser,
 		PostSummary,
@@ -427,13 +428,15 @@
 	);
 	const mapUserLocation = $derived(userLocation ?? data.coarseLocation);
 	const canEditComposeLocation = $derived(Boolean(data.user));
-	const canSubmitPost = $derived(
-		Boolean(data.user) &&
-			composeTitle.trim().length >= 4 &&
-			composeBody.trim().length >= 10 &&
-			composeCategory !== null &&
-			!composeSubmitting
-	);
+	const composeMissingRequirements = $derived.by(() => {
+		const missing: string[] = [];
+		if (!data.user) missing.push('sign in');
+		if (composeTitle.trim().length < 4) missing.push('a title with at least 4 characters');
+		if (composeBody.trim().length < 10) missing.push('details with at least 10 characters');
+		if (composeCategory === null) missing.push('a category');
+		return missing;
+	});
+	const canSubmitPost = $derived(composeMissingRequirements.length === 0 && !composeSubmitting);
 	const viewingProfile = $derived((profileUserId !== null || accountPanelOpen) && !composing);
 	const viewingPost = $derived(selectedPostId !== null && !composing && !viewingProfile);
 	const mapPosts = $derived(visiblePosts);
@@ -782,18 +785,6 @@
 		redrawTrigger++;
 	}
 
-	async function reportSelectedPost() {
-		if (!selectedPostDetail) return;
-		const reason = window.prompt('Reason for reporting this post?');
-		if (!reason?.trim()) return;
-		await fetch(`/api/posts/${selectedPostDetail.id}/report`, {
-			method: 'POST',
-			headers: { 'Content-Type': 'application/json' },
-			body: JSON.stringify({ targetType: 'post', reason: reason.trim() })
-		});
-		alert('Report submitted. Thank you.');
-	}
-
 	function handleSelectedPostVoted(result: {
 		verifyCount: number;
 		disputeCount: number;
@@ -1090,6 +1081,7 @@
 			profileDetail = {
 				...profileDetail,
 				posts: profileDetail.posts.filter((post) => post.id !== id),
+				comments: profileDetail.comments.filter((comment) => comment.postId !== id),
 				newComments: profileDetail.newComments.filter((comment) => comment.postId !== id),
 				reputation: {
 					...profileDetail.reputation,
@@ -1266,7 +1258,10 @@
 
 	async function handleComposeSubmit(e: SubmitEvent) {
 		e.preventDefault();
-		if (!canSubmitPost || composeCategory === null) return;
+		if (composeMissingRequirements.length > 0 || composeCategory === null) {
+			composeError = `Before publishing, add ${composeMissingRequirements.join(', ')}.`;
+			return;
+		}
 		if (!isWithinNzBounds(composeLng, composeLat)) {
 			composeError = OUTSIDE_NZ_POST_MESSAGE;
 			window.alert(OUTSIDE_NZ_POST_MESSAGE);
@@ -1613,7 +1608,6 @@
 
 			{#if rankedPosts.length === 0 && !loading && !composing && !viewingPost && !viewingProfile}
 				<div class="empty-state card">
-					<div class="empty-icon">📍</div>
 					<h2 class="empty-title">No posts here yet</h2>
 					<p class="muted empty-body">Be the first to share what's happening in your community.</p>
 					<button type="button" class="btn btn-primary" onclick={openCompose}>Create a post</button>
@@ -1677,10 +1671,10 @@
 						{/if}
 
 						<div class="article-meta">
-							{#if post.category === 'community'}
-								<span class="badge">Community notice</span>
-								<span class="muted meta-sep">·</span>
-							{/if}
+							<span class="badge" class:badge-factual={post.category === 'news'}>
+								{postCategoryLabel(post.category)}
+							</span>
+							<span class="muted meta-sep">�</span>
 							{#if post.anonymous}
 								<span class="muted author">Anonymous</span>
 							{:else}
@@ -1760,18 +1754,22 @@
 										<div class="voter-list">
 											{#each selectedVoteUsers as voter (voter.userId)}
 												<div class="voter-row">
-													<a
-														class="voter-name"
-														href="/profile/{voter.userId}"
-														onclick={(e) => {
-															e.preventDefault();
-															openProfile(voter.userId);
-														}}
+													<span
+														class="voter-statement"
+														class:voter-verify={voter.vote === 'verify'}
+														class:voter-dispute={voter.vote === 'dispute'}
 													>
-														{voter.displayName}
-													</a>
-													<span class:voter-verify={voter.vote === 'verify'} class:voter-dispute={voter.vote === 'dispute'}>
-														{voter.vote === 'verify' ? 'Reliable' : 'Needs review'}
+														<a
+															class="voter-name"
+															href="/profile/{voter.userId}"
+															onclick={(e) => {
+																e.preventDefault();
+																openProfile(voter.userId);
+															}}
+														>
+															{voter.displayName}
+														</a>
+														{voter.vote === 'verify' ? 'verifies this claim' : 'believes this is untrue'}
 													</span>
 													<time class="muted" datetime={voter.createdAt}>
 														{formatDate(voter.createdAt)}
@@ -1799,7 +1797,6 @@
 						{/key}
 
 						<div class="post-actions">
-							<a class="btn" href="/post/{post.id}">Open full page</a>
 							{#if post.isOwn}
 								<button type="button" class="btn danger-btn" onclick={deleteSelectedPost} disabled={postDeleting}>
 									{postDeleting ? 'Deleting...' : 'Delete post'}
@@ -1807,11 +1804,6 @@
 							{/if}
 							{#if postDeleteError}
 								<p class="error-text error-msg">{postDeleteError}</p>
-							{/if}
-							{#if data.user}
-								<button type="button" class="report-post-btn muted" onclick={reportSelectedPost}>
-									Report this post
-								</button>
 							{/if}
 						</div>
 					</div>
@@ -1863,7 +1855,7 @@
 								<h2>With an account you can</h2>
 								<ul>
 									<li>Publish local posts with an affected area.</li>
-									<li>Rate whether local reports feel reliable or need review.</li>
+									<li>Verify local claims or mark them as untrue.</li>
 									<li>Build a visible reputation over time.</li>
 								</ul>
 							</section>
@@ -2127,6 +2119,35 @@
 							</section>
 						{/if}
 
+						<section class="profile-comments">
+							<div class="radius-label-row">
+								<span class="field-label">{profileIsOwn ? 'Your comments' : `Comments by ${profile.displayName}`}</span>
+								<span class="radius-value">{profile.comments.length}</span>
+							</div>
+							{#if profile.comments.length === 0}
+								<p class="muted profile-empty">No comments yet.</p>
+							{:else}
+								<div class="profile-comment-list">
+									{#each profile.comments as comment}
+										<article class="profile-comment-item">
+											<div class="profile-post-top">
+												<strong>{comment.postTitle}</strong>
+												<span class="muted">{timeAgo(comment.createdAt)}</span>
+											</div>
+											<p>{comment.body}</p>
+											<button
+												type="button"
+												class="btn profile-post-open"
+												onclick={() => openProfilePost(comment.postId)}
+											>
+												View post
+											</button>
+										</article>
+									{/each}
+								</div>
+							{/if}
+						</section>
+
 						{#if profileIsOwn}
 							<section class="profile-map-settings">
 								<div>
@@ -2145,7 +2166,7 @@
 
 						<section class="profile-reputation">
 							<div class="radius-label-row">
-								<span class="field-label">Source reliability</span>
+								<span class="field-label">Community reliability</span>
 								<span class="radius-value">{profile.reputation.label}</span>
 							</div>
 							{#if profile.reputation.score !== null}
@@ -2157,15 +2178,19 @@
 								</div>
 								<p class="muted profile-rep-copy">
 									{profile.reputation.score}% reliable from {profile.reputation.totalVotes}
-									community {profile.reputation.totalVotes === 1 ? 'rating' : 'ratings'}.
+									community {profile.reputation.totalVotes === 1 ? 'signal' : 'signals'} across posts and comments.
 								</p>
 							{:else}
 								<p class="muted profile-rep-copy">
-									{profile.reputation.postCount === 0
-										? 'No posts yet.'
-										: `Not enough reliability ratings yet (${profile.reputation.totalVotes}/5).`}
+									{profile.reputation.postCount === 0 && profile.comments.length === 0
+										? 'No posts or comments yet.'
+										: `Not enough post ratings or comment reactions yet (${profile.reputation.totalVotes}/5).`}
 								</p>
 							{/if}
+							<p class="muted profile-rep-copy">
+								Post ratings: {profile.reputation.postRatingCount}. Comment reactions:
+								{profile.reputation.commentRatingCount}.
+							</p>
 						</section>
 
 						{#if profileIsOwn}
@@ -2242,9 +2267,9 @@
 										{@const totalVotes = profilePost.verifyCount + profilePost.disputeCount}
 										<article class="profile-post-item">
 											<div class="profile-post-top">
-												{#if profilePost.category === 'community'}
-													<span class="badge">Community</span>
-												{/if}
+												<span class="badge" class:badge-factual={profilePost.category === 'news'}>
+													{postCategoryLabel(profilePost.category)}
+												</span>
 												<span class="muted">{timeAgo(profilePost.createdAt)}</span>
 											</div>
 											<h3>{profilePost.title}</h3>
@@ -2369,7 +2394,7 @@
 						{/if}
 
 						<div class="submit-row">
-							<button type="submit" class="btn btn-primary submit-btn" disabled={!canSubmitPost}>
+							<button type="submit" class="btn btn-primary submit-btn" disabled={composeSubmitting}>
 								{composeSubmitting ? 'Posting...' : 'Publish post'}
 							</button>
 							<button type="button" class="btn cancel-btn" onclick={closeCompose}>Cancel</button>
@@ -2785,11 +2810,6 @@
 		backdrop-filter: blur(14px);
 	}
 
-	.empty-icon {
-		font-size: 32px;
-		line-height: 1;
-	}
-
 	.empty-title {
 		font-size: 16px;
 	}
@@ -2929,6 +2949,7 @@
 	}
 
 	.profile-summary,
+	.profile-comments,
 	.profile-notifications,
 	.profile-map-settings,
 	.profile-reputation,
@@ -3273,6 +3294,14 @@
 		margin-top: 12px;
 	}
 
+	.profile-comment-list {
+		display: flex;
+		flex-direction: column;
+		gap: 10px;
+		margin-top: 12px;
+	}
+
+	.profile-comment-item,
 	.profile-post-item {
 		display: flex;
 		flex-direction: column;
@@ -3282,6 +3311,14 @@
 		border: 1px solid var(--border);
 		border-radius: var(--radius-sm);
 		background: var(--surface);
+	}
+
+	.profile-comment-item p {
+		margin: 0;
+		color: var(--text-2);
+		font-size: 13px;
+		line-height: 1.45;
+		overflow-wrap: anywhere;
 	}
 
 	.profile-post-item h3 {
@@ -3422,10 +3459,9 @@
 	}
 
 	.voter-row {
-		display: grid;
-		grid-template-columns: minmax(120px, 1fr) auto;
-		gap: 4px 10px;
-		align-items: center;
+		display: flex;
+		flex-direction: column;
+		gap: 6px;
 		padding: 12px 14px;
 		background: var(--surface);
 		border-bottom: 1px solid var(--border);
@@ -3438,9 +3474,6 @@
 	.voter-name {
 		min-width: 0;
 		font-weight: 750;
-		overflow: hidden;
-		text-overflow: ellipsis;
-		white-space: nowrap;
 	}
 
 	.voter-name:hover {
@@ -3448,16 +3481,13 @@
 	}
 
 	.voter-row time {
-		grid-column: 1 / -1;
 		font-size: 12px;
 	}
 
-	.voter-verify,
-	.voter-dispute {
-		padding: 3px 8px;
-		border-radius: 999px;
+	.voter-statement {
 		font-size: 12px;
 		font-weight: 750;
+		line-height: 1.4;
 	}
 
 	.voter-verify {
@@ -3486,18 +3516,6 @@
 	.danger-btn:hover {
 		background: var(--dispute-soft);
 		box-shadow: none;
-	}
-
-	.report-post-btn {
-		border: none;
-		background: none;
-		font-size: 12px;
-		cursor: pointer;
-		padding: 0;
-	}
-
-	.report-post-btn:hover {
-		color: var(--dispute);
 	}
 
 	.compose-form,
@@ -3855,3 +3873,4 @@
 		}
 	}
 </style>
+
