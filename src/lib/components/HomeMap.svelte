@@ -817,14 +817,17 @@
 				paint: {
 					'circle-radius': [
 						'*',
-						['interpolate', ['linear'], ['zoom'], 4, 0.68, 6, 0.86, 9, 1.18, 12, 1.62, 16, 2.25],
 						[
-							'case',
-							['==', ['get', 'selected'], true],
-							10,
-							['==', ['get', 'hovered'], true],
-							9,
-							7
+							'*',
+							['interpolate', ['linear'], ['zoom'], 4, 0.78, 6, 0.95, 9, 1.25, 12, 1.65, 16, 2.15],
+							[
+								'case',
+								['==', ['get', 'selected'], true],
+								10,
+								['==', ['get', 'hovered'], true],
+								9,
+								7
+							]
 						],
 						['coalesce', ['get', 'scale'], 1]
 					],
