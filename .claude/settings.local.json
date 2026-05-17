@@ -7,7 +7,9 @@
       "PowerShell(Get-NetTCPConnection *)",
       "PowerShell(Remove-Item *)",
       "PowerShell(Test-Path *)",
-      "PowerShell(Get-ChildItem *)"
+      "PowerShell(Get-ChildItem *)",
+      "PowerShell(git status --short; Write-Output \"---DIFF STAT---\"; git diff --stat; Write-Output \"---BUILD DIRS---\"; Get-ChildItem -Directory | Select-Object -ExpandProperty Name; Write-Output \"---PKG SCRIPTS---\"; \\(Get-Content package.json -Raw | ConvertFrom-Json\\).scripts)",
+      "PowerShell(Get-ChildItem -Path build -Recurse -File | Select-Object -First 40 FullName, LastWriteTime; Write-Output \"=== count ===\"; \\(Get-ChildItem -Path build -Recurse -File\\).Count)"
     ]
   }
 }

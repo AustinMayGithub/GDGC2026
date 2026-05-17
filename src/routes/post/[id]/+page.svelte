@@ -92,7 +92,11 @@
 					/>
 				{/if}
 
-				<div class="article-back-row">
+				<div
+					class="article-heading-row"
+					class:hasMedia={post.images.length > 0 || post.headerImageDataUrl}
+				>
+					<h1 class="article-title">{post.title}</h1>
 					<a class="back-link btn" href="/">
 						Back
 					</a>
@@ -103,17 +107,15 @@
 					<span class="badge" class:badge-factual={post.category === 'news'}>
 						{postCategoryLabel(post.category)}
 					</span>
-					<span class="muted meta-sep">·</span>
+					<span class="muted meta-sep">&middot;</span>
 					{#if post.anonymous}
 						<span class="muted author">Anonymous</span>
 					{:else}
 						<a class="muted author author-link" href="/profile/{post.authorId}">{post.authorName}</a>
 					{/if}
-					<span class="muted meta-sep">·</span>
+					<span class="muted meta-sep">&middot;</span>
 					<time class="muted" datetime={post.createdAt}>{formatDate(post.createdAt)}</time>
 				</div>
-
-				<h1 class="article-title">{post.title}</h1>
 
 				<div class="article-body">
 					{#each post.body.split('\n') as paragraph}
@@ -229,9 +231,15 @@
 		padding: 7px 14px;
 		white-space: nowrap;
 	}
-	.article-back-row {
+	.article-heading-row {
 		display: flex;
-		margin: -16px 0 18px;
+		align-items: flex-start;
+		justify-content: space-between;
+		gap: 16px;
+		margin: 0 0 18px;
+	}
+	.article-heading-row.hasMedia {
+		margin-top: -16px;
 	}
 	.topbar-title {
 		font-size: 18px;
@@ -281,6 +289,15 @@
 		letter-spacing: -0.02em;
 		margin-bottom: 24px;
 		color: var(--text);
+	}
+	.article-heading-row .article-title {
+		margin: 0;
+		flex: 1;
+		min-width: 0;
+	}
+	.article-heading-row .back-link {
+		flex: 0 0 auto;
+		margin-top: 4px;
 	}
 
 	.article-body {
@@ -391,8 +408,11 @@
 		.article-col {
 			padding: 20px 16px;
 		}
-		.article-back-row {
-			margin: -8px 0 16px;
+		.article-heading-row {
+			margin-bottom: 16px;
+		}
+		.article-heading-row.hasMedia {
+			margin-top: -8px;
 		}
 		.right-panel {
 			width: 100%;
