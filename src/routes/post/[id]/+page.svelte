@@ -75,9 +75,6 @@
 <div class="page" class:right-open={rightOpen}>
 	<!-- Top bar -->
 	<header class="topbar">
-		<a class="back-link btn" href="/">
-			Back
-		</a>
 		<span class="topbar-title gradient-text"><img alt="logo" src={logo} height="24px"></span>
 		<UserMenu {user} {hasUnreadNotifications} />
 	</header>
@@ -94,6 +91,12 @@
 						flush
 					/>
 				{/if}
+
+				<div class="article-back-row">
+					<a class="back-link btn" href="/">
+						Back
+					</a>
+				</div>
 
 				<!-- Category + meta row -->
 				<div class="article-meta">
@@ -225,6 +228,10 @@
 		font-size: 13px;
 		padding: 7px 14px;
 		white-space: nowrap;
+	}
+	.article-back-row {
+		display: flex;
+		margin: -16px 0 18px;
 	}
 	.topbar-title {
 		font-size: 18px;
@@ -383,6 +390,9 @@
 		}
 		.article-col {
 			padding: 20px 16px;
+		}
+		.article-back-row {
+			margin: -8px 0 16px;
 		}
 		.right-panel {
 			width: 100%;
