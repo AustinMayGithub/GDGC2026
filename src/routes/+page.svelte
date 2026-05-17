@@ -3666,7 +3666,7 @@
 
 	.radius-slider {
 		width: 100%;
-		accent-color: #f59e0b;
+		accent-color: #ff8c00;
 		cursor: pointer;
 	}
 

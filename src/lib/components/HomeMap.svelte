@@ -796,16 +796,16 @@
 				id: 'compose-radius-fill',
 				type: 'fill',
 				source: 'compose-radius',
-				paint: { 'fill-color': '#fbbf24', 'fill-opacity': 0.2 }
+				paint: { 'fill-color': '#ffb000', 'fill-opacity': 0.28 }
 			});
 			m.addLayer({
 				id: 'compose-radius-line',
 				type: 'line',
 				source: 'compose-radius',
 				paint: {
-					'line-color': '#f59e0b',
+					'line-color': '#ff8c00',
 					'line-width': 2.2,
-					'line-opacity': 0.82,
+					'line-opacity': 0.95,
 					'line-dasharray': [2, 1.4]
 				}
 			});
