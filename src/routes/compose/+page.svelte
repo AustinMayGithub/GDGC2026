@@ -36,12 +36,14 @@
 	const RADIUS_MAX_M = 50000;
 	const RADIUS_SLIDER_MAX = 1000;
 
-	const canSubmit = $derived(
-		title.trim().length > 0 &&
-		body.trim().length > 0 &&
-		category !== null &&
-		!submitting
-	);
+	const missingRequirements = $derived.by(() => {
+		const missing: string[] = [];
+		if (title.trim().length < 4) missing.push('a title with at least 4 characters');
+		if (body.trim().length < 10) missing.push('details with at least 10 characters');
+		if (category === null) missing.push('a category');
+		return missing;
+	});
+	const canSubmit = $derived(missingRequirements.length === 0 && !submitting);
 
 	function formatRadius(m: number): string {
 		if (m >= 1000) return `${(m / 1000).toFixed(m >= 10000 ? 0 : 1)} km`;
@@ -105,7 +107,10 @@
 
 	async function handleSubmit(e: SubmitEvent) {
 		e.preventDefault();
-		if (!canSubmit || category === null) return;
+		if (missingRequirements.length > 0 || category === null) {
+			error = `Before publishing, add ${missingRequirements.join(', ')}.`;
+			return;
+		}
 
 		error = '';
 		submitting = true;
@@ -240,7 +245,7 @@
 						<button
 							type="submit"
 							class="btn btn-primary submit-btn"
-							disabled={!canSubmit}
+							disabled={submitting}
 						>
 							{submitting ? 'Posting…' : 'Publish post'}
 						</button>

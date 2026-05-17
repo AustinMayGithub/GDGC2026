@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { postCategoryLabel } from '$lib/types';
 	import type { PostCategory } from '$lib/types';
 
 	interface Props {
@@ -17,13 +18,12 @@
 		onclick={() => onchange('factual')}
 		aria-pressed={value === 'factual'}
 	>
-		<span class="picker-icon">📋</span>
 		<div class="picker-text">
-			<strong>Something happened</strong>
-			<span class="picker-sub">A report people can rate for community reliability.</span>
+			<strong>{postCategoryLabel('factual')}</strong>
+			<span class="picker-sub">A news post people can rate for community reliability.</span>
 		</div>
 		{#if value === 'factual'}
-			<span class="check">✓</span>
+			<span class="check">Selected</span>
 		{/if}
 	</button>
 
@@ -34,20 +34,18 @@
 		onclick={() => onchange('personal')}
 		aria-pressed={value === 'personal'}
 	>
-		<span class="picker-icon">📣</span>
 		<div class="picker-text">
-			<strong>Community notice / opinion</strong>
-			<span class="picker-sub">A discussion or personal view that does not need reliability ratings.</span>
+			<strong>{postCategoryLabel('personal')}</strong>
+			<span class="picker-sub">A discussion, update, or personal view that does not need reliability ratings.</span>
 		</div>
 		{#if value === 'personal'}
-			<span class="check">✓</span>
+			<span class="check">Selected</span>
 		{/if}
 	</button>
 
 	{#if value === 'factual'}
 		<div class="factual-notice">
-			<span class="notice-icon">⚠️</span>
-			These posts receive a community reliability rating.
+			News posts receive a community reliability rating.
 		</div>
 	{/if}
 </div>
@@ -78,12 +76,6 @@
 		border-color: var(--accent);
 		background: #ede9fe;
 	}
-	.picker-icon {
-		font-size: 22px;
-		flex-shrink: 0;
-		line-height: 1;
-		margin-top: 1px;
-	}
 	.picker-text {
 		display: flex;
 		flex-direction: column;
@@ -99,10 +91,12 @@
 		color: var(--text-2);
 	}
 	.check {
-		font-size: 16px;
-		font-weight: 700;
+		font-size: 11px;
+		font-weight: 750;
 		color: var(--accent);
 		flex-shrink: 0;
+		text-transform: uppercase;
+		letter-spacing: 0.05em;
 	}
 	.factual-notice {
 		display: flex;
@@ -115,8 +109,5 @@
 		font-size: 13px;
 		font-weight: 550;
 		color: #713f12;
-	}
-	.notice-icon {
-		font-size: 15px;
 	}
 </style>

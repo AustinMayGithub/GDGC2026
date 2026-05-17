@@ -11,6 +11,7 @@ import {
 } from '$lib/data/nz-regions';
 import { listPosts } from '$lib/server/posts';
 import { moderateText } from '$lib/server/ai';
+import type { PostCategory } from '$lib/types';
 import type { RequestHandler } from './$types';
 
 const DEFAULT_LOCATION_EPSILON = 0.000001;
@@ -139,8 +140,14 @@ async function createPost({ request, locals }: Parameters<RequestHandler>[0]) {
 			? data.headerImageDataUrl.trim()
 			: null;
 	const headerImageDataUrl = imageDataUrls[0] ?? legacyHeaderImageDataUrl;
-	const category =
-		data.category === 'personal' || data.category === 'factual' ? data.category : null;
+	const category: PostCategory | null =
+		data.category === 'factual' || data.category === 'news'
+			? 'factual'
+			: data.category === 'personal' ||
+					data.category === 'community' ||
+					data.category === 'community-post'
+				? 'personal'
+				: null;
 	const lng = Number(data.lng);
 	const lat = Number(data.lat);
 	const impactRadiusM = Math.round(Number(data.impactRadiusM));

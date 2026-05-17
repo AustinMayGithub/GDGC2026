@@ -10,6 +10,7 @@ import {
 	unique,
 	index
 } from 'drizzle-orm/pg-core';
+import type { AnyPgColumn } from 'drizzle-orm/pg-core';
 
 export const postCategory = pgEnum('post_category', ['personal', 'factual']);
 export const voteValue = pgEnum('vote_value', ['verify', 'dispute']);
@@ -127,11 +128,32 @@ export const comments = pgTable(
 		authorId: uuid('author_id')
 			.notNull()
 			.references(() => users.id, { onDelete: 'cascade' }),
+		parentId: uuid('parent_id').references((): AnyPgColumn => comments.id, { onDelete: 'cascade' }),
 		body: text('body').notNull(),
 		createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow()
 	},
 	(t) => ({
-		byPost: index('comments_post').on(t.postId)
+		byPost: index('comments_post').on(t.postId),
+		byParent: index('comments_parent').on(t.parentId)
+	})
+);
+
+export const commentReactions = pgTable(
+	'comment_reactions',
+	{
+		id: uuid('id').primaryKey().defaultRandom(),
+		commentId: uuid('comment_id')
+			.notNull()
+			.references(() => comments.id, { onDelete: 'cascade' }),
+		userId: uuid('user_id')
+			.notNull()
+			.references(() => users.id, { onDelete: 'cascade' }),
+		reaction: text('reaction').notNull(),
+		createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow()
+	},
+	(t) => ({
+		uniqueCommentReaction: unique('uniq_comment_user_reaction').on(t.commentId, t.userId),
+		byComment: index('comment_reactions_comment').on(t.commentId)
 	})
 );
 

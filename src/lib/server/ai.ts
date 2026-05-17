@@ -1,7 +1,7 @@
 import { env } from '$env/dynamic/private';
 import { desc, eq, sql } from 'drizzle-orm';
 import { db } from './db';
-import { posts, comments, communityNotes } from './db/schema';
+import { posts, comments, communityNotes, commentReactions, users } from './db/schema';
 import type { CommunityNote } from '$lib/types';
 import { fallbackAreaLabel } from '$lib/data/geo-labels';
 
@@ -28,7 +28,7 @@ If intent is unclear, ALLOW.`;
 
 // The note's only job: summarise the OPINIONS in the comment thread.
 // No verdict, no fact-check (project.md §4.5 - resolved per user direction).
-const SYSTEM_PROMPT = `Write a short Community Notes-style note that relates directly to the post and helps readers judge whether the post's claim is correct, incomplete, or disputed, using ONLY the supplied comments as evidence.
+const SYSTEM_PROMPT = `Write a short Community Notes-style note that relates directly to the post and helps readers judge whether the post's claim is correct, incomplete, or disputed, using ONLY the supplied comments, replies, likes, and dislikes as evidence.
 
 Format:
 - One neutral paragraph.
@@ -37,7 +37,12 @@ Format:
 - Plain, careful wording like: "Readers add that..." or "Comments dispute this, saying..."
 
 Strict rules:
+- First decide which comments are directly about the post headline/claim. Ignore off-topic comments, side conversations, jokes, personal arguments, moderation talk, UI feedback, unrelated politics, and replies that do not add post-related context.
+- Likes and dislikes on off-topic comments must not influence the note.
+- If a reply is off-topic but its parent is relevant, ignore only the off-topic reply. If a parent is off-topic but a reply directly addresses the post, you may use the reply.
 - Every claim in the note must be directly traceable to at least one supplied comment.
+- Treat replies as part of the discussion around the comment they answer.
+- Use likes and dislikes as community weighting signals, not as proof.
 - Do NOT use outside knowledge.
 - Use the post headline only to understand what claim the comments are responding to.
 - If comments clearly correct the post, state the correction as comment-supplied context, e.g. "Comments dispute this, saying..."
@@ -143,12 +148,23 @@ async function countComments(postId: string): Promise<number> {
 	return row?.c ?? 0;
 }
 
-async function summariseOpinions(title: string, bodies: string[]): Promise<string | null> {
+type CommentNoteInput = {
+	body: string;
+	authorName: string;
+	parentBody: string | null;
+	likeCount: number;
+	dislikeCount: number;
+};
+
+async function summariseOpinions(title: string, commentsForNote: CommentNoteInput[]): Promise<string | null> {
 	const client = await getClient();
 	if (!client) return null;
-	const list = bodies
+	const list = commentsForNote
 		.slice(0, MAX_COMMENTS_IN_PROMPT)
-		.map((b, i) => `<comment id="${i + 1}">${b.slice(0, 500)}</comment>`)
+		.map((c, i) => {
+			const replyContext = c.parentBody ? ` replyTo="${c.parentBody.slice(0, 180)}"` : '';
+			return `<comment id="${i + 1}" author="${c.authorName}" likes="${c.likeCount}" dislikes="${c.dislikeCount}"${replyContext}>${c.body.slice(0, 500)}</comment>`;
+		})
 		.join('\n');
 	try {
 		const res = await client.chat.completions.create({
@@ -159,7 +175,7 @@ async function summariseOpinions(title: string, bodies: string[]): Promise<strin
 				{ role: 'system', content: SYSTEM_PROMPT },
 				{
 					role: 'user',
-					content: `Post headline/claim: "${title}"\n\nComments:\n${list}\n\nWrite a community note that clarifies, corrects, supports, or flags uncertainty about the post based only on these comments.`
+					content: `Post headline/claim: "${title}"\n\nComments, replies, and community reaction counts:\n${list}\n\nDiscard comments that are not directly about the post headline/claim, even if they have many likes or replies. Then write a community note that clarifies, corrects, supports, or flags uncertainty about the post based only on the remaining post-related comments and their like/dislike/reply signals.`
 				}
 			]
 		});
@@ -183,17 +199,56 @@ export async function maybeRegenerateNote(postId: string): Promise<CommunityNote
 		if (!post || post.category !== 'factual') return null;
 
 		const recent = await db
-			.select({ body: comments.body })
+			.select({
+				id: comments.id,
+				parentId: comments.parentId,
+				body: comments.body,
+				authorName: users.displayName,
+				likeCount: sql<number>`(
+					select count(*)::int
+					from ${commentReactions}
+					where ${commentReactions.commentId} = ${comments.id}
+						and ${commentReactions.reaction} = 'like'
+				)`,
+				dislikeCount: sql<number>`(
+					select count(*)::int
+					from ${commentReactions}
+					where ${commentReactions.commentId} = ${comments.id}
+						and ${commentReactions.reaction} = 'dislike'
+				)`
+			})
 			.from(comments)
+			.innerJoin(users, eq(comments.authorId, users.id))
 			.where(eq(comments.postId, postId))
-			.orderBy(desc(comments.createdAt))
+			.orderBy(desc(sql<number>`(
+				(
+					select count(*)::int
+					from ${commentReactions}
+					where ${commentReactions.commentId} = ${comments.id}
+						and ${commentReactions.reaction} = 'like'
+				) * 2
+				-
+				(
+					select count(*)::int
+					from ${commentReactions}
+					where ${commentReactions.commentId} = ${comments.id}
+						and ${commentReactions.reaction} = 'dislike'
+				)
+			)`), desc(comments.createdAt))
 			.limit(MAX_COMMENTS_IN_PROMPT);
-		if (recent.length === 0) return null; // no comments → no note
+		if (recent.length === 0) return null; // no comments, no note
 
 		const total = await countComments(postId);
+		const bodyById = new Map(recent.map((comment) => [comment.id, comment.body]));
 		const body = await summariseOpinions(
 			post.title,
-			recent.map((c) => c.body)
+			recent.map((c) => ({
+				body: c.body,
+				authorName: c.authorName,
+				parentBody: c.parentId ? (bodyById.get(c.parentId) ?? null) : null,
+				likeCount: c.likeCount,
+				dislikeCount: c.dislikeCount
+			}))
 		);
 		if (!body) return null;
 

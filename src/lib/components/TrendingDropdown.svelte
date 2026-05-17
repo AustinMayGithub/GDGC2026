@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { getRegion } from '$lib/data/nz-regions';
 	import { timeAgo } from '$lib/time';
+	import { postCategoryLabel } from '$lib/types';
 	import type { PostSummary } from '$lib/types';
 
 	interface Props {
@@ -140,9 +141,9 @@
 								onclick={() => onSelect(item.post.id)}
 							>
 								<div class="trend-top">
-									{#if item.post.category === 'personal'}
-										<span class="badge">Community</span>
-									{/if}
+									<span class="badge" class:badge-factual={item.post.category === 'factual'}>
+										{postCategoryLabel(item.post.category)}
+									</span>
 									<span class="trend-time muted">{timeAgo(item.post.createdAt)}</span>
 								</div>
 								<p class="trend-title">{item.post.title}</p>
