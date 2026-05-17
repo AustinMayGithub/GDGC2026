@@ -146,6 +146,9 @@
 	let lastTrendingFitKey = '';
 	let localAutoNationalEnabledAt = 0;
 	let localPeakZoom: number | null = null;
+	let pendingNationalFocus = false;
+	let pendingRegionFocus: string | null = null;
+	let pendingLocalFocus: { lng: number; lat: number } | null = null;
 	let composeRadiusFitFrame: number | null = null;
 	let profileUserId = $state<string | null>(null);
 	let profileDetail = $state<UserProfile | null>(null);
@@ -208,6 +211,30 @@
 		localPeakZoom = null;
 	}
 
+	function focusLocalView(lng: number, lat: number) {
+		setLocalFocus(lng, lat);
+		pauseLocalAutoNational();
+		pendingNationalFocus = false;
+		pendingRegionFocus = null;
+		if (!mapReady || !mapComponent) {
+			pendingLocalFocus = { lng, lat };
+			return;
+		}
+		pendingLocalFocus = null;
+		mapComponent.focusOnLocation(lng, lat, LOCAL_FOCUS_RADIUS_KM);
+	}
+
+	function focusNationalView() {
+		pendingRegionFocus = null;
+		pendingLocalFocus = null;
+		if (!mapReady || !mapComponent) {
+			pendingNationalFocus = true;
+			return;
+		}
+		pendingNationalFocus = false;
+		mapComponent.fitToBbox(NZ_BBOX);
+	}
+
 	function applyUserLocation(lng: number, lat: number, focusMap: boolean) {
 		const regionId = regionForPoint(lng, lat);
 		userLocation = { lng, lat };
@@ -222,11 +249,10 @@
 		if (focusMap && scope === 'region') {
 			zoomToRegion(regionId);
 		} else if (focusMap && scope === 'local') {
-			pauseLocalAutoNational();
 			if (composing) {
 				focusComposeLocation(lng, lat);
 			} else {
-				mapComponent?.focusOnLocation(lng, lat, LOCAL_FOCUS_RADIUS_KM);
+				focusLocalView(lng, lat);
 			}
 		}
 	}
@@ -257,12 +283,10 @@
 					zoomToRegion(selectedRegionId);
 				} else if (focusMap && scope === 'local') {
 					const [fallbackLng, fallbackLat] = regionCenter(selectedRegionId);
-					setLocalFocus(fallbackLng, fallbackLat);
-					pauseLocalAutoNational();
 					if (composing) {
 						focusComposeLocation(fallbackLng, fallbackLat);
 					} else {
-						mapComponent?.focusOnLocation(fallbackLng, fallbackLat, LOCAL_FOCUS_RADIUS_KM);
+						focusLocalView(fallbackLng, fallbackLat);
 					}
 				}
 			});
@@ -579,7 +603,7 @@
 		lastTrendingFitKey = '';
 		geoLoading = false;
 		geoError = null;
-		mapComponent?.fitToBbox(NZ_BBOX);
+		focusNationalView();
 	}
 
 	async function switchToRegion() {
@@ -612,21 +636,26 @@
 		geoError = null;
 
 		if (userLocation) {
-			setLocalFocus(userLocation.lng, userLocation.lat);
-			pauseLocalAutoNational();
-			mapComponent?.focusOnLocation(userLocation.lng, userLocation.lat, LOCAL_FOCUS_RADIUS_KM);
+			focusLocalView(userLocation.lng, userLocation.lat);
 		} else {
+			focusLocalView(localFocusLng, localFocusLat);
 			requestUserLocation(true);
 		}
 	}
 
 	function zoomToRegion(regionId: string) {
 		const region = NZ_REGIONS.find((r) => r.id === regionId);
-		if (region && mapComponent) {
-			setLocalFocus(region.center[0], region.center[1]);
-			pauseLocalAutoNational();
-			mapComponent.fitToBbox(region.bbox);
+		if (!region) return;
+		setLocalFocus(region.center[0], region.center[1]);
+		pauseLocalAutoNational();
+		pendingNationalFocus = false;
+		pendingLocalFocus = null;
+		if (!mapReady || !mapComponent) {
+			pendingRegionFocus = regionId;
+			return;
 		}
+		pendingRegionFocus = null;
+		mapComponent.fitToBbox(region.bbox);
 	}
 
 	function onRegionChange(e: Event) {
@@ -641,7 +670,12 @@
 	function handleMapReady(_map: unknown) {
 		mapReady = true;
 		mapViewport = mapComponent?.getViewportState() ?? null;
-		if (scope === 'region') zoomToRegion(selectedRegionId);
+		if (scope === 'national') focusNationalView();
+		if (scope === 'region') zoomToRegion(pendingRegionFocus ?? selectedRegionId);
+		if (scope === 'local') {
+			const target = pendingLocalFocus ?? userLocation ?? { lng: localFocusLng, lat: localFocusLat };
+			focusLocalView(target.lng, target.lat);
+		}
 		redrawTrigger++;
 	}
 
@@ -1171,13 +1205,12 @@
 		if (scope === 'national') {
 			geoLoading = false;
 			geoError = null;
-			mapComponent?.fitToBbox(NZ_BBOX);
+			focusNationalView();
 			return;
 		}
 
 		if (scope === 'local' && userLocation) {
-			pauseLocalAutoNational();
-			mapComponent?.focusOnLocation(userLocation.lng, userLocation.lat, LOCAL_FOCUS_RADIUS_KM);
+			focusLocalView(userLocation.lng, userLocation.lat);
 			return;
 		}
 
@@ -2817,7 +2850,9 @@
 		z-index: 22;
 		margin: 0;
 		padding: 24px;
-		overflow-y: auto;
+		display: flex;
+		flex-direction: column;
+		overflow: hidden;
 		background: rgba(255, 255, 255, 0.95);
 		backdrop-filter: blur(18px);
 		border-radius: var(--radius-lg);
@@ -2839,6 +2874,7 @@
 		gap: 16px;
 		margin-bottom: 18px;
 		min-height: 44px;
+		flex: 0 0 auto;
 	}
 
 	.post-panel-body {
@@ -2854,7 +2890,9 @@
 		grid-template-columns: minmax(280px, 0.9fr) minmax(280px, 1fr);
 		gap: 18px;
 		min-height: 0;
-		height: calc(100% - 62px);
+		flex: 1 1 auto;
+		overflow-y: auto;
+		padding-bottom: 1px;
 	}
 
 	.login-panel-body {
@@ -2862,7 +2900,9 @@
 		grid-template-columns: minmax(280px, 0.9fr) minmax(280px, 1fr);
 		gap: 18px;
 		min-height: 0;
-		height: calc(100% - 62px);
+		flex: 1 1 auto;
+		overflow-y: auto;
+		padding-bottom: 1px;
 	}
 
 	.account-welcome {
@@ -2870,7 +2910,9 @@
 		grid-template-columns: minmax(320px, 1.05fr) minmax(280px, 0.85fr);
 		gap: 18px;
 		min-height: 0;
-		height: calc(100% - 62px);
+		flex: 1 1 auto;
+		overflow-y: auto;
+		padding-bottom: 1px;
 	}
 
 	.login-panel-body.auth-form-mode {
@@ -3066,7 +3108,9 @@
 
 	.profile-edit-form {
 		min-height: 0;
-		height: calc(100% - 62px);
+		flex: 1 1 auto;
+		overflow-y: auto;
+		padding-bottom: 1px;
 	}
 
 	.profile-edit-card {
