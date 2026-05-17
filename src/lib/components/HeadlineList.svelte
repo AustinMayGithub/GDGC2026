@@ -1,4 +1,4 @@
-﻿<script lang="ts">
+<script lang="ts">
 	import { flip } from 'svelte/animate';
 	import { postCategoryLabel } from '$lib/types';
 	import type { PostSummary } from '$lib/types';
@@ -71,7 +71,7 @@
 								/>
 							{/if}
 							<div class="item-top">
-								<span class="badge" class:badge-factual={post.category === 'factual'}>
+								<span class="badge" class:badge-factual={post.category === 'news'}>
 									{postCategoryLabel(post.category)}
 								</span>
 								<span class="item-time muted">{timeAgo(post.createdAt)}</span>
@@ -96,7 +96,7 @@
 									</svg>
 									{post.commentCount}
 								</span>
-								{#if post.category === 'factual' && post.verifyCount + post.disputeCount > 0}
+								{#if post.category === 'news' && post.verifyCount + post.disputeCount > 0}
 									<span class={`item-votes vote-${voteStatus(post)}`}>
 										{Math.round((post.verifyCount / (post.verifyCount + post.disputeCount)) * 100)}%
 										reliable
@@ -285,3 +285,4 @@
 		}
 	}
 </style>
+

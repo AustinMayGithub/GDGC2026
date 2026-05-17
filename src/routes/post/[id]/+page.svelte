@@ -97,10 +97,10 @@
 
 				<!-- Category + meta row -->
 				<div class="article-meta">
-					<span class="badge" class:badge-factual={post.category === 'factual'}>
+					<span class="badge" class:badge-factual={post.category === 'news'}>
 						{postCategoryLabel(post.category)}
 					</span>
-					<span class="muted meta-sep">Â·</span>
+					<span class="muted meta-sep">·</span>
 					{#if post.anonymous}
 						<span class="muted author">Anonymous</span>
 					{:else}
@@ -139,14 +139,14 @@
 					<!-- 1. Impact Map -->
 					<section class="panel-section map-section">
 						<h2 class="section-heading">
-							Affected area{post.category === 'factual' ? ' & reliability map' : ''}
+							Affected area{post.category === 'news' ? ' & reliability map' : ''}
 						</h2>
 						<div class="map-wrapper">
 							<ImpactMap
 								lng={post.lng}
 								lat={post.lat}
 								radiusM={post.impactRadiusM}
-								votePoints={post.category === 'factual'
+								votePoints={post.category === 'news'
 									? heatmapReady
 										? votePoints
 										: []
@@ -154,7 +154,7 @@
 							/>
 						</div>
 						<p class="area-label muted">{post.areaLabel}</p>
-						{#if post.category === 'factual'}
+						{#if post.category === 'news'}
 							<p class="map-caption muted">
 								{#if heatmapReady}
 									Verified / Untrue heatmap from {votePoints.length} located
@@ -168,7 +168,7 @@
 						{/if}
 					</section>
 
-					{#if post.category === 'factual'}
+					{#if post.category === 'news'}
 						<!-- 2. Credibility meter - sticky -->
 						<div class="sticky-meter">
 							<CredibilityMeter {post} {user} onVoted={handleVoted} />
@@ -412,3 +412,4 @@
 		}
 	}
 </style>
+

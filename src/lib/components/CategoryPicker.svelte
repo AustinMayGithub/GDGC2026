@@ -14,15 +14,15 @@
 	<button
 		type="button"
 		class="picker-card"
-		class:selected={value === 'factual'}
-		onclick={() => onchange('factual')}
-		aria-pressed={value === 'factual'}
+		class:selected={value === 'news'}
+		onclick={() => onchange('news')}
+		aria-pressed={value === 'news'}
 	>
 		<div class="picker-text">
-			<strong>{postCategoryLabel('factual')}</strong>
+			<strong>{postCategoryLabel('news')}</strong>
 			<span class="picker-sub">A news post people can rate for community reliability.</span>
 		</div>
-		{#if value === 'factual'}
+		{#if value === 'news'}
 			<span class="check">Selected</span>
 		{/if}
 	</button>
@@ -30,21 +30,21 @@
 	<button
 		type="button"
 		class="picker-card"
-		class:selected={value === 'personal'}
-		onclick={() => onchange('personal')}
-		aria-pressed={value === 'personal'}
+		class:selected={value === 'community'}
+		onclick={() => onchange('community')}
+		aria-pressed={value === 'community'}
 	>
 		<div class="picker-text">
-			<strong>{postCategoryLabel('personal')}</strong>
+			<strong>{postCategoryLabel('community')}</strong>
 			<span class="picker-sub">A discussion, update, or personal view that does not need reliability ratings.</span>
 		</div>
-		{#if value === 'personal'}
+		{#if value === 'community'}
 			<span class="check">Selected</span>
 		{/if}
 	</button>
 
-	{#if value === 'factual'}
-		<div class="factual-notice">
+	{#if value === 'news'}
+		<div class="news-notice">
 			News posts receive a community reliability rating.
 		</div>
 	{/if}
@@ -98,7 +98,7 @@
 		text-transform: uppercase;
 		letter-spacing: 0.05em;
 	}
-	.factual-notice {
+	.news-notice {
 		display: flex;
 		align-items: center;
 		gap: 8px;

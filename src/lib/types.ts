@@ -1,6 +1,6 @@
 // Shared types - the contract between backend endpoints and the UI.
 
-export type PostCategory = 'personal' | 'factual';
+export type PostCategory = 'community' | 'news';
 export type VoteValue = 'verify' | 'dispute';
 export type MapScope = 'national' | 'local';
 export type CommentReactionValue = 'like' | 'dislike';

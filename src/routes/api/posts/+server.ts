@@ -21,6 +21,12 @@ const METERS_PER_DEGREE_LAT = 111320;
 const MAX_POST_IMAGES = 6;
 const MAX_IMAGE_BYTES = 1_500_000;
 
+function normalizePostCategory(value: unknown): PostCategory | null {
+	if (value === 'news' || value === 'factual') return 'news';
+	if (value === 'community' || value === 'personal') return 'community';
+	return null;
+}
+
 function isMissingOptionalPostColumn(err: unknown) {
 	const message = err instanceof Error ? err.message : String(err);
 	return (
@@ -140,14 +146,9 @@ async function createPost({ request, locals }: Parameters<RequestHandler>[0]) {
 			? data.headerImageDataUrl.trim()
 			: null;
 	const headerImageDataUrl = imageDataUrls[0] ?? legacyHeaderImageDataUrl;
-	const category: PostCategory | null =
-		data.category === 'factual' || data.category === 'news'
-			? 'factual'
-			: data.category === 'personal' ||
-					data.category === 'community' ||
-					data.category === 'community-post'
-				? 'personal'
-				: null;
+	const imagesToPersist =
+		imageDataUrls.length > 0 ? imageDataUrls : headerImageDataUrl ? [headerImageDataUrl] : [];
+	const category = normalizePostCategory(data.category);
 	const lng = Number(data.lng);
 	const lat = Number(data.lat);
 	const impactRadiusM = Math.round(Number(data.impactRadiusM));
@@ -207,10 +208,10 @@ async function createPost({ request, locals }: Parameters<RequestHandler>[0]) {
 
 	if (!post) throw error(500, 'Post could not be created.');
 
-	if (imageDataUrls.length > 0) {
+	if (imagesToPersist.length > 0) {
 		try {
 			await db.insert(postImages).values(
-				imageDataUrls.map((dataUrl: string, position: number) => ({
+				imagesToPersist.map((dataUrl: string, position: number) => ({
 					postId: post!.id,
 					dataUrl,
 					position

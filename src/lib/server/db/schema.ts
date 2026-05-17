@@ -12,7 +12,7 @@ import {
 } from 'drizzle-orm/pg-core';
 import type { AnyPgColumn } from 'drizzle-orm/pg-core';
 
-export const postCategory = pgEnum('post_category', ['personal', 'factual']);
+export const postCategory = pgEnum('post_category', ['community', 'news']);
 export const voteValue = pgEnum('vote_value', ['verify', 'dispute']);
 export const otpPurpose = pgEnum('otp_purpose', ['signup', 'login']);
 
