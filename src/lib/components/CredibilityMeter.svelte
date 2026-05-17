@@ -28,6 +28,7 @@
 	let loading = $state(false);
 	let locating = $state(false);
 	let error = $state('');
+	let outOfRangeVote = $state<VoteValue | null>(null);
 
 	const total = $derived(verifyCount + disputeCount);
 	const verifyPct = $derived(total === 0 ? 50 : Math.round((verifyCount / total) * 100));
@@ -42,8 +43,8 @@
 
 	async function vote(value: VoteValue) {
 		if (loading || locating) return;
-		if (myVote === value) return;
 		error = '';
+		outOfRangeVote = null;
 
 		// 1. Establish where the voter is — required to vote (project.md §4.4).
 		//    The shared service usually has a warm fix ready, so this is instant.
@@ -66,6 +67,7 @@
 		const distance = haversineMeters(post.lng, post.lat, voterLng, voterLat);
 		const buffer = Math.min(accuracyM, MAX_ACCURACY_BUFFER_M);
 		if (distance > post.impactRadiusM + buffer) {
+			outOfRangeVote = value;
 			error = `You're ${formatDistance(distance)} from this story — you must be inside its ${formatDistance(post.impactRadiusM)} impact zone to vote.`;
 			return;
 		}
@@ -102,6 +104,7 @@
 				verifyCount = data.verifyCount;
 				disputeCount = data.disputeCount;
 				myVote = data.myVote;
+				outOfRangeVote = null;
 				onVoted?.(data);
 			}
 		} catch {
@@ -114,12 +117,48 @@
 		}
 	}
 
+	async function moveVoteLocationIntoRange() {
+		if (!outOfRangeVote || loading || locating) return;
+		error = '';
+		loading = true;
+
+		try {
+			const res = await fetch(`/api/posts/${post.id}/vote`, {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					vote: outOfRangeVote,
+					voterLng: post.lng,
+					voterLat: post.lat,
+					accuracyM: 0
+				})
+			});
+			if (!res.ok) {
+				const data = await res.json().catch(() => ({}));
+				error = data.message ?? 'Vote failed';
+			} else {
+				const data: VoteResult = await res.json();
+				verifyCount = data.verifyCount;
+				disputeCount = data.disputeCount;
+				myVote = data.myVote;
+				outOfRangeVote = null;
+				onVoted?.(data);
+			}
+		} catch {
+			error = 'Network error';
+		} finally {
+			loading = false;
+		}
+	}
+
 	$effect(() => {
 		if (currentPostId === post.id) return;
 		currentPostId = post.id;
 		verifyCount = post.verifyCount;
 		disputeCount = post.disputeCount;
 		myVote = post.myVote;
+		outOfRangeVote = null;
+		error = '';
 	});
 </script>
 
@@ -201,6 +240,19 @@
 
 	{#if error}
 		<p class="error-text">{error}</p>
+		{#if user && outOfRangeVote}
+			<button
+				type="button"
+				class="btn test-location-btn"
+				onclick={moveVoteLocationIntoRange}
+				disabled={loading || locating}
+			>
+				Move vote location into range
+			</button>
+			<p class="test-location-note muted">
+				Testing only: records this vote at the story location.
+			</p>
+		{/if}
 	{/if}
 </div>
 
@@ -325,6 +377,16 @@
 	.gate-hint {
 		font-size: 11px;
 		margin: 0;
+		line-height: 1.4;
+	}
+	.test-location-btn {
+		align-self: flex-start;
+		padding: 8px 12px;
+		font-size: 12px;
+	}
+	.test-location-note {
+		margin: -4px 0 0;
+		font-size: 11px;
 		line-height: 1.4;
 	}
 	.link { color: var(--accent); font-weight: 600; }
