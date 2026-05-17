@@ -1,4 +1,4 @@
-import { json, error, isHttpError } from '@sveltejs/kit';
+import { json, error, isHttpError, redirect } from '@sveltejs/kit';
 import { dev } from '$app/environment';
 import { eq } from 'drizzle-orm';
 import { db } from '$lib/server/db';
@@ -123,7 +123,16 @@ function jitterLocation(lng: number, lat: number) {
 	};
 }
 
-export const GET: RequestHandler = async ({ url }) => {
+export const GET: RequestHandler = async ({ request, url }) => {
+	const isDocumentRequest =
+		request.headers.get('sec-fetch-dest') === 'document' ||
+		request.headers.get('sec-fetch-mode') === 'navigate' ||
+		request.headers.get('accept')?.includes('text/html');
+
+	if (isDocumentRequest) {
+		throw redirect(303, '/');
+	}
+
 	try {
 		const scope = url.searchParams.get('scope');
 		const regionId = url.searchParams.get('regionId') ?? undefined;

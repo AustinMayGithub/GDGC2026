@@ -1,4 +1,4 @@
-import type { Handle } from '@sveltejs/kit';
+import { redirect, type Handle } from '@sveltejs/kit';
 import { SESSION_COOKIE, validateSession } from '$lib/server/auth';
 import { NZ_BBOX } from '$lib/data/nz-regions';
 
@@ -56,7 +56,19 @@ function withinNz(loc: { lng: number; lat: number }): boolean {
 	return loc.lng >= minLng && loc.lng <= maxLng && loc.lat >= minLat && loc.lat <= maxLat;
 }
 
+function isDocumentRequest(request: Request): boolean {
+	return (
+		request.headers.get('sec-fetch-dest') === 'document' ||
+		request.headers.get('sec-fetch-mode') === 'navigate' ||
+		request.headers.get('accept')?.includes('text/html') === true
+	);
+}
+
 export const handle: Handle = async ({ event, resolve }) => {
+	if (event.url.pathname.startsWith('/api/') && isDocumentRequest(event.request)) {
+		throw redirect(303, '/');
+	}
+
 	const token = event.cookies.get(SESSION_COOKIE);
 	try {
 		event.locals.user = token ? await validateSession(token) : null;
