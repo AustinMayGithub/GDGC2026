@@ -56,12 +56,12 @@
 
 		{#if hasMultiple}
 			<button type="button" class="nav previous" aria-label="Previous image" onclick={showPrevious}>
-				<svg width="18" height="18" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+				<svg width="20" height="20" viewBox="0 0 16 16" fill="none" aria-hidden="true">
 					<path d="M10 3L5 8l5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
 				</svg>
 			</button>
 			<button type="button" class="nav next" aria-label="Next image" onclick={showNext}>
-				<svg width="18" height="18" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+				<svg width="20" height="20" viewBox="0 0 16 16" fill="none" aria-hidden="true">
 					<path d="M6 3l5 5-5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
 				</svg>
 			</button>
@@ -94,7 +94,7 @@
 
 	.gallery.flush {
 		width: calc(100% + 64px);
-		margin: -32px -32px 28px;
+		margin: -32px -32px 34px;
 		border-radius: 0;
 		border-left: none;
 		border-right: none;
@@ -103,7 +103,7 @@
 
 	.gallery.flush.panel {
 		width: calc(100% + 48px);
-		margin: -24px -24px 0;
+		margin: -24px -24px 22px;
 	}
 
 	.gallery img {
@@ -117,16 +117,18 @@
 		position: absolute;
 		top: 50%;
 		transform: translateY(-50%);
-		width: 34px;
-		height: 34px;
+		z-index: 3;
+		width: 42px;
+		height: 42px;
 		display: inline-flex;
 		align-items: center;
 		justify-content: center;
-		border: 1px solid rgba(255, 255, 255, 0.75);
+		border: 1px solid rgba(255, 255, 255, 0.86);
 		border-radius: 999px;
-		background: rgba(20, 20, 26, 0.58);
+		background: rgba(20, 20, 26, 0.68);
 		color: #fff;
 		backdrop-filter: blur(10px);
+		box-shadow: 0 10px 28px rgba(0, 0, 0, 0.22);
 	}
 
 	.nav:hover {
@@ -145,9 +147,10 @@
 		position: absolute;
 		top: 10px;
 		right: 10px;
-		padding: 3px 8px;
+		z-index: 4;
+		padding: 4px 9px;
 		border-radius: 999px;
-		background: rgba(20, 20, 26, 0.62);
+		background: rgba(20, 20, 26, 0.72);
 		color: #fff;
 		font-size: 12px;
 		font-weight: 750;
@@ -159,6 +162,7 @@
 		left: 50%;
 		bottom: 10px;
 		transform: translateX(-50%);
+		z-index: 4;
 		display: flex;
 		gap: 5px;
 		padding: 5px 7px;
@@ -184,12 +188,12 @@
 	@media (max-width: 720px) {
 		.gallery.flush {
 			width: calc(100% + 36px);
-			margin: -18px -18px 18px;
+			margin: -18px -18px 24px;
 		}
 
 		.gallery.flush.panel {
 			width: calc(100% + 36px);
-			margin: -18px -18px 0;
+			margin: -18px -18px 18px;
 		}
 	}
 </style>

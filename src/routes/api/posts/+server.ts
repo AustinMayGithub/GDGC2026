@@ -1,5 +1,6 @@
 import { json, error, isHttpError } from '@sveltejs/kit';
 import { dev } from '$app/environment';
+import { eq } from 'drizzle-orm';
 import { db } from '$lib/server/db';
 import { postImages, posts } from '$lib/server/db/schema';
 import {
@@ -209,7 +210,14 @@ async function createPost({ request, locals }: Parameters<RequestHandler>[0]) {
 				}))
 			);
 		} catch (err) {
-			if (!isMissingPostImagesTable(err)) throw err;
+			if (isMissingPostImagesTable(err)) {
+				await db.delete(posts).where(eq(posts.id, post.id)).catch(() => undefined);
+				throw error(
+					500,
+					'The database is missing the post_images table. Run the gallery image SQL migration, then try again.'
+				);
+			}
+			throw err;
 		}
 	}
 

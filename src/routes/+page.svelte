@@ -2858,7 +2858,7 @@
 		align-items: flex-start;
 		justify-content: space-between;
 		gap: 16px;
-		margin-bottom: 18px;
+		margin-bottom: 28px;
 	}
 
 	.profile-panel-top {
