@@ -139,12 +139,12 @@
 		<div
 			class="bar-fill bar-verify"
 			class:active={myVote === 'verify'}
-			style="width: {verifyPct === 0 ? '0%' : `calc(${verifyPct}% + 10px)`}"
+			style="width: {verifyPct === 0 ? '0%' : `${verifyPct}%`}"
 		></div>
 		<div
 			class="bar-fill bar-dispute"
 			class:active={myVote === 'dispute'}
-			style="width: {disputePct === 0 ? '0%' : `calc(${disputePct}% + 10px)`}"
+			style="left: {verifyPct === 100 ? '100%' : `calc(${verifyPct}% - 18px)`}; width: {disputePct === 0 ? '0%' : `calc(${disputePct}% + 18px)`}"
 		></div>
 		<div class="bar-labels" aria-hidden="true">
 			<span>{total === 0 ? 'Verify' : `${verifyPct}% verified`}</span>
@@ -241,22 +241,22 @@
 		top: 0;
 		bottom: 0;
 		transition: width 0.4s ease, filter 0.16s ease;
+		filter: saturate(0.68) brightness(0.86);
 	}
 	.bar-verify {
 		left: 0;
 		background: var(--verify);
-		clip-path: polygon(0 0, calc(100% - 18px) 0, 100% 100%, 0 100%);
+		clip-path: polygon(0 0, 100% 0, calc(100% - 18px) 100%, 0 100%);
 	}
 	.bar-dispute {
-		right: 0;
 		background: var(--dispute);
 		clip-path: polygon(18px 0, 100% 0, 100% 100%, 0 100%);
 	}
 	.bar-track.no-votes .bar-fill {
-		filter: saturate(0.72) opacity(0.92);
+		filter: saturate(0.58) brightness(0.9) opacity(0.9);
 	}
 	.bar-fill.active {
-		filter: brightness(0.9) saturate(1.16);
+		filter: none;
 	}
 	.bar-labels {
 		position: absolute;
@@ -297,8 +297,9 @@
 	.bar-hit-dispute {
 		right: 0;
 	}
-	.bar-track:has(.bar-hit:not(:disabled):hover) .bar-fill {
-		filter: brightness(1.04);
+	.bar-track:has(.bar-hit-verify:not(:disabled):hover) .bar-verify,
+	.bar-track:has(.bar-hit-dispute:not(:disabled):hover) .bar-dispute {
+		filter: none;
 	}
 	.vote-row {
 		display: none;
